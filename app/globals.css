@@ -1,0 +1,169 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+
+    --radius: 0.5rem;
+
+    /* Custom colors for entropy theme */
+    --slate-blue: 215 40% 44%;
+    --antique-gold: 43 30% 61%;
+    --sage-green: 84 20% 51%;
+    --warm-gray: 30 5% 89%;
+    --dusty-rose: 0 15% 59%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 84% 4.9%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 94.1%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-serif;
+  }
+}
+
+.code-editor {
+  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+}
+
+/* Custom color classes */
+.bg-slate-blue {
+  background-color: hsl(var(--slate-blue));
+}
+.text-slate-blue {
+  color: hsl(var(--slate-blue));
+}
+
+.bg-antique-gold {
+  background-color: hsl(var(--antique-gold));
+}
+.text-antique-gold {
+  color: hsl(var(--antique-gold));
+}
+
+.bg-sage-green {
+  background-color: hsl(var(--sage-green));
+}
+.text-sage-green {
+  color: hsl(var(--sage-green));
+}
+
+.bg-warm-gray {
+  background-color: hsl(var(--warm-gray));
+}
+.text-warm-gray {
+  color: hsl(var(--warm-gray));
+}
+
+.bg-dusty-rose {
+  background-color: hsl(var(--dusty-rose));
+}
+.text-dusty-rose {
+  color: hsl(var(--dusty-rose));
+}
+
+/* Custom utility classes */
+.bg-sage-100 {
+  background-color: #f0f4ea;
+}
+.text-sage-700 {
+  color: #4d5d39;
+}
+
+.prose {
+  max-width: none;
+  @apply text-foreground;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  @apply text-foreground;
+}
+
+.prose p {
+  @apply text-foreground;
+}
+
+.prose code {
+  @apply bg-muted px-1 py-0.5 rounded text-sm;
+}
+
+.prose pre {
+  @apply bg-muted p-4 rounded-lg overflow-x-auto;
+}
+
+.prose blockquote {
+  @apply border-l-4 border-primary pl-4 italic;
+}

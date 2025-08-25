@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role      @default(STUDENT)
+  bio           String?
+  university    String?
+  course        String?
+  year          Int?
+  reputation    Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+  doubts   Doubt[]
+  comments Comment[]
+  votes    Vote[]
+
+  @@map("users")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Doubt {
+  id          String      @id @default(cuid())
+  title       String
+  content     String      @db.Text
+  subject     Subject
+  tags        String[]
+  imageUrl    String?
+  isAnonymous Boolean     @default(false)
+  isResolved  Boolean     @default(false)
+  votes       Int         @default(0)
+  views       Int         @default(0)
+  authorId    String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  author   User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  comments Comment[]
+  userVotes Vote[]
+
+  @@map("doubts")
+}
+
+model Comment {
+  id          String   @id @default(cuid())
+  content     String   @db.Text
+  isAnonymous Boolean  @default(false)
+  isAccepted  Boolean  @default(false)
+  votes       Int      @default(0)
+  doubtId     String
+  authorId    String?
+  parentId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  doubt     Doubt     @relation(fields: [doubtId], references: [id], onDelete: Cascade)
+  author    User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentReplies")
+  userVotes Vote[]
+
+  @@map("comments")
+}
+
+model Vote {
+  id        String   @id @default(cuid())
+  type      VoteType
+  userId    String
+  doubtId   String?
+  commentId String?
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  doubt   Doubt?   @relation(fields: [doubtId], references: [id], onDelete: Cascade)
+  comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, doubtId])
+  @@unique([userId, commentId])
+  @@map("votes")
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum Subject {
+  COMPUTER_SCIENCE
+  MATHEMATICS
+  PHYSICS
+  CHEMISTRY
+  BIOLOGY
+  ENGINEERING
+  BUSINESS
+  LITERATURE
+  HISTORY
+  PSYCHOLOGY
+  OTHER
+}
+
+enum VoteType {
+  UP
+  DOWN
+}
