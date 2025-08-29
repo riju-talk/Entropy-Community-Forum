@@ -1,130 +1,88 @@
 import Link from "next/link"
-import { Facebook, Twitter, Instagram, Linkedin, Youtube, Mail, Phone, MapPin } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Separator } from "@/components/ui/separator"
 
 export default function Footer() {
   return (
-    <footer className="bg-slate-800 text-white">
-      <div className="container mx-auto px-4 md:px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* About */}
-          <div>
-            <h3 className="font-serif text-xl font-bold mb-4">Global University</h3>
-            <p className="text-neutral-300 mb-6">
-              A leading institution dedicated to academic excellence, research innovation, and global citizenship.
+    <footer className="border-t bg-background">
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* Brand */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-lg">E</span>
+              </div>
+              <span className="font-bold text-xl">Entropy</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Academic community platform for students and educators to collaborate, learn, and grow together.
             </p>
-            <div className="flex space-x-4">
-              <Link href="#" className="text-neutral-300 hover:text-white">
-                <Facebook className="h-5 w-5" />
-                <span className="sr-only">Facebook</span>
+          </div>
+
+          {/* Platform */}
+          <div className="space-y-4">
+            <h3 className="font-semibold">Platform</h3>
+            <div className="space-y-2 text-sm">
+              <Link href="/ask" className="block text-muted-foreground hover:text-foreground">
+                Ask Questions
               </Link>
-              <Link href="#" className="text-neutral-300 hover:text-white">
-                <Twitter className="h-5 w-5" />
-                <span className="sr-only">Twitter</span>
+              <Link href="/ai-agent" className="block text-muted-foreground hover:text-foreground">
+                AI Assistant
               </Link>
-              <Link href="#" className="text-neutral-300 hover:text-white">
-                <Instagram className="h-5 w-5" />
-                <span className="sr-only">Instagram</span>
+              <Link href="/mentorship" className="block text-muted-foreground hover:text-foreground">
+                Find Mentors
               </Link>
-              <Link href="#" className="text-neutral-300 hover:text-white">
-                <Linkedin className="h-5 w-5" />
-                <span className="sr-only">LinkedIn</span>
-              </Link>
-              <Link href="#" className="text-neutral-300 hover:text-white">
-                <Youtube className="h-5 w-5" />
-                <span className="sr-only">YouTube</span>
+              <Link href="/leaderboard" className="block text-muted-foreground hover:text-foreground">
+                Leaderboard
               </Link>
             </div>
           </div>
 
-          {/* Quick Links */}
-          <div>
-            <h3 className="font-serif text-lg font-bold mb-4">Quick Links</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link href="/programs" className="text-neutral-300 hover:text-white">
-                  Programs
-                </Link>
-              </li>
-              <li>
-                <Link href="/admissions" className="text-neutral-300 hover:text-white">
-                  Admissions
-                </Link>
-              </li>
-              <li>
-                <Link href="/research" className="text-neutral-300 hover:text-white">
-                  Research
-                </Link>
-              </li>
-              <li>
-                <Link href="/campus-life" className="text-neutral-300 hover:text-white">
-                  Campus Life
-                </Link>
-              </li>
-              <li>
-                <Link href="/alumni" className="text-neutral-300 hover:text-white">
-                  Alumni
-                </Link>
-              </li>
-              <li>
-                <Link href="/careers" className="text-neutral-300 hover:text-white">
-                  Careers
-                </Link>
-              </li>
-            </ul>
+          {/* Community */}
+          <div className="space-y-4">
+            <h3 className="font-semibold">Community</h3>
+            <div className="space-y-2 text-sm">
+              <Link href="/happenings" className="block text-muted-foreground hover:text-foreground">
+                Events
+              </Link>
+              <Link href="/about" className="block text-muted-foreground hover:text-foreground">
+                About Us
+              </Link>
+              <Link href="/community" className="block text-muted-foreground hover:text-foreground">
+                Communities
+              </Link>
+              <Link href="/research" className="block text-muted-foreground hover:text-foreground">
+                Research
+              </Link>
+            </div>
           </div>
 
-          {/* Contact */}
-          <div>
-            <h3 className="font-serif text-lg font-bold mb-4">Contact Us</h3>
-            <ul className="space-y-3">
-              <li className="flex items-start">
-                <MapPin className="h-5 w-5 mr-2 text-neutral-300 mt-0.5" />
-                <span className="text-neutral-300">123 University Avenue, Global City, 10001</span>
-              </li>
-              <li className="flex items-center">
-                <Phone className="h-5 w-5 mr-2 text-neutral-300" />
-                <span className="text-neutral-300">+1 (555) 123-4567</span>
-              </li>
-              <li className="flex items-center">
-                <Mail className="h-5 w-5 mr-2 text-neutral-300" />
-                <span className="text-neutral-300">info@globaluniversity.edu</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Newsletter */}
-          <div>
-            <h3 className="font-serif text-lg font-bold mb-4">Stay Updated</h3>
-            <p className="text-neutral-300 mb-4">Subscribe to our newsletter for the latest news and events.</p>
-            <div className="space-y-2">
-              <Input
-                type="email"
-                placeholder="Your email address"
-                className="bg-slate-700 border-slate-600 text-white placeholder:text-neutral-400"
-              />
-              <Button className="w-full bg-slate-600 hover:bg-slate-500">Subscribe</Button>
+          {/* Support */}
+          <div className="space-y-4">
+            <h3 className="font-semibold">Support</h3>
+            <div className="space-y-2 text-sm">
+              <Link href="/help" className="block text-muted-foreground hover:text-foreground">
+                Help Center
+              </Link>
+              <Link href="/contact" className="block text-muted-foreground hover:text-foreground">
+                Contact Us
+              </Link>
+              <Link href="/privacy" className="block text-muted-foreground hover:text-foreground">
+                Privacy Policy
+              </Link>
+              <Link href="/terms" className="block text-muted-foreground hover:text-foreground">
+                Terms of Service
+              </Link>
             </div>
           </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-slate-700">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-neutral-400 text-sm mb-4 md:mb-0">
-              © {new Date().getFullYear()} Global University. All rights reserved.
-            </p>
-            <div className="flex space-x-6">
-              <Link href="/privacy" className="text-neutral-400 hover:text-white text-sm">
-                Privacy Policy
-              </Link>
-              <Link href="/terms" className="text-neutral-400 hover:text-white text-sm">
-                Terms of Use
-              </Link>
-              <Link href="/accessibility" className="text-neutral-400 hover:text-white text-sm">
-                Accessibility
-              </Link>
-            </div>
+        <Separator className="my-8" />
+
+        <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+          <p className="text-sm text-muted-foreground">© 2024 Entropy. All rights reserved.</p>
+          <div className="flex space-x-4 text-sm text-muted-foreground">
+            <span>Made with ❤️ for education</span>
           </div>
         </div>
       </div>

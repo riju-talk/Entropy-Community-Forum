@@ -1,116 +1,142 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
-import { Home, TrendingUp, Users, BookOpen, Bot, Plus } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import {
+  Home,
+  MessageSquare,
+  Bot,
+  Users,
+  Trophy,
+  Calendar,
+  Plus,
+  BookOpen,
+  Calculator,
+  Atom,
+  FlaskConical,
+  Dna,
+  Cog,
+} from "lucide-react"
+import AuthModal from "@/components/auth-modal"
 
-const navigation = [
-  { name: "Home", href: "/", icon: Home },
-  { name: "Trending", href: "/trending", icon: TrendingUp },
-  { name: "Communities", href: "/communities", icon: Users },
-  { name: "Study Groups", href: "/study-groups", icon: BookOpen },
-  { name: "AI Assistant", href: "/ai-agent", icon: Bot },
+const navigationItems = [
+  { href: "/", label: "Home", icon: Home },
+  { href: "/ask", label: "Ask Question", icon: MessageSquare },
+  { href: "/ai-agent", label: "AI Assistant", icon: Bot },
+  { href: "/mentorship", label: "Mentorship", icon: Users },
+  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  { href: "/happenings", label: "Happenings", icon: Calendar },
 ]
 
-const communities = [
-  { name: "r/ComputerScience", members: "2.1M", color: "bg-blue-500" },
-  { name: "r/Mathematics", members: "1.8M", color: "bg-green-500" },
-  { name: "r/Physics", members: "1.5M", color: "bg-purple-500" },
-  { name: "r/Programming", members: "3.2M", color: "bg-orange-500" },
-  { name: "r/AskAcademia", members: "890K", color: "bg-red-500" },
+const subjects = [
+  { name: "Computer Science", count: 1234, icon: BookOpen },
+  { name: "Mathematics", count: 987, icon: Calculator },
+  { name: "Physics", count: 654, icon: Atom },
+  { name: "Chemistry", count: 432, icon: FlaskConical },
+  { name: "Biology", count: 321, icon: Dna },
+  { name: "Engineering", count: 876, icon: Cog },
 ]
+
+const trendingTopics = ["MachineLearning", "DataStructures", "QuantumPhysics", "ReactHooks", "LinearAlgebra"]
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const { data: session } = useSession()
+  const [showAuthModal, setShowAuthModal] = useState(false)
+
+  const handleCreateCommunity = () => {
+    if (!session) {
+      setShowAuthModal(true)
+    } else {
+      // Handle community creation for authenticated users
+      console.log("Create community for authenticated user")
+    }
+  }
 
   return (
-    <div className="space-y-4">
-      {/* Navigation */}
-      <Card>
-        <CardContent className="p-4">
-          <nav className="space-y-1">
-            {navigation.map((item) => {
+    <>
+      <div className="space-y-6">
+        {/* Navigation */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Navigation</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {navigationItems.map((item) => {
+              const Icon = item.icon
               const isActive = pathname === item.href
+
               return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted",
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.name}
+                <Link key={item.href} href={item.href}>
+                  <Button variant={isActive ? "default" : "ghost"} className="w-full justify-start">
+                    <Icon className="h-4 w-4 mr-2" />
+                    {item.label}
+                  </Button>
                 </Link>
               )
             })}
-          </nav>
-        </CardContent>
-      </Card>
 
-      {/* Quick Actions */}
-      <Card>
-        <CardContent className="p-4">
-          <h3 className="font-semibold mb-3">Quick Actions</h3>
-          <div className="space-y-2">
-            <Button asChild variant="outline" className="w-full justify-start bg-transparent">
-              <Link href="/ask">
-                <Plus className="h-4 w-4 mr-2" />
-                Ask Question
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="w-full justify-start bg-transparent">
-              <Link href="/ai-agent">
-                <Bot className="h-4 w-4 mr-2" />
-                AI Assistant
-              </Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            <Separator className="my-4" />
 
-      {/* Communities */}
-      <Card>
-        <CardContent className="p-4">
-          <h3 className="font-semibold mb-3">Your Communities</h3>
-          <div className="space-y-2">
-            {communities.slice(0, 5).map((community) => (
-              <div key={community.name} className="flex items-center gap-3 p-2 hover:bg-muted rounded cursor-pointer">
-                <div className={cn("w-4 h-4 rounded-full", community.color)} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{community.name}</p>
-                  <p className="text-xs text-muted-foreground">{community.members}</p>
+            <Button variant="outline" className="w-full justify-start bg-transparent" onClick={handleCreateCommunity}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Community
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Popular Subjects */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Popular Subjects</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {subjects.map((subject) => {
+              const Icon = subject.icon
+              return (
+                <div key={subject.name} className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{subject.name}</span>
+                  </div>
+                  <Badge variant="secondary" className="text-xs">
+                    {subject.count}
+                  </Badge>
                 </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              )
+            })}
+          </CardContent>
+        </Card>
 
-      {/* Trending Tags */}
-      <Card>
-        <CardContent className="p-4">
-          <h3 className="font-semibold mb-3">Trending Tags</h3>
-          <div className="flex flex-wrap gap-2">
-            {["javascript", "python", "react", "machine-learning", "algorithms", "data-structures"].map((tag) => (
-              <Badge
-                key={tag}
-                variant="secondary"
-                className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground"
-              >
-                #{tag}
-              </Badge>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        {/* Trending Topics */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Trending Topics</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {trendingTopics.map((topic) => (
+                <Badge key={topic} variant="outline" className="text-xs">
+                  #{topic}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        title="Create Community"
+        description="Sign in to create and manage your own academic community."
+      />
+    </>
   )
 }
