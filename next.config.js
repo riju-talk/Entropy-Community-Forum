@@ -10,9 +10,6 @@ const nextConfig = {
     domains: ["placeholder.svg", "lh3.googleusercontent.com"],
     unoptimized: true,
   },
-  experimental: {
-    serverActions: true,
-  },
 }
 
 module.exports = nextConfig
