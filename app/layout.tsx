@@ -5,7 +5,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth-provider"
 import { Toaster } from "@/components/ui/toaster"
-import Header from "@/components/Header"
+import Header from "@/components/header"
 import Sidebar from "@/components/sidebar"
 import Footer from "@/components/footer"
 

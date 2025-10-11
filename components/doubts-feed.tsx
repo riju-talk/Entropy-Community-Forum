@@ -1,167 +1,196 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { TrendingUp } from "lucide-react"
-import DoubtCard from "@/components/doubt-card"
+import { useState, useEffect } from "react"
+import { useInView } from "react-intersection-observer"
+import DoubtCard from "./doubt-card"
+import { Card, CardContent } from "./ui/card"
+import { Skeleton } from "./ui/skeleton"
+import { Button } from "./ui/button"
+import { RefreshCw } from "lucide-react"
 
-const mockDoubts = [
-  {
-    id: "1",
-    title: "How to implement a binary search tree in JavaScript?",
-    content:
-      "I'm trying to understand how to implement a BST from scratch. Can someone provide a clear example with insertion and search methods?",
-    subject: "COMPUTER_SCIENCE",
-    tags: ["javascript", "data-structures", "binary-tree"],
-    imageUrl: null,
-    isAnonymous: false,
-    isResolved: false,
-    votes: 15,
-    views: 234,
-    createdAt: "2024-01-15T10:30:00Z",
-    author: {
-      id: "1",
-      name: "Alex Johnson",
-      image: null,
-      role: "STUDENT",
-    },
-    _count: {
-      comments: 8,
-      userVotes: 15,
-    },
-  },
-  {
-    id: "2",
-    title: "Understanding calculus derivatives - chain rule confusion",
-    content: "I'm having trouble with the chain rule in calculus. Can someone explain it step by step with examples?",
-    subject: "MATHEMATICS",
-    tags: ["calculus", "derivatives", "chain-rule"],
-    imageUrl: null,
-    isAnonymous: true,
-    isResolved: true,
-    votes: 23,
-    views: 456,
-    createdAt: "2024-01-14T15:45:00Z",
-    author: null,
-    _count: {
-      comments: 12,
-      userVotes: 23,
-    },
-  },
-  {
-    id: "3",
-    title: "React hooks vs class components - when to use what?",
-    content:
-      "I'm learning React and confused about when to use hooks vs class components. What are the best practices?",
-    subject: "COMPUTER_SCIENCE",
-    tags: ["react", "hooks", "javascript", "frontend"],
-    imageUrl: null,
-    isAnonymous: false,
-    isResolved: false,
-    votes: 31,
-    views: 789,
-    createdAt: "2024-01-13T09:20:00Z",
-    author: {
-      id: "2",
-      name: "Sarah Chen",
-      image: null,
-      role: "STUDENT",
-    },
-    _count: {
-      comments: 15,
-      userVotes: 31,
-    },
-  },
-]
+interface Doubt {
+  id: string
+  title: string
+  content: string
+  subject: string
+  tags: string[]
+  imageUrl?: string
+  isAnonymous: boolean
+  isResolved: boolean
+  votes: number
+  views: number
+  createdAt: string
+  author?: {
+    id: string
+    name: string
+    image?: string
+    role: string
+  }
+  _count: {
+    comments: number
+    userVotes: number
+  }
+}
+
+interface DoubtsResponse {
+  doubts: Doubt[]
+  total: number
+  hasMore: boolean
+  page: number
+}
 
 export default function DoubtsFeed() {
-  const [sortBy, setSortBy] = useState("newest")
-  const [filterBy, setFilterBy] = useState("all")
+  const [doubts, setDoubts] = useState<Doubt[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const [page, setPage] = useState(1)
+  const [error, setError] = useState<string | null>(null)
+
+  const { ref, inView } = useInView({
+    threshold: 0,
+    rootMargin: "100px",
+  })
+
+  const fetchDoubts = async (pageNum: number, reset = false) => {
+    try {
+      if (pageNum === 1) setLoading(true)
+      else setLoadingMore(true)
+
+      const response = await fetch(`/api/doubts?page=${pageNum}&limit=10`)
+      if (!response.ok) throw new Error("Failed to fetch doubts")
+
+      const data: DoubtsResponse = await response.json()
+
+      if (reset) {
+        setDoubts(data.doubts)
+      } else {
+        setDoubts((prev) => [...prev, ...data.doubts])
+      }
+
+      setHasMore(data.hasMore)
+      setPage(pageNum)
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred")
+    } finally {
+      setLoading(false)
+      setLoadingMore(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchDoubts(1, true)
+  }, [])
+
+  useEffect(() => {
+    if (inView && hasMore && !loadingMore && !loading) {
+      fetchDoubts(page + 1)
+    }
+  }, [inView, hasMore, loadingMore, loading, page])
+
+  const handleRefresh = () => {
+    setPage(1)
+    fetchDoubts(1, true)
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Card key={i}>
+            <CardContent className="p-6">
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center gap-2">
+                  <Skeleton className="h-8 w-8" />
+                  <Skeleton className="h-4 w-8" />
+                  <Skeleton className="h-8 w-8" />
+                </div>
+                <div className="flex-1 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-5 w-20" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-16 w-full" />
+                  <div className="flex gap-2">
+                    <Skeleton className="h-5 w-16" />
+                    <Skeleton className="h-5 w-16" />
+                    <Skeleton className="h-5 w-16" />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center">
+          <p className="text-muted-foreground mb-4">Failed to load doubts: {error}</p>
+          <Button onClick={handleRefresh} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Try Again
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (doubts.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center">
+          <p className="text-muted-foreground">No doubts found. Be the first to ask a question!</p>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Latest Questions
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Newest</SelectItem>
-                  <SelectItem value="votes">Most Votes</SelectItem>
-                  <SelectItem value="views">Most Views</SelectItem>
-                  <SelectItem value="answers">Most Answers</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={filterBy} onValueChange={setFilterBy}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="unanswered">Unanswered</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
-                </SelectContent>
-              </Select>
+    <div className="space-y-4">
+      {doubts.map((doubt) => (
+        <DoubtCard key={doubt.id} doubt={doubt} />
+      ))}
+
+      {/* Loading more indicator */}
+      {loadingMore && (
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex gap-4">
+              <div className="flex flex-col items-center gap-2">
+                <Skeleton className="h-8 w-8" />
+                <Skeleton className="h-4 w-8" />
+                <Skeleton className="h-8 w-8" />
+              </div>
+              <div className="flex-1 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-5 w-20" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-16 w-full" />
+              </div>
             </div>
-          </div>
-        </CardHeader>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Filter Tabs */}
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="trending">Trending</TabsTrigger>
-          <TabsTrigger value="recent">Recent</TabsTrigger>
-          <TabsTrigger value="unanswered">Unanswered</TabsTrigger>
-        </TabsList>
+      {/* Intersection observer target */}
+      {hasMore && <div ref={ref} className="h-10" />}
 
-        <TabsContent value="all" className="mt-6 space-y-4">
-          {mockDoubts.map((doubt) => (
-            <DoubtCard key={doubt.id} doubt={doubt} />
-          ))}
-        </TabsContent>
-
-        <TabsContent value="trending" className="mt-6 space-y-4">
-          {mockDoubts
-            .filter((doubt) => doubt.votes > 20)
-            .map((doubt) => (
-              <DoubtCard key={doubt.id} doubt={doubt} />
-            ))}
-        </TabsContent>
-
-        <TabsContent value="recent" className="mt-6 space-y-4">
-          {mockDoubts
-            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-            .map((doubt) => (
-              <DoubtCard key={doubt.id} doubt={doubt} />
-            ))}
-        </TabsContent>
-
-        <TabsContent value="unanswered" className="mt-6 space-y-4">
-          {mockDoubts
-            .filter((doubt) => !doubt.isResolved)
-            .map((doubt) => (
-              <DoubtCard key={doubt.id} doubt={doubt} />
-            ))}
-        </TabsContent>
-      </Tabs>
-
-      {/* Load More */}
-      <div className="text-center">
-        <Button variant="outline">Load More Questions</Button>
-      </div>
+      {/* End of results */}
+      {!hasMore && doubts.length > 0 && (
+        <Card>
+          <CardContent className="p-6 text-center">
+            <p className="text-muted-foreground">You've reached the end of the feed!</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

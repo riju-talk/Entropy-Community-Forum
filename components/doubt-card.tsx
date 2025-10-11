@@ -1,11 +1,11 @@
 import Link from "next/link"
 import Image from "next/image"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { MessageCircle, Eye, CheckCircle, ArrowUp, ArrowDown } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "./ui/card"
+import { Badge } from "./ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
+import { MessageCircle, Eye, CheckCircle } from "lucide-react"
 import { formatTimeAgo, getSubjectColor } from "@/lib/utils"
+import VoteButtons from "./VoteButtons"
 
 interface DoubtCardProps {
   doubt: {
@@ -14,7 +14,7 @@ interface DoubtCardProps {
     content: string
     subject: string
     tags: string[]
-    imageUrl?: string | null
+    imageUrl?: string
     isAnonymous: boolean
     isResolved: boolean
     votes: number
@@ -23,9 +23,9 @@ interface DoubtCardProps {
     author?: {
       id: string
       name: string
-      image?: string | null
+      image?: string
       role: string
-    } | null
+    }
     _count: {
       comments: number
       userVotes: number
@@ -41,15 +41,7 @@ export default function DoubtCard({ doubt }: DoubtCardProps) {
       <CardContent className="p-6">
         <div className="flex gap-4">
           {/* Vote buttons */}
-          <div className="flex flex-col items-center gap-1 flex-shrink-0">
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <ArrowUp className="h-4 w-4" />
-            </Button>
-            <span className="text-sm font-medium">{doubt.votes}</span>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <ArrowDown className="h-4 w-4" />
-            </Button>
-          </div>
+          <VoteButtons itemId={doubt.id} itemType="doubt" votes={doubt.votes} className="flex-shrink-0" />
 
           {/* Content */}
           <div className="flex-1 min-w-0">
@@ -111,12 +103,8 @@ export default function DoubtCard({ doubt }: DoubtCardProps) {
             {doubt.tags && doubt.tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-3">
                 {doubt.tags.slice(0, 3).map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant="secondary"
-                    className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground"
-                  >
-                    #{tag}
+                  <Badge key={tag} variant="secondary" className="text-xs">
+                    {tag}
                   </Badge>
                 ))}
                 {doubt.tags.length > 3 && (

@@ -52,7 +52,8 @@
     "terser": "latest",
     "tsx": "latest",
     "vite": "latest",
-    "yaml": "latest"
+    "yaml": "latest",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@types/node": "^22",

@@ -1,31 +1,30 @@
 "use client"
 
-import type React from "react"
+import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "./ui/button"
+import { Input } from "./ui/input"
+import { Textarea } from "./ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
+import { Badge } from "./ui/badge"
+import { Label } from "./ui/label"
+import { Checkbox } from "./ui/checkbox"
+import { X, Plus } from "lucide-react"
+import { createDoubt } from "@/app/actions/doubts"
+import { useToast } from "@/hooks/use-toast"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { X, Plus, Eye, EyeOff } from "lucide-react"
-import CodeEditor from "@/components/code-editor"
-import ImageUpload from "@/components/image-upload"
+interface AskDoubtFormProps {
+  user?: any
+}
 
-export default function AskDoubtForm() {
-  const [title, setTitle] = useState("")
-  const [content, setContent] = useState("")
-  const [subject, setSubject] = useState("")
+export default function AskDoubtForm({ user }: AskDoubtFormProps) {
+  const router = useRouter()
+  const { toast } = useToast()
+  const [isPending, startTransition] = useTransition()
   const [tags, setTags] = useState<string[]>([])
   const [newTag, setNewTag] = useState("")
   const [isAnonymous, setIsAnonymous] = useState(false)
-  const [code, setCode] = useState("")
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState("text")
 
   const handleAddTag = () => {
     if (newTag.trim() && !tags.includes(newTag.trim()) && tags.length < 5) {
@@ -38,41 +37,38 @@ export default function AskDoubtForm() {
     setTags(tags.filter((tag) => tag !== tagToRemove))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // Handle form submission
-    console.log({
-      title,
-      content,
-      subject,
-      tags,
-      isAnonymous,
-      code,
-      uploadedImage,
-    })
-  }
+  const handleSubmit = (formData: FormData) => {
+    formData.append("tags", JSON.stringify(tags))
+    formData.append("isAnonymous", isAnonymous.toString())
 
-  const handleImageUpload = (imageUrl: string) => {
-    setUploadedImage(imageUrl)
+    startTransition(async () => {
+      try {
+        await createDoubt(formData)
+        toast({
+          title: "Success!",
+          description: "Your doubt has been posted successfully.",
+        })
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to post your doubt. Please try again.",
+          variant: "destructive",
+        })
+      }
+    })
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Share Your Question</CardTitle>
+        <CardTitle>Share Your Doubt</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form action={handleSubmit} className="space-y-6">
           {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title">Title *</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="What's your specific question?"
-              required
-            />
+            <Input id="title" name="title" placeholder="What's your specific question?" required disabled={isPending} />
             <p className="text-sm text-muted-foreground">
               Be specific and imagine you're asking a question to another person
             </p>
@@ -81,7 +77,7 @@ export default function AskDoubtForm() {
           {/* Subject */}
           <div className="space-y-2">
             <Label htmlFor="subject">Subject *</Label>
-            <Select value={subject} onValueChange={setSubject} required>
+            <Select name="subject" required disabled={isPending}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a subject" />
               </SelectTrigger>
@@ -101,58 +97,32 @@ export default function AskDoubtForm() {
             </Select>
           </div>
 
-          {/* Content Tabs */}
+          {/* Content */}
           <div className="space-y-2">
-            <Label>Description *</Label>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="text">Text</TabsTrigger>
-                <TabsTrigger value="code">Code</TabsTrigger>
-                <TabsTrigger value="image">Image</TabsTrigger>
-              </TabsList>
+            <Label htmlFor="content">Description *</Label>
+            <Textarea
+              id="content"
+              name="content"
+              placeholder="Describe your problem in detail. Include what you've tried, error messages, and expected behavior."
+              className="min-h-[150px]"
+              required
+              disabled={isPending}
+            />
+            <p className="text-sm text-muted-foreground">
+              You can use markdown formatting. Include code snippets and what you've already tried.
+            </p>
+          </div>
 
-              <TabsContent value="text" className="mt-4">
-                <Textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Describe your problem in detail. Include what you've tried, error messages, and expected behavior."
-                  className="min-h-[150px]"
-                  required
-                />
-                <p className="text-sm text-muted-foreground mt-2">
-                  You can use markdown formatting. Include details about what you've already tried.
-                </p>
-              </TabsContent>
-
-              <TabsContent value="code" className="mt-4">
-                <div className="space-y-4">
-                  <CodeEditor value={code} onChange={setCode} />
-                  <Textarea
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="Describe what you want help with regarding this code..."
-                    className="min-h-[100px]"
-                  />
-                </div>
-              </TabsContent>
-
-              <TabsContent value="image" className="mt-4">
-                <div className="space-y-4">
-                  <ImageUpload onImageUpload={handleImageUpload} />
-                  {uploadedImage && (
-                    <div className="p-3 bg-muted rounded-lg border">
-                      <p className="text-sm text-muted-foreground">Image uploaded: {uploadedImage}</p>
-                    </div>
-                  )}
-                  <Textarea
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="Describe what you need help with regarding this image..."
-                    className="min-h-[100px]"
-                  />
-                </div>
-              </TabsContent>
-            </Tabs>
+          {/* Image URL */}
+          <div className="space-y-2">
+            <Label htmlFor="imageUrl">Image URL (Optional)</Label>
+            <Input
+              id="imageUrl"
+              name="imageUrl"
+              type="url"
+              placeholder="https://example.com/image.jpg"
+              disabled={isPending}
+            />
           </div>
 
           {/* Tags */}
@@ -164,16 +134,22 @@ export default function AskDoubtForm() {
                 onChange={(e) => setNewTag(e.target.value)}
                 placeholder="Add a tag"
                 onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())}
+                disabled={isPending}
               />
-              <Button type="button" onClick={handleAddTag} variant="outline">
+              <Button type="button" onClick={handleAddTag} variant="outline" disabled={isPending}>
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
             <div className="flex flex-wrap gap-2">
               {tags.map((tag) => (
                 <Badge key={tag} variant="secondary" className="flex items-center gap-1">
-                  #{tag}
-                  <button type="button" onClick={() => handleRemoveTag(tag)} className="ml-1 hover:text-destructive">
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTag(tag)}
+                    className="ml-1 hover:text-destructive"
+                    disabled={isPending}
+                  >
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
@@ -182,26 +158,20 @@ export default function AskDoubtForm() {
             <p className="text-sm text-muted-foreground">Add up to 5 tags to help others find your question</p>
           </div>
 
-          {/* Anonymous Toggle */}
-          <div className="flex items-center justify-between p-4 border rounded-lg">
-            <div className="flex items-center space-x-2">
-              {isAnonymous ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              <div>
-                <Label htmlFor="anonymous" className="text-sm font-medium">
-                  Post anonymously
-                </Label>
-                <p className="text-xs text-muted-foreground">Your name won't be shown with this question</p>
-              </div>
-            </div>
-            <Switch id="anonymous" checked={isAnonymous} onCheckedChange={setIsAnonymous} />
+          {/* Anonymous option */}
+          <div className="flex items-center space-x-2">
+            <Checkbox id="anonymous" checked={isAnonymous} onCheckedChange={setIsAnonymous} disabled={isPending} />
+            <Label htmlFor="anonymous">Post anonymously</Label>
           </div>
 
           {/* Submit */}
           <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline">
+            <Button type="button" variant="outline" onClick={() => router.back()} disabled={isPending}>
               Cancel
             </Button>
-            <Button type="submit">Post Question</Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Posting..." : "Post Doubt"}
+            </Button>
           </div>
         </form>
       </CardContent>
