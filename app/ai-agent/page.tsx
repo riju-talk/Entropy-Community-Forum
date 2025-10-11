@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -15,8 +16,11 @@ import {
   MessageSquare,
   Upload,
   FileText,
-  X
+  X,
+  AlertCircle
 } from "lucide-react"
+import { getUserCredits, checkCreditsAndDeduct, incrementDocumentCount, decrementDocumentCount } from "@/app/actions/credits"
+import { useToast } from "@/hooks/use-toast"
 
 interface Message {
   id: string
@@ -39,12 +43,21 @@ interface Document {
   size: number
 }
 
+interface UserCredits {
+  credits: number
+  subscriptionTier: string
+  documentCount: number
+}
+
 export default function SparkPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [documents, setDocuments] = useState<Document[]>([])
+  const [userCredits, setUserCredits] = useState<UserCredits>({ credits: 100, subscriptionTier: "FREE", documentCount: 0 })
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const router = useRouter()
+  const { toast } = useToast()
   
   const [tools, setTools] = useState<Tool[]>([
     {
@@ -77,51 +90,132 @@ export default function SparkPage() {
     },
   ])
 
+  useEffect(() => {
+    loadUserCredits()
+  }, [])
+
+  const loadUserCredits = async () => {
+    try {
+      const credits = await getUserCredits()
+      setUserCredits(credits)
+    } catch (error) {
+      console.error("Failed to load credits:", error)
+    }
+  }
+
   const toggleTool = (toolId: string) => {
     setTools(tools.map((tool) => ({ ...tool, active: tool.id === toolId ? !tool.active : false })))
   }
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     if (!files) return
 
-    const newDocuments = Array.from(files).slice(0, 10 - documents.length).map((file) => ({
-      id: Date.now().toString() + Math.random(),
-      name: file.name,
-      size: file.size,
-    }))
+    try {
+      // Check document count limit
+      const remainingSlots = userCredits.subscriptionTier === "FREE" 
+        ? 10 - userCredits.documentCount 
+        : Number.MAX_SAFE_INTEGER
 
-    setDocuments([...documents, ...newDocuments])
+      if (remainingSlots <= 0) {
+        toast({
+          title: "Document Limit Reached",
+          description: "Free tier allows up to 10 documents. Upgrade to upload more.",
+          variant: "destructive",
+        })
+        router.push("/subscription")
+        return
+      }
+
+      const newFiles = Array.from(files).slice(0, remainingSlots)
+      
+      for (const file of newFiles) {
+        await incrementDocumentCount()
+      }
+
+      const newDocuments = newFiles.map((file) => ({
+        id: Date.now().toString() + Math.random(),
+        name: file.name,
+        size: file.size,
+      }))
+
+      setDocuments([...documents, ...newDocuments])
+      await loadUserCredits()
+
+      toast({
+        title: "Documents Uploaded",
+        description: `${newFiles.length} document(s) uploaded successfully.`,
+      })
+    } catch (error: any) {
+      toast({
+        title: "Upload Failed",
+        description: error.message || "Failed to upload documents",
+        variant: "destructive",
+      })
+      
+      if (error.message?.includes("limit reached")) {
+        router.push("/subscription")
+      }
+    }
   }
 
-  const removeDocument = (id: string) => {
-    setDocuments(documents.filter((doc) => doc.id !== id))
+  const removeDocument = async (id: string) => {
+    try {
+      await decrementDocumentCount()
+      setDocuments(documents.filter((doc) => doc.id !== id))
+      await loadUserCredits()
+      
+      toast({
+        title: "Document Removed",
+        description: "Document removed successfully.",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove document",
+        variant: "destructive",
+      })
+    }
   }
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: "user",
-      content: input,
-      timestamp: new Date(),
-    }
-
-    setMessages((prev) => [...prev, userMessage])
-    setInput("")
-    setIsLoading(true)
+    const activeTool = tools.find((t) => t.active)
+    const operation = activeTool?.id || "chat"
 
     try {
+      // Check and deduct credits
+      const result = await checkCreditsAndDeduct(operation)
+      
+      if (!result.allowed) {
+        toast({
+          title: "Insufficient Credits",
+          description: `This operation costs ${result.cost} credits. You have ${result.credits} credits remaining.`,
+          variant: "destructive",
+        })
+        router.push("/subscription")
+        return
+      }
+
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        role: "user",
+        content: input,
+        timestamp: new Date(),
+      }
+
+      setMessages((prev) => [...prev, userMessage])
+      setInput("")
+      setIsLoading(true)
+
       await new Promise((resolve) => setTimeout(resolve, 1500 + Math.random() * 2000))
 
-      const activeTool = tools.find((t) => t.active)
       let aiResponse = "I understand your question. Let me help you with that."
-
       const inputLower = input.toLowerCase()
 
-      if (activeTool?.id === "mindmap" || inputLower.includes("mindmap") || inputLower.includes("concept")) {
-        aiResponse = `📍 **Mind Map Generated**
+      if (operation === "mindmap" || inputLower.includes("mindmap") || inputLower.includes("concept")) {
+        aiResponse = `📍 **Mind Map Generated** (Cost: ${result.cost} credits)
 
 Central Topic: ${input.slice(0, 30)}...
 
@@ -136,8 +230,8 @@ Main Branches:
    └─ Summary
 
 This helps organize your understanding visually.`
-      } else if (activeTool?.id === "flowchart" || inputLower.includes("flowchart") || inputLower.includes("process")) {
-        aiResponse = `📊 **Flowchart Created**
+      } else if (operation === "flowchart" || inputLower.includes("flowchart") || inputLower.includes("process")) {
+        aiResponse = `📊 **Flowchart Created** (Cost: ${result.cost} credits)
 
 [Start]
    ↓
@@ -154,8 +248,8 @@ This helps organize your understanding visually.`
         [End]
 
 This visualizes your process flow.`
-      } else if (activeTool?.id === "quiz" || inputLower.includes("quiz") || inputLower.includes("test")) {
-        aiResponse = `📝 **Quiz Generated**
+      } else if (operation === "quiz" || inputLower.includes("quiz") || inputLower.includes("test")) {
+        aiResponse = `📝 **Quiz Generated** (Cost: ${result.cost} credits)
 
 **Question 1:** What is the main concept here?
 A) Option A
@@ -173,8 +267,8 @@ D) Neither
 [Short answer required]
 
 Answer key provided at the end!`
-      } else if (activeTool?.id === "flashcard" || inputLower.includes("flashcard")) {
-        aiResponse = `🗂️ **Flashcards Created**
+      } else if (operation === "flashcard" || inputLower.includes("flashcard")) {
+        aiResponse = `🗂️ **Flashcards Created** (Cost: ${result.cost} credits)
 
 **Card 1**
 Front: What is ${input.split(" ")[0]}?
@@ -199,7 +293,7 @@ Ready to study!`
           `I've searched through Entropy and found 3 highly relevant posts:\n\n1. "${input.slice(0, 20)}..." - 45 upvotes ⭐\n2. "Understanding the basics" - 32 upvotes\n3. "Practical guide" - 28 upvotes\n\nHere's my comprehensive answer...`,
           `Great question! This connects to several discussions on Entropy.\n\n🔍 Found 12 related posts\n💡 Key insight from top answer\n📚 Recommended resources\n\nLet me break this down step by step...`,
         ]
-        aiResponse = responses[Math.floor(Math.random() * responses.length)]
+        aiResponse = responses[Math.floor(Math.random() * responses.length)] + `\n\n(Cost: ${result.cost} credit)`
       }
 
       const aiMessage: Message = {
@@ -210,8 +304,20 @@ Ready to study!`
       }
 
       setMessages((prev) => [...prev, aiMessage])
-    } catch (error) {
+      await loadUserCredits()
+    } catch (error: any) {
       console.error("Error:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send message",
+        variant: "destructive",
+      })
+      
+      if (error.message?.includes("Authentication required")) {
+        router.push("/auth/signin")
+      } else if (error.message?.includes("credits")) {
+        router.push("/subscription")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -224,18 +330,28 @@ Ready to study!`
     }
   }
 
+  const canUploadMore = userCredits.subscriptionTier !== "FREE" || userCredits.documentCount < 10
+
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with Credits */}
       <div>
-        <div className="flex items-center gap-3 mb-2">
-          <div className="h-10 w-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
-            <Sparkles className="h-6 w-6 text-white" />
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center">
+              <Sparkles className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold">Spark</h1>
+              <p className="text-muted-foreground">Your AI study companion for academic excellence</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-bold">Spark</h1>
-            <p className="text-muted-foreground">Your AI study companion for academic excellence</p>
-          </div>
+          {userCredits.subscriptionTier === "FREE" && (
+            <Badge variant="outline" className="flex items-center gap-1">
+              <Sparkles className="h-3 w-3" />
+              {userCredits.credits} Credits
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -264,11 +380,11 @@ Ready to study!`
                       I can help you study with various tools and find similar discussions on Entropy.
                     </p>
                     <div className="flex gap-2 justify-center flex-wrap max-w-md mx-auto">
-                      <Badge variant="secondary">Mind Mapping</Badge>
-                      <Badge variant="secondary">Flowcharting</Badge>
-                      <Badge variant="secondary">Quizzing</Badge>
-                      <Badge variant="secondary">Flashcards</Badge>
-                      <Badge variant="secondary">QA & Discussion Search</Badge>
+                      <Badge variant="secondary">Mind Mapping (5 credits)</Badge>
+                      <Badge variant="secondary">Flowcharting (5 credits)</Badge>
+                      <Badge variant="secondary">Quizzing (3 credits)</Badge>
+                      <Badge variant="secondary">Flashcards (3 credits)</Badge>
+                      <Badge variant="secondary">QA (1 credit)</Badge>
                     </div>
                   </div>
                 ) : (
@@ -345,6 +461,9 @@ Ready to study!`
             <CardContent className="space-y-2">
               {tools.map((tool) => {
                 const Icon = tool.icon
+                const costs = { mindmap: 5, flowchart: 5, quiz: 3, flashcard: 3 }
+                const cost = costs[tool.id as keyof typeof costs]
+                
                 return (
                   <Button
                     key={tool.id}
@@ -355,7 +474,7 @@ Ready to study!`
                     <Icon className="h-4 w-4 mr-2" />
                     <div className="flex-1 text-left">
                       <div className="font-medium">{tool.name}</div>
-                      <div className="text-xs opacity-80">{tool.description}</div>
+                      <div className="text-xs opacity-80">{cost} credits per use</div>
                     </div>
                     {tool.active && <Badge variant="secondary" className="ml-2">Active</Badge>}
                   </Button>
@@ -368,11 +487,13 @@ Ready to study!`
             <CardHeader>
               <CardTitle className="text-lg flex items-center justify-between">
                 Documents
-                <Badge variant="secondary">{documents.length}/10</Badge>
+                <Badge variant="secondary">{userCredits.documentCount}/
+                  {userCredits.subscriptionTier === "FREE" ? "10" : "∞"}
+                </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {documents.length < 10 && (
+              {canUploadMore && (
                 <>
                   <input
                     ref={fileInputRef}
@@ -415,10 +536,15 @@ Ready to study!`
                 </div>
               )}
               
-              {documents.length >= 10 && (
-                <p className="text-xs text-amber-600 dark:text-amber-500">
-                  Free tier limit reached. Upgrade to upload more documents.
-                </p>
+              {!canUploadMore && (
+                <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950 rounded">
+                  <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-xs text-amber-600 dark:text-amber-500">
+                      Free tier limit reached. <button onClick={() => router.push("/subscription")} className="underline font-medium">Upgrade</button> to upload more documents.
+                    </p>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>

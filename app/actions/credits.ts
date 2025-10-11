@@ -134,6 +134,36 @@ export async function incrementDocumentCount() {
   return user.documentCount + 1
 }
 
+export async function decrementDocumentCount() {
+  const session = await getServerSession(authOptions)
+
+  if (!session?.user?.id) {
+    throw new Error("Authentication required")
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { documentCount: true },
+  })
+
+  if (!user) {
+    throw new Error("User not found")
+  }
+
+  if (user.documentCount > 0) {
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: {
+        documentCount: {
+          decrement: 1,
+        },
+      },
+    })
+  }
+
+  return Math.max(0, user.documentCount - 1)
+}
+
 export async function checkCreditsAndDeduct(operation: string) {
   const session = await getServerSession(authOptions)
 
