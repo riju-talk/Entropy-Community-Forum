@@ -34,7 +34,6 @@ const navigationItems = [
   { href: "/mentorship", label: "Mentorship", icon: Users },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/happenings", label: "Happenings", icon: Calendar },
-  { href: "/subscription", label: "Subscription", icon: CreditCard },
 ]
 
 const subjects = [

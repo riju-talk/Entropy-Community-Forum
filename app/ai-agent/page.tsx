@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -13,7 +13,9 @@ import {
   Brain,
   ClipboardList,
   MessageSquare,
-  Plus
+  Upload,
+  FileText,
+  X
 } from "lucide-react"
 
 interface Message {
@@ -31,10 +33,19 @@ interface Tool {
   active: boolean
 }
 
+interface Document {
+  id: string
+  name: string
+  size: number
+}
+
 export default function SparkPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [documents, setDocuments] = useState<Document[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
   const [tools, setTools] = useState<Tool[]>([
     {
       id: "mindmap",
@@ -57,10 +68,34 @@ export default function SparkPage() {
       description: "Test your knowledge",
       active: false,
     },
+    {
+      id: "flashcard",
+      name: "Flashcards",
+      icon: FileText,
+      description: "Create study flashcards",
+      active: false,
+    },
   ])
 
   const toggleTool = (toolId: string) => {
     setTools(tools.map((tool) => ({ ...tool, active: tool.id === toolId ? !tool.active : false })))
+  }
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files) return
+
+    const newDocuments = Array.from(files).slice(0, 10 - documents.length).map((file) => ({
+      id: Date.now().toString() + Math.random(),
+      name: file.name,
+      size: file.size,
+    }))
+
+    setDocuments([...documents, ...newDocuments])
+  }
+
+  const removeDocument = (id: string) => {
+    setDocuments(documents.filter((doc) => doc.id !== id))
   }
 
   const sendMessage = async () => {
@@ -86,64 +121,85 @@ export default function SparkPage() {
       const inputLower = input.toLowerCase()
 
       if (activeTool?.id === "mindmap" || inputLower.includes("mindmap") || inputLower.includes("concept")) {
-        aiResponse = `📍 **Mind Map**
+        aiResponse = `📍 **Mind Map Generated**
 
-Central Concept: ${input.slice(0, 30)}...
+Central Topic: ${input.slice(0, 30)}...
 
-Key Branches:
-• Main Idea 1
-  - Sub-concept A
-  - Sub-concept B
-• Main Idea 2
-  - Related topic
-  - Application
-• Main Idea 3
+Main Branches:
+├─ Core Concept 1
+│  ├─ Sub-point A
+│  └─ Sub-point B
+├─ Core Concept 2
+│  ├─ Related idea
+│  └─ Application
+└─ Core Concept 3
+   └─ Summary
 
-This helps organize your thoughts visually.`
+This helps organize your understanding visually.`
       } else if (activeTool?.id === "flowchart" || inputLower.includes("flowchart") || inputLower.includes("process")) {
-        aiResponse = `📊 **Flowchart**
+        aiResponse = `📊 **Flowchart Created**
 
-Start
-  ↓
-Input/Question
-  ↓
-Process → Decision?
-  ↓           ↓
- Yes         No
-  ↓           ↓
-Action    Alternative
-  ↓           ↓
-  → Output ←
-      ↓
-    End
+[Start]
+   ↓
+[Input/Question]
+   ↓
+[Process Data] → [Decision?]
+   ↓                 ↓
+  Yes               No
+   ↓                 ↓
+[Action]      [Alternative]
+   ↓                 ↓
+   └──→ [Output] ←──┘
+          ↓
+        [End]
 
-This shows the logical flow of your process.`
+This visualizes your process flow.`
       } else if (activeTool?.id === "quiz" || inputLower.includes("quiz") || inputLower.includes("test")) {
         aiResponse = `📝 **Quiz Generated**
 
-**Question 1:** What is the main concept?
+**Question 1:** What is the main concept here?
 A) Option A
-B) Option B
+B) Option B  
 C) Option C
 D) Option D
 
-**Question 2:** How does this apply?
-A) Practical use
+**Question 2:** How does this apply in practice?
+A) Practical application
 B) Theoretical only
-C) Both
+C) Both approaches
 D) Neither
 
-**Question 3:** What's the key takeaway?
-[Short answer]
+**Question 3:** Key takeaway?
+[Short answer required]
 
-I can generate more questions based on your topic!`
+Answer key provided at the end!`
+      } else if (activeTool?.id === "flashcard" || inputLower.includes("flashcard")) {
+        aiResponse = `🗂️ **Flashcards Created**
+
+**Card 1**
+Front: What is ${input.split(" ")[0]}?
+Back: [Key definition and explanation]
+
+**Card 2**
+Front: How does it work?
+Back: [Step-by-step process]
+
+**Card 3**
+Front: When to use it?
+Back: [Use cases and applications]
+
+**Card 4**
+Front: Common mistakes?
+Back: [Pitfalls to avoid]
+
+Ready to study!`
       } else {
-        const randomResponses = [
-          "Based on my analysis of similar questions on Entropy, here's what I found: This topic has been discussed extensively in the Computer Science community. Let me break it down for you...",
-          "I've found 3 similar posts on Entropy that might help:\n\n1. 'Understanding the basics' - 45 upvotes\n2. 'Advanced concepts explained' - 32 upvotes\n3. 'Practical applications' - 28 upvotes\n\nHere's my answer...",
-          "Great question! This connects to several concepts we've seen discussed. Let me explain step by step...",
+        const responses = [
+          `Based on my analysis of similar questions on Entropy, here's what I found:\n\n✓ This topic has been discussed 15 times in the ${["Computer Science", "Mathematics", "Physics"][Math.floor(Math.random() * 3)]} community.\n✓ Top rated answer suggests: [Key insight here]\n✓ Common approach: [Solution pattern]\n\nLet me explain in detail...`,
+          `I've searched through Entropy and found 3 highly relevant posts:\n\n1. "${input.slice(0, 20)}..." - 45 upvotes ⭐\n2. "Understanding the basics" - 32 upvotes\n3. "Practical guide" - 28 upvotes\n\nHere's my comprehensive answer...`,
+          `Great question! This connects to several discussions on Entropy.\n\n🔍 Found 12 related posts\n💡 Key insight from top answer\n📚 Recommended resources\n\nLet me break this down step by step...`,
         ]
-        aiResponse = randomResponses[Math.floor(Math.random() * randomResponses.length)]
+        aiResponse = responses[Math.floor(Math.random() * responses.length)]
       }
 
       const aiMessage: Message = {
@@ -211,6 +267,7 @@ I can generate more questions based on your topic!`
                       <Badge variant="secondary">Mind Mapping</Badge>
                       <Badge variant="secondary">Flowcharting</Badge>
                       <Badge variant="secondary">Quizzing</Badge>
+                      <Badge variant="secondary">Flashcards</Badge>
                       <Badge variant="secondary">QA & Discussion Search</Badge>
                     </div>
                   </div>
@@ -309,68 +366,60 @@ I can generate more questions based on your topic!`
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Quick Actions</CardTitle>
+              <CardTitle className="text-lg flex items-center justify-between">
+                Documents
+                <Badge variant="secondary">{documents.length}/10</Badge>
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => {
-                  setTools(tools.map((tool) => ({ ...tool, active: tool.id === "mindmap" })))
-                  setInput("Create a mindmap for machine learning concepts")
-                }}
-              >
-                <Brain className="h-4 w-4 mr-2" />
-                Generate Mind Map
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => {
-                  setTools(tools.map((tool) => ({ ...tool, active: tool.id === "flowchart" })))
-                  setInput("Create a flowchart for sorting algorithm")
-                }}
-              >
-                <GitBranch className="h-4 w-4 mr-2" />
-                Create Flowchart
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full justify-start"
-                onClick={() => {
-                  setTools(tools.map((tool) => ({ ...tool, active: tool.id === "quiz" })))
-                  setInput("Generate a quiz on data structures")
-                }}
-              >
-                <ClipboardList className="h-4 w-4 mr-2" />
-                Generate Quiz
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Features</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div className="flex items-start gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-purple-500 mt-1.5" />
-                  <span>Searches similar posts on Entropy</span>
+              {documents.length < 10 && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={handleFileUpload}
+                    accept=".pdf,.doc,.docx,.txt"
+                  />
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Documents
+                  </Button>
+                </>
+              )}
+              
+              {documents.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  No documents uploaded yet
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {documents.map((doc) => (
+                    <div key={doc.id} className="flex items-center gap-2 p-2 bg-muted rounded">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm flex-1 truncate">{doc.name}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeDocument(doc.id)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex items-start gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-purple-500 mt-1.5" />
-                  <span>Creates visual study materials</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-purple-500 mt-1.5" />
-                  <span>Generates practice quizzes</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-purple-500 mt-1.5" />
-                  <span>Multi-modal support coming soon</span>
-                </div>
-              </div>
+              )}
+              
+              {documents.length >= 10 && (
+                <p className="text-xs text-amber-600 dark:text-amber-500">
+                  Free tier limit reached. Upgrade to upload more documents.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>

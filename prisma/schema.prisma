@@ -46,6 +46,9 @@ model User {
   course        String?
   year          Int?
   reputation    Int       @default(0)
+  credits       Int       @default(100)
+  subscriptionTier String @default("FREE")
+  documentCount Int       @default(0)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
