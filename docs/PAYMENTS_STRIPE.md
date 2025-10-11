@@ -1,5 +1,9 @@
 # Stripe Payment Integration Guide
 
+> **Status**: 🔮 **Future Implementation** - Complete Design Specification
+
+> ⚠️ **Not Yet Implemented** - This is a complete design document for future Stripe integration.
+
 Complete guide for integrating Stripe payments for subscriptions and credit purchases in the Entropy platform.
 
 ---

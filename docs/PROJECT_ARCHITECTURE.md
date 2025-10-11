@@ -1,5 +1,9 @@
 # Project Architecture Documentation
 
+> **Status**: ✅ Current + 🔮 Future Architecture
+
+> ℹ️ **Mixed Document**: Describes current implementation (Next.js app, database) and future planned microservices.
+
 Comprehensive architectural overview of the Entropy Academic Platform.
 
 ---

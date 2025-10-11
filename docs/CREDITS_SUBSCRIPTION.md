@@ -1,5 +1,9 @@
 # Credits & Subscription Service Design
 
+> **Status**: 🔮 **Future Implementation** - Complete Design Specification
+
+> ⚠️ **Not Yet Implemented** - This is a complete design document for the future credits microservice.
+
 Microservice design for managing credits and subscriptions using Go (Golang) and Python FastAPI.
 
 ---

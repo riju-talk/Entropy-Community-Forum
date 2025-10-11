@@ -1,5 +1,9 @@
 # Technology Stack Documentation
 
+> **Status**: ✅ Current Stack + 🔮 Planned Technologies
+
+> ℹ️ **Mixed Document**: Lists currently used technologies and planned additions for future features.
+
 Complete overview of all technologies used in the Entropy Academic Platform.
 
 ---

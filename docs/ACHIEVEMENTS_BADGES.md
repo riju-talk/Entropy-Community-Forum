@@ -1,5 +1,9 @@
 # Achievements & Badges System Guide
 
+> **Status**: ✅ Database Schema Implemented + 🔮 Business Logic Planned
+
+> ℹ️ **Partial Implementation**: Database tables exist in Prisma schema, but business logic (points awarding, achievement checking) needs implementation.
+
 Complete guide for implementing the gamification system including achievements, badges, levels, and leaderboards.
 
 ---

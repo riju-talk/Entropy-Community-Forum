@@ -1,5 +1,9 @@
 # AI Agent Service Design & Implementation Guide
 
+> **Status**: 🔮 **Future Implementation** - Complete Design Specification
+
+> ⚠️ **Not Yet Implemented** - This is a complete design document to guide future development or feed to AI for code generation.
+
 This document provides complete specifications for building the AI Agent microservice using FastAPI, Elasticsearch, and AI/ML technologies.
 
 ---

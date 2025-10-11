@@ -1,8 +1,10 @@
 # Environment Variables Documentation
 
-This document lists all environment variables required for the Entropy Academic Platform, their purposes, and where they are used.
+> **Status**: ✅ Current Implementation + 🔮 Future/Planned
 
-## Required Environment Variables
+This document lists all environment variables for the Entropy Academic Platform, their purposes, and where they are used.
+
+## Currently Implemented Variables ✅
 
 ### Database Configuration
 
@@ -114,7 +116,11 @@ This document lists all environment variables required for the Entropy Academic 
 
 ---
 
-### Future/Planned Environment Variables
+---
+
+## Future/Planned Environment Variables 🔮
+
+> ⚠️ **Not Yet Implemented** - These are design specifications for future features:
 
 The following variables are planned for upcoming features but not yet implemented:
 
