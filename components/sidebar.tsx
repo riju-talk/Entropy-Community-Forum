@@ -22,16 +22,19 @@ import {
   FlaskConical,
   Dna,
   Cog,
+  Sparkles,
+  CreditCard,
 } from "lucide-react"
 import AuthModal from "@/components/auth-modal"
 
 const navigationItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/ask", label: "Ask Question", icon: MessageSquare },
-  { href: "/ai-agent", label: "AI Assistant", icon: Bot },
+  { href: "/ai-agent", label: "Spark", icon: Sparkles },
   { href: "/mentorship", label: "Mentorship", icon: Users },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { href: "/happenings", label: "Happenings", icon: Calendar },
+  { href: "/subscription", label: "Subscription", icon: CreditCard },
 ]
 
 const subjects = [
