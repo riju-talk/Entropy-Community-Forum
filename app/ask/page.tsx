@@ -2,7 +2,6 @@
 
 import type React from "react"
 
-import Header from "@/components/header"
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -117,8 +116,6 @@ export default function AskPage() {
 
   return (
     <main className="min-h-screen bg-background">
-      <Header />
-
       <div className="container mx-auto px-4 py-6">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6">
@@ -327,7 +324,11 @@ export default function AskPage() {
 
               {/* Anonymous option */}
               <div className="flex items-center space-x-2">
-                <Checkbox id="anonymous" checked={isAnonymous} onCheckedChange={setIsAnonymous} />
+                <Checkbox 
+                  id="anonymous" 
+                  checked={isAnonymous} 
+                  onCheckedChange={(checked) => setIsAnonymous(checked === true)} 
+                />
                 <Label htmlFor="anonymous">Post anonymously</Label>
               </div>
 
