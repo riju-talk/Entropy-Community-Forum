@@ -8,6 +8,32 @@ Entropy is a comprehensive academic community platform built with Next.js 14, de
 
 Preferred communication style: Simple, everyday language.
 
+## Documentation
+
+Comprehensive documentation created in `/docs` directory for future development and scaling:
+
+### Current Implementation Docs ✅
+- **DATABASE.md**: Complete PostgreSQL schema (accurately reflects `prisma/schema.prisma`)
+- **TECH_STACK.md**: All technologies currently used
+- **ENV_VARIABLES.md**: Environment variables (current + future marked clearly)
+
+### Future Design Specifications 🔮
+- **AI_AGENT.md**: Complete FastAPI + Elasticsearch service design (ready for implementation)
+- **PAYMENTS_STRIPE.md**: Stripe integration guide (ready to implement)
+- **CREDITS_SUBSCRIPTION.md**: Go/Python microservice design for billing
+- **ACHIEVEMENTS_BADGES.md**: Gamification system implementation (schema exists, logic pending)
+- **PROJECT_ARCHITECTURE.md**: Overall system architecture (current + planned)
+- **SERVICES.md**: External services and integrations guide
+
+### Quick Reference
+- **IMPLEMENTATION_STATUS.md**: ⭐ Clear overview of what's implemented vs. planned
+- **README.md**: Documentation index and navigation guide
+
+**Usage**: 
+- Design docs can be fed to AI (Claude/ChatGPT) to generate complete service implementations
+- Serves as blueprint for building fully-scaled production application
+- Clearly separates current state from future roadmap
+
 ## System Architecture
 
 ### Frontend Architecture

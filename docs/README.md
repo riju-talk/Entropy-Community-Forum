@@ -10,22 +10,25 @@ Complete documentation for building and scaling the Entropy Academic Platform.
 
 ## 📚 Table of Contents
 
-### Getting Started
-1. **[Environment Variables](ENV_VARIABLES.md)** - All required environment variables and their purposes
-2. **[Tech Stack](TECH_STACK.md)** - Complete technology stack overview
-3. **[Project Architecture](PROJECT_ARCHITECTURE.md)** - System design and architecture patterns
+### 🚨 Start Here
+0. **[Implementation Status](IMPLEMENTATION_STATUS.md)** - ⭐ **READ FIRST** - What's built vs. what's planned
 
-### Core Systems
+### Getting Started
+1. **[Environment Variables](ENV_VARIABLES.md)** - All environment variables (current + future)
+2. **[Tech Stack](TECH_STACK.md)** - Technology stack (current + planned)
+3. **[Project Architecture](PROJECT_ARCHITECTURE.md)** - System architecture (current + future)
+
+### Core Systems (Implemented ✅)
 4. **[Database Schema](DATABASE.md)** - Complete PostgreSQL database design
 5. **[External Services](SERVICES.md)** - Third-party services and integrations
 
-### Microservices Design
-6. **[AI Agent Service](AI_AGENT.md)** - FastAPI + Elasticsearch implementation guide
-7. **[Credits & Subscription](CREDITS_SUBSCRIPTION.md)** - Go/Python microservice for billing
+### Future Microservices (Design Specs 🔮)
+6. **[AI Agent Service](AI_AGENT.md)** - FastAPI + Elasticsearch design spec
+7. **[Credits & Subscription](CREDITS_SUBSCRIPTION.md)** - Go/Python microservice design
 8. **[Stripe Payments](PAYMENTS_STRIPE.md)** - Payment integration guide
 
-### Gamification
-9. **[Achievements & Badges](ACHIEVEMENTS_BADGES.md)** - Complete gamification system
+### Gamification (Partial ⚠️)
+9. **[Achievements & Badges](ACHIEVEMENTS_BADGES.md)** - Implementation guide (schema exists, logic needed)
 
 ---
 
