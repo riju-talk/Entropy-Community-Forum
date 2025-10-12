@@ -42,7 +42,7 @@ Manage user credits and subscription tiers independently from the main Next.js a
 
 ## Service Architecture
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────┐
 │         Next.js Main App                    │
 │    (User requests features)                 │
@@ -68,7 +68,7 @@ Manage user credits and subscription tiers independently from the main Next.js a
         │  PostgreSQL   │
         │  (Database)   │
         └───────────────┘
-```
+\`\`\`
 
 ---
 
@@ -76,7 +76,7 @@ Manage user credits and subscription tiers independently from the main Next.js a
 
 ### Project Structure
 
-```
+\`\`\`
 credits-service/
 ├── cmd/
 │   └── server/
@@ -104,13 +104,13 @@ credits-service/
 ├── go.mod
 ├── go.sum
 └── Dockerfile
-```
+\`\`\`
 
 ### Core Implementation
 
 #### 1. **main.go**
 
-```go
+\`\`\`go
 package main
 
 import (
@@ -146,11 +146,11 @@ func main() {
     log.Printf("Server starting on port %s", port)
     log.Fatal(http.ListenAndServe(":"+port, router))
 }
-```
+\`\`\`
 
 #### 2. **models/credit.go**
 
-```go
+\`\`\`go
 package models
 
 import "time"
@@ -184,11 +184,11 @@ type Subscription struct {
     CreatedAt        time.Time `json:"created_at" db:"created_at"`
     UpdatedAt        time.Time `json:"updated_at" db:"updated_at"`
 }
-```
+\`\`\`
 
 #### 3. **service/credit_service.go**
 
-```go
+\`\`\`go
 package service
 
 import (
@@ -308,11 +308,11 @@ func (s *CreditService) GetTransactionHistory(ctx context.Context, userID string
 
     return transactions, nil
 }
-```
+\`\`\`
 
 #### 4. **api/handlers.go**
 
-```go
+\`\`\`go
 package api
 
 import (
@@ -408,11 +408,11 @@ func (h *Handler) DeductCredits(w http.ResponseWriter, r *http.Request) {
         "balance": balance,
     })
 }
-```
+\`\`\`
 
 #### 5. **api/routes.go**
 
-```go
+\`\`\`go
 package api
 
 import (
@@ -449,7 +449,7 @@ func SetupRoutes(router *mux.Router, db *sql.DB) {
         w.Write([]byte("OK"))
     }).Methods("GET")
 }
-```
+\`\`\`
 
 ---
 
@@ -457,7 +457,7 @@ func SetupRoutes(router *mux.Router, db *sql.DB) {
 
 ### Project Structure
 
-```
+\`\`\`
 credits-service/
 ├── app/
 │   ├── __init__.py
@@ -470,13 +470,13 @@ credits-service/
 │       └── subscriptions.py
 ├── requirements.txt
 └── Dockerfile
-```
+\`\`\`
 
 ### Implementation
 
 #### **app/main.py**
 
-```python
+\`\`\`python
 from fastapi import FastAPI
 from app.routers import credits, subscriptions
 from app.database import engine, Base
@@ -491,11 +491,11 @@ app.include_router(subscriptions.router, prefix="/api/subscriptions", tags=["sub
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
-```
+\`\`\`
 
 #### **app/models.py**
 
-```python
+\`\`\`python
 from sqlalchemy import Column, Integer, String, DateTime, func
 from app.database import Base
 
@@ -521,11 +521,11 @@ class Subscription(Base):
     stripe_subscription_id = Column(String)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
-```
+\`\`\`
 
 #### **app/routers/credits.py**
 
-```python
+\`\`\`python
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -602,7 +602,7 @@ def get_history(user_id: str, limit: int = 50, db: Session = Depends(get_db)):
     ).order_by(CreditTransaction.created_at.desc()).limit(limit).all()
     
     return transactions
-```
+\`\`\`
 
 ---
 
@@ -610,28 +610,28 @@ def get_history(user_id: str, limit: int = 50, db: Session = Depends(get_db)):
 
 ### Credits API
 
-```
+\`\`\`
 GET    /api/credits/{userId}/balance      - Get credit balance
 POST   /api/credits/{userId}/add          - Add credits
 POST   /api/credits/{userId}/deduct       - Deduct credits
 GET    /api/credits/{userId}/history      - Get transaction history
 POST   /api/credits/{userId}/transfer     - Transfer credits
-```
+\`\`\`
 
 ### Subscriptions API
 
-```
+\`\`\`
 GET    /api/subscriptions/{userId}        - Get subscription
 POST   /api/subscriptions/{userId}/upgrade   - Upgrade plan
 POST   /api/subscriptions/{userId}/cancel    - Cancel subscription
 GET    /api/subscriptions/{userId}/quotas    - Get usage quotas
-```
+\`\`\`
 
 ---
 
 ## Database Schema
 
-```sql
+\`\`\`sql
 CREATE TABLE credit_transactions (
     id VARCHAR PRIMARY KEY,
     user_id VARCHAR NOT NULL,
@@ -655,7 +655,7 @@ CREATE TABLE subscriptions (
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
-```
+\`\`\`
 
 ---
 
@@ -663,7 +663,7 @@ CREATE TABLE subscriptions (
 
 **Next.js API Route** (`app/api/credits/deduct/route.ts`):
 
-```typescript
+\`\`\`typescript
 export async function POST(req: Request) {
     const { userId, amount, description } = await req.json()
     
@@ -682,7 +682,7 @@ export async function POST(req: Request) {
     
     return Response.json(await response.json())
 }
-```
+\`\`\`
 
 ---
 
@@ -690,7 +690,7 @@ export async function POST(req: Request) {
 
 ### Docker
 
-```dockerfile
+\`\`\`dockerfile
 # Go
 FROM golang:1.21-alpine
 WORKDIR /app
@@ -709,16 +709,16 @@ RUN pip install -r requirements.txt
 COPY ./app ./app
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0"]
-```
+\`\`\`
 
 ### Environment Variables
 
-```env
+\`\`\`env
 DATABASE_URL=postgresql://...
 PORT=8080
 AUTH_SECRET=your-secret
 STRIPE_WEBHOOK_SECRET=whsec_...
-```
+\`\`\`
 
 ---
 

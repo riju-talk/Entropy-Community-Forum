@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { useSpeechToText } from "@/hooks/use-speech-to-text"
 
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
@@ -30,11 +31,13 @@ export default function AskPage() {
   const [newTag, setNewTag] = useState("")
   const [isAnonymous, setIsAnonymous] = useState(false)
   const [attachments, setAttachments] = useState<Attachment[]>([])
-  const [isRecording, setIsRecording] = useState(false)
-  const [activeTab, setActiveTab] = useState("text")
   const [codeContent, setCodeContent] = useState("")
   const [codeLanguage, setCodeLanguage] = useState("javascript")
+  const [activeTab, setActiveTab] = useState("text")
+  const [isRecording, setIsRecording] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const { listening, supported, start, stop } = useSpeechToText({ lang: "en-US", interimResults: true })
 
   const addAttachment = (type: Attachment["type"], content: string, name?: string, language?: string) => {
     const newAttachment: Attachment = {
@@ -85,8 +88,20 @@ export default function AskPage() {
   }
 
   const toggleRecording = () => {
-    setIsRecording(!isRecording)
-    // Add voice recording logic here
+    if (!supported) {
+      alert("Voice input is not supported in this browser.")
+      return
+    }
+    if (listening) {
+      stop()
+      setIsRecording(false)
+      return
+    }
+    setIsRecording(true)
+    start((transcript) => {
+      // Keep the cursor append-only; user can edit the textarea if needed
+      setDescription(transcript)
+    })
   }
 
   const handleSubmit = () => {
@@ -171,10 +186,10 @@ export default function AskPage() {
                     variant="outline"
                     size="sm"
                     onClick={toggleRecording}
-                    className={isRecording ? "text-red-500" : ""}
+                    className={listening ? "text-red-500" : ""}
                   >
-                    {isRecording ? <MicOff className="h-4 w-4 mr-1" /> : <Mic className="h-4 w-4 mr-1" />}
-                    {isRecording ? "Stop Recording" : "Voice Input"}
+                    {listening ? <MicOff className="h-4 w-4 mr-1" /> : <Mic className="h-4 w-4 mr-1" />}
+                    {listening ? "Stop Recording" : "Voice Input"}
                   </Button>
                 </div>
 
@@ -324,10 +339,10 @@ export default function AskPage() {
 
               {/* Anonymous option */}
               <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="anonymous" 
-                  checked={isAnonymous} 
-                  onCheckedChange={(checked) => setIsAnonymous(checked === true)} 
+                <Checkbox
+                  id="anonymous"
+                  checked={isAnonymous}
+                  onCheckedChange={(checked) => setIsAnonymous(checked === true)}
                 />
                 <Label htmlFor="anonymous">Post anonymously</Label>
               </div>

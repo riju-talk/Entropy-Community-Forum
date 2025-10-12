@@ -373,7 +373,7 @@ This document lists all external services required or recommended for the Entrop
 
 ## Service Architecture Diagram
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────┐
 │                    Entropy Platform                      │
 │                     (Next.js App)                        │
@@ -406,7 +406,7 @@ This document lists all external services required or recommended for the Entrop
     │  • Storage (Supabase)        │
     │  • Monitoring (Sentry)       │
     └──────────────────────────────┘
-```
+\`\`\`
 
 ---
 

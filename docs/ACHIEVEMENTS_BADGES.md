@@ -44,7 +44,7 @@ Complete guide for implementing the gamification system including achievements, 
 All tables already exist in `prisma/schema.prisma`. Key models:
 
 ### UserStat
-```prisma
+\`\`\`prisma
 model UserStat {
   id                  String   @id @default(cuid())
   userId              String   @unique
@@ -59,11 +59,11 @@ model UserStat {
   
   user User @relation(fields: [userId], references: [id])
 }
-```
+\`\`\`
 
 ### PointsLedger
 Tracks all point transactions:
-```prisma
+\`\`\`prisma
 model PointsLedger {
   id          String         @id @default(cuid())
   userId      String
@@ -87,10 +87,10 @@ enum PointEventType {
   ACHIEVEMENT_UNLOCKED
   BADGE_EARNED
 }
-```
+\`\`\`
 
 ### Achievement
-```prisma
+\`\`\`prisma
 model Achievement {
   id          String          @id @default(cuid())
   type        AchievementType
@@ -109,10 +109,10 @@ enum AchievementRarity {
   EPIC        // 75-100 points
   LEGENDARY   // 150+ points
 }
-```
+\`\`\`
 
 ### Badge
-```prisma
+\`\`\`prisma
 model Badge {
   id          String    @id @default(cuid())
   type        BadgeType
@@ -134,7 +134,7 @@ enum BadgeType {
   TUTOR
   RESEARCH_STAR
 }
-```
+\`\`\`
 
 ---
 
@@ -142,7 +142,7 @@ enum BadgeType {
 
 ### Point Values
 
-```typescript
+\`\`\`typescript
 const POINTS = {
   // Content Creation
   DOUBT_CREATED: 5,
@@ -165,12 +165,12 @@ const POINTS = {
   BADGE_EARNED: 20,
   LEVEL_UP: 25,
 }
-```
+\`\`\`
 
 ### Point Ledger Service
 
 **app/actions/points.ts**
-```typescript
+\`\`\`typescript
 'use server'
 
 import { prisma } from '@/lib/prisma'
@@ -249,7 +249,7 @@ async function checkLevelUp(userId: string, totalPoints: number) {
     )
   }
 }
-```
+\`\`\`
 
 ---
 
@@ -258,7 +258,7 @@ async function checkLevelUp(userId: string, totalPoints: number) {
 ### Achievement Definitions
 
 **lib/achievements.ts**
-```typescript
+\`\`\`typescript
 export const ACHIEVEMENTS = {
   FIRST_DOUBT: {
     name: 'First Question',
@@ -323,12 +323,12 @@ export const ACHIEVEMENTS = {
     icon: '🎓',
   },
 }
-```
+\`\`\`
 
 ### Achievement Checker
 
 **app/actions/achievements.ts**
-```typescript
+\`\`\`typescript
 'use server'
 
 import { prisma } from '@/lib/prisma'
@@ -384,7 +384,7 @@ export async function checkAchievements(userId: string) {
     }
   }
 }
-```
+\`\`\`
 
 ---
 
@@ -393,7 +393,7 @@ export async function checkAchievements(userId: string) {
 ### Badge Grant Logic
 
 **app/actions/badges.ts**
-```typescript
+\`\`\`typescript
 'use server'
 
 import { prisma } from '@/lib/prisma'
@@ -454,7 +454,7 @@ export async function checkBadges(userId: string, subject?: string) {
     }
   }
 }
-```
+\`\`\`
 
 ---
 
@@ -463,7 +463,7 @@ export async function checkBadges(userId: string, subject?: string) {
 ### Level Definitions
 
 **prisma/seed.ts** (add this)
-```typescript
+\`\`\`typescript
 const LEVELS = [
   { level: 1, name: 'Novice', minPoints: 0, maxPoints: 99, icon: '🌱', color: '#gray' },
   { level: 2, name: 'Learner', minPoints: 100, maxPoints: 249, icon: '📚', color: '#blue' },
@@ -483,7 +483,7 @@ async function seedLevels() {
     })
   }
 }
-```
+\`\`\`
 
 ---
 
@@ -492,7 +492,7 @@ async function seedLevels() {
 ### Streak Tracking
 
 **app/actions/streaks.ts**
-```typescript
+\`\`\`typescript
 'use server'
 
 import { prisma } from '@/lib/prisma'
@@ -568,7 +568,7 @@ export async function updateStreak(userId: string) {
     await awardPoints(userId, 'DAILY_LOGIN', 1, 'Daily login')
   }
 }
-```
+\`\`\`
 
 ---
 
@@ -577,7 +577,7 @@ export async function updateStreak(userId: string) {
 ### Leaderboard Generation
 
 **app/actions/leaderboard.ts**
-```typescript
+\`\`\`typescript
 'use server'
 
 import { prisma } from '@/lib/prisma'
@@ -685,7 +685,7 @@ export async function updateAllLeaderboards() {
     await generateLeaderboard('WEEKLY', subject as LeaderboardScope)
   }
 }
-```
+\`\`\`
 
 ---
 
@@ -694,33 +694,33 @@ export async function updateAllLeaderboards() {
 ### Integration Points
 
 1. **Doubt Created** → Award 5 points
-```typescript
+\`\`\`typescript
 // In app/actions/doubts.ts
 await awardPoints(userId, 'DOUBT_CREATED', 5, 'Created a question')
-```
+\`\`\`
 
 2. **Comment Posted** → Award 2 points
-```typescript
+\`\`\`typescript
 // In app/actions/comments.ts
 await awardPoints(userId, 'COMMENT_CREATED', 2, 'Posted an answer')
-```
+\`\`\`
 
 3. **Upvote Received** → Award 3 points
-```typescript
+\`\`\`typescript
 // In app/actions/votes.ts
 await awardPoints(authorId, 'UPVOTE_RECEIVED', 3, 'Received an upvote')
-```
+\`\`\`
 
 4. **Answer Accepted** → Award 15 points
-```typescript
+\`\`\`typescript
 // In app/actions/comments.ts
 await awardPoints(commentAuthorId, 'ANSWER_ACCEPTED', 15, 'Answer accepted')
-```
+\`\`\`
 
 ### UI Components
 
 **components/user-level-badge.tsx**
-```typescript
+\`\`\`typescript
 import { Badge } from '@/components/ui/badge'
 
 export function UserLevelBadge({ level, icon, color }: { 
@@ -737,10 +737,10 @@ export function UserLevelBadge({ level, icon, color }: {
     </Badge>
   )
 }
-```
+\`\`\`
 
 **components/achievement-card.tsx**
-```typescript
+\`\`\`typescript
 export function AchievementCard({ achievement, unlocked }: {
   achievement: Achievement
   unlocked: boolean
@@ -763,13 +763,13 @@ export function AchievementCard({ achievement, unlocked }: {
     </Card>
   )
 }
-```
+\`\`\`
 
 ---
 
 ## Testing
 
-```typescript
+\`\`\`typescript
 // Test point awarding
 describe('Points System', () => {
   it('awards points for doubt creation', async () => {
@@ -784,7 +784,7 @@ describe('Points System', () => {
     expect(user?.currentLevel).toBe(2)
   })
 })
-```
+\`\`\`
 
 ---
 

@@ -41,7 +41,7 @@ The AI Agent service provides intelligent features for the Entropy platform:
 
 ### High-Level Architecture
 
-```
+\`\`\`
 ┌──────────────────────────────────────────────────────┐
 │              Next.js Frontend/Backend                │
 │         (Main Entropy Platform)                      │
@@ -67,7 +67,7 @@ The AI Agent service provides intelligent features for the Entropy platform:
             │Elasticsearch│   │  PostgreSQL  │
             │  (Vectors)  │   │  (Metadata)  │
             └─────────────┘   └──────────────┘
-```
+\`\`\`
 
 ### Component Breakdown
 
@@ -131,16 +131,16 @@ The AI Agent service provides intelligent features for the Entropy platform:
 ## API Endpoints
 
 ### Base URL
-```
+\`\`\`
 Development: http://localhost:8000
 Production: https://ai.entropy-platform.com
-```
+\`\`\`
 
 ### Authentication
 All endpoints require Bearer token authentication:
-```
+\`\`\`
 Authorization: Bearer <AI_BACKEND_TOKEN>
-```
+\`\`\`
 
 ---
 
@@ -151,7 +151,7 @@ Authorization: Bearer <AI_BACKEND_TOKEN>
 Send a message and get AI response.
 
 **Request Body**:
-```json
+\`\`\`json
 {
   "message": "How do I solve quadratic equations?",
   "conversation_id": "conv_123" (optional),
@@ -162,10 +162,10 @@ Send a message and get AI response.
     "user_level": 2
   }
 }
-```
+\`\`\`
 
 **Response**:
-```json
+\`\`\`json
 {
   "conversation_id": "conv_123",
   "message": "AI response here...",
@@ -179,7 +179,7 @@ Send a message and get AI response.
   "confidence": 0.92,
   "sources": ["doubt_789", "doubt_234"]
 }
-```
+\`\`\`
 
 ---
 
@@ -190,7 +190,7 @@ Send a message and get AI response.
 Get personalized question recommendations.
 
 **Request Body**:
-```json
+\`\`\`json
 {
   "user_id": "user_456",
   "limit": 10,
@@ -200,10 +200,10 @@ Get personalized question recommendations.
     "exclude_seen": true
   }
 }
-```
+\`\`\`
 
 **Response**:
-```json
+\`\`\`json
 {
   "recommendations": [
     {
@@ -215,7 +215,7 @@ Get personalized question recommendations.
     }
   ]
 }
-```
+\`\`\`
 
 ---
 
@@ -226,17 +226,17 @@ Get personalized question recommendations.
 Advanced semantic search.
 
 **Request Body**:
-```json
+\`\`\`json
 {
   "query": "integration by parts",
   "subject": "MATHEMATICS" (optional),
   "limit": 20,
   "search_type": "hybrid" // "semantic", "keyword", or "hybrid"
 }
-```
+\`\`\`
 
 **Response**:
-```json
+\`\`\`json
 {
   "results": [
     {
@@ -250,7 +250,7 @@ Advanced semantic search.
   "total": 125,
   "took_ms": 45
 }
-```
+\`\`\`
 
 ---
 
@@ -261,7 +261,7 @@ Advanced semantic search.
 Index new or updated content (called by main app).
 
 **Request Body**:
-```json
+\`\`\`json
 {
   "doubt_id": "doubt_789",
   "title": "Question title",
@@ -273,16 +273,16 @@ Index new or updated content (called by main app).
     "created_at": "2024-01-15T10:30:00Z"
   }
 }
-```
+\`\`\`
 
 **Response**:
-```json
+\`\`\`json
 {
   "status": "indexed",
   "doubt_id": "doubt_789",
   "embedding_dims": 384
 }
-```
+\`\`\`
 
 ---
 
@@ -293,16 +293,16 @@ Index new or updated content (called by main app).
 Find duplicate or similar questions.
 
 **Request Body**:
-```json
+\`\`\`json
 {
   "title": "How to solve quadratic equations?",
   "content": "I'm struggling with...",
   "threshold": 0.85 // similarity threshold
 }
-```
+\`\`\`
 
 **Response**:
-```json
+\`\`\`json
 {
   "similar_questions": [
     {
@@ -313,7 +313,7 @@ Find duplicate or similar questions.
     }
   ]
 }
-```
+\`\`\`
 
 ---
 
@@ -324,16 +324,16 @@ Find duplicate or similar questions.
 Score answer quality.
 
 **Request Body**:
-```json
+\`\`\`json
 {
   "doubt_id": "doubt_123",
   "answer_content": "Answer text...",
   "answer_id": "comment_456"
 }
-```
+\`\`\`
 
 **Response**:
-```json
+\`\`\`json
 {
   "quality_score": 0.87,
   "factors": {
@@ -344,7 +344,7 @@ Score answer quality.
   },
   "feedback": "Good answer, could add more examples"
 }
-```
+\`\`\`
 
 ---
 
@@ -352,7 +352,7 @@ Score answer quality.
 
 ### Index Schema
 
-```python
+\`\`\`python
 # Doubts Index
 DOUBT_INDEX = {
     "mappings": {
@@ -401,11 +401,11 @@ DOUBT_INDEX = {
         }
     }
 }
-```
+\`\`\`
 
 ### Vector Search Query
 
-```python
+\`\`\`python
 # Hybrid search (semantic + keyword)
 def hybrid_search(query: str, subject: str = None, limit: int = 20):
     # Generate embedding for query
@@ -451,7 +451,7 @@ def hybrid_search(query: str, subject: str = None, limit: int = 20):
     }
     
     return es.search(index="doubts", body=es_query)
-```
+\`\`\`
 
 ---
 
@@ -459,7 +459,7 @@ def hybrid_search(query: str, subject: str = None, limit: int = 20):
 
 ### Project Structure
 
-```
+\`\`\`
 ai-agent-service/
 ├── app/
 │   ├── __init__.py
@@ -500,13 +500,13 @@ ai-agent-service/
 ├── Dockerfile
 ├── .env.example
 └── README.md
-```
+\`\`\`
 
 ### Core Implementation Files
 
 #### 1. `app/main.py`
 
-```python
+\`\`\`python
 from fastapi import FastAPI, Depends, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
@@ -543,11 +543,11 @@ app.include_router(router, prefix="/api", dependencies=[Depends(verify_token)])
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
-```
+\`\`\`
 
 #### 2. `app/services/embedding_service.py`
 
-```python
+\`\`\`python
 from sentence_transformers import SentenceTransformer
 from functools import lru_cache
 import numpy as np
@@ -573,11 +573,11 @@ class EmbeddingService:
 @lru_cache()
 def get_embedding_service():
     return EmbeddingService()
-```
+\`\`\`
 
 #### 3. `app/services/search_service.py`
 
-```python
+\`\`\`python
 from elasticsearch import Elasticsearch
 from app.services.embedding_service import get_embedding_service
 from typing import List, Dict, Optional
@@ -696,11 +696,11 @@ class SearchService:
             }
             for hit in response["hits"]["hits"]
         ]
-```
+\`\`\`
 
 #### 4. `app/services/chat_service.py`
 
-```python
+\`\`\`python
 from openai import AsyncOpenAI
 from typing import List, Dict, Optional
 
@@ -742,11 +742,11 @@ class ChatService:
             "confidence": 0.9,  # Could calculate based on response
             "tokens_used": response.usage.total_tokens
         }
-```
+\`\`\`
 
 #### 5. `app/api/routes.py`
 
-```python
+\`\`\`python
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import Optional, List
@@ -809,11 +809,11 @@ async def find_similar(request: dict, es = Depends(get_es_client)):
         threshold=request.get("threshold", 0.85)
     )
     return {"similar_questions": similar}
-```
+\`\`\`
 
 #### 6. `requirements.txt`
 
-```txt
+\`\`\`txt
 fastapi==0.109.0
 uvicorn[standard]==0.27.0
 pydantic==2.5.3
@@ -830,7 +830,7 @@ scikit-learn==1.4.0
 numpy==1.26.3
 pytest==7.4.4
 pytest-asyncio==0.23.3
-```
+\`\`\`
 
 ---
 
@@ -838,7 +838,7 @@ pytest-asyncio==0.23.3
 
 ### Docker Deployment
 
-```dockerfile
+\`\`\`dockerfile
 # Dockerfile
 FROM python:3.11-slim
 
@@ -859,18 +859,18 @@ EXPOSE 8000
 
 # Run
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
+\`\`\`
 
 ### Environment Variables
 
-```env
+\`\`\`env
 # .env
 AI_BACKEND_TOKEN=your-secure-token
 ELASTICSEARCH_URL=http://elasticsearch:9200
 OPENAI_API_KEY=sk-...
 DATABASE_URL=postgresql://...
 REDIS_URL=redis://localhost:6379
-```
+\`\`\`
 
 ### Deploy to Railway/Render
 
@@ -914,7 +914,7 @@ REDIS_URL=redis://localhost:6379
 
 ## Testing
 
-```python
+\`\`\`python
 # tests/test_search.py
 import pytest
 from app.services.search_service import SearchService
@@ -929,7 +929,7 @@ async def test_hybrid_search():
     )
     assert len(results) > 0
     assert all("doubt_id" in r for r in results)
-```
+\`\`\`
 
 ---
 

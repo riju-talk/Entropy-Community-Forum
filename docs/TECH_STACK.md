@@ -188,10 +188,10 @@ Complete overview of all technologies used in the Entropy Academic Platform.
   - Connection pooling
 
 **Prisma Client**:
-```typescript
+\`\`\`typescript
 import { PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
-```
+\`\`\`
 
 **Why Prisma?**
 - Type safety
@@ -212,14 +212,14 @@ const prisma = new PrismaClient()
   - Environment variables
   - Type inference
 
-```typescript
+\`\`\`typescript
 import { z } from 'zod'
 
 const schema = z.object({
   title: z.string().min(5),
   content: z.string().min(10),
 })
-```
+\`\`\`
 
 ---
 
@@ -505,7 +505,7 @@ const schema = z.object({
 
 ### Core Dependencies
 
-```json
+\`\`\`json
 {
   "dependencies": {
     "next": "14.2.16",
@@ -543,11 +543,11 @@ const schema = z.object({
     "tailwindcss-animate": "^1.0.7"
   }
 }
-```
+\`\`\`
 
 ### Dev Dependencies
 
-```json
+\`\`\`json
 {
   "devDependencies": {
     "@types/node": "^22",
@@ -557,7 +557,7 @@ const schema = z.object({
     "eslint-config-next": "14.0.4"
   }
 }
-```
+\`\`\`
 
 ---
 

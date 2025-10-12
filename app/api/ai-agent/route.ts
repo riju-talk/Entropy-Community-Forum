@@ -1,42 +1,44 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 
-export async function POST(request: NextRequest) {
+// NOTE: This route proxies to your AI backend. It does NOT rely on Python here.
+// It expects your external AI service to accept { messages } and return { reply, sources? }.
+export async function POST(req: Request) {
   try {
-    const { message, history } = await request.json()
+    const url = process.env.AI_BACKEND_URL
+    const token = process.env.AI_BACKEND_TOKEN
 
-    // Replace this URL with your actual backend endpoint
-    const BACKEND_URL = process.env.AI_BACKEND_URL || "https://your-ai-backend.com/api/chat"
+    if (!url || !token) {
+      return NextResponse.json(
+        { error: "AI backend not configured. Set AI_BACKEND_URL and AI_BACKEND_TOKEN." },
+        { status: 500 },
+      )
+    }
 
-    const response = await fetch(BACKEND_URL, {
+    const body = await req.json().catch(() => ({}))
+    const messages = Array.isArray(body?.messages) ? body.messages : []
+
+    const res = await fetch(`${url.replace(/\/$/, "")}/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.AI_BACKEND_TOKEN}`,
+        Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({
-        message,
-        history,
-        model: "gpt-4",
-        temperature: 0.7,
-      }),
+      body: JSON.stringify({ messages }),
     })
 
-    if (!response.ok) {
-      throw new Error(`Backend responded with status: ${response.status}`)
+    if (!res.ok) {
+      const text = await res.text()
+      return NextResponse.json({ error: "AI backend error", details: text }, { status: res.status })
     }
 
-    const data = await response.json()
-
+    const data = await res.json()
     return NextResponse.json({
-      response: data.response || "I'm sorry, I couldn't process your request right now.",
+      reply: data.reply ?? "",
+      sources: data.sources ?? [],
+      usage: data.usage ?? null,
     })
-  } catch (error) {
-    console.error("AI Agent API Error:", error)
-
-    // Fallback response for demo purposes
-    return NextResponse.json({
-      response:
-        "I'm currently experiencing some technical difficulties. This is a demo response - please connect your AI backend to get real AI responses!",
-    })
+  } catch (err) {
+    console.error("AI Agent error:", err)
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
   }
 }

@@ -25,7 +25,7 @@ Comprehensive architectural overview of the Entropy Academic Platform.
 
 ### High-Level Architecture
 
-```
+\`\`\`
 ┌─────────────────────────────────────────────────────────┐
 │                    Client (Browser)                      │
 │                                                          │
@@ -80,7 +80,7 @@ Comprehensive architectural overview of the Entropy Academic Platform.
         │  • Redis (Cache)                    │
         │  • Sentry (Monitoring)              │
         └──────────────────────────────────────┘
-```
+\`\`\`
 
 ### Core Components
 
@@ -138,7 +138,7 @@ All data operations exposed as:
 
 ### Directory Structure
 
-```
+\`\`\`
 app/
 ├── (auth)/               # Authentication pages
 │   ├── signin/
@@ -188,11 +188,11 @@ lib/
 
 prisma/
 └── schema.prisma        # Database schema
-```
+\`\`\`
 
 ### Request Flow
 
-```
+\`\`\`
 User Request
     ↓
 Next.js Middleware (Auth check)
@@ -208,7 +208,7 @@ Business Logic
 Database (Prisma)
     ↓
 Response
-```
+\`\`\`
 
 ---
 
@@ -225,17 +225,17 @@ Response
 - OpenAI API (LLM)
 
 **Endpoints**:
-```
+\`\`\`
 POST /api/chat              - AI chat
 POST /api/search            - Semantic search
 POST /api/recommend         - Recommendations
 POST /api/index             - Index content
 POST /api/similar           - Find duplicates
 POST /api/evaluate-answer   - Quality scoring
-```
+\`\`\`
 
 **Communication**:
-```
+\`\`\`
 Next.js App
     ↓ HTTP REST
 AI Agent Service
@@ -243,7 +243,7 @@ AI Agent Service
 Elasticsearch
     ↓ LLM Calls
 OpenAI API
-```
+\`\`\`
 
 **Deployment**: Railway/Render (containerized)
 
@@ -259,7 +259,7 @@ OpenAI API
 - Stripe webhooks
 
 **Endpoints**:
-```
+\`\`\`
 GET  /api/credits/{userId}/balance
 POST /api/credits/{userId}/add
 POST /api/credits/{userId}/deduct
@@ -268,7 +268,7 @@ GET  /api/credits/{userId}/history
 GET  /api/subscriptions/{userId}
 POST /api/subscriptions/{userId}/upgrade
 POST /api/subscriptions/{userId}/cancel
-```
+\`\`\`
 
 **Features**:
 - Transaction logging
@@ -288,7 +288,7 @@ POST /api/subscriptions/{userId}/cancel
 
 ### 1. Question Creation Flow
 
-```
+\`\`\`
 User submits question
     ↓
 [Client] Validate form (React Hook Form + Zod)
@@ -306,11 +306,11 @@ User submits question
 [Check] Check for achievements
     ↓
 [Response] Return doubt ID + redirect
-```
+\`\`\`
 
 ### 2. AI Chat Flow
 
-```
+\`\`\`
 User sends message
     ↓
 [Client] Send to /api/ai-agent
@@ -330,11 +330,11 @@ User sends message
 [Credits] Deduct credits
     ↓
 [Response] Return AI response + sources
-```
+\`\`\`
 
 ### 3. Voting Flow
 
-```
+\`\`\`
 User clicks upvote
     ↓
 [Optimistic UI] Show upvote immediately
@@ -347,11 +347,11 @@ User clicks upvote
     3. Award points to author
     ↓
 [Revalidate] Update UI with real data
-```
+\`\`\`
 
 ### 4. Subscription Payment Flow
 
-```
+\`\`\`
 User selects plan
     ↓
 [Client] Redirect to Stripe Checkout
@@ -367,7 +367,7 @@ User selects plan
 [Email] Send confirmation (planned)
     ↓
 [Redirect] Back to app with success
-```
+\`\`\`
 
 ---
 
@@ -375,7 +375,7 @@ User selects plan
 
 ### Authentication & Authorization
 
-```
+\`\`\`
 ┌─────────────────────────────────┐
 │      NextAuth.js Session        │
 │                                 │
@@ -392,7 +392,7 @@ User selects plan
 │  • TEACHER: Verify answers      │
 │  • ADMIN: Moderation            │
 └─────────────────────────────────┘
-```
+\`\`\`
 
 ### Data Protection
 
@@ -453,7 +453,7 @@ User selects plan
    - Edge functions
 
 3. **Caching Strategy** (Planned):
-   ```
+   \`\`\`
    Browser Cache
        ↓
    CDN Cache (Vercel)
@@ -461,7 +461,7 @@ User selects plan
    Redis Cache
        ↓
    Database
-   ```
+   \`\`\`
 
 ### Load Handling
 
@@ -481,7 +481,7 @@ User selects plan
 
 ### Production Setup
 
-```
+\`\`\`
 ┌─────────────────────────────────────────┐
 │          Production Environment         │
 │                                         │
@@ -514,11 +514,11 @@ User selects plan
 │  │  • Sentry (Monitoring)            │ │
 │  └───────────────────────────────────┘ │
 └─────────────────────────────────────────┘
-```
+\`\`\`
 
 ### CI/CD Pipeline
 
-```
+\`\`\`
 GitHub Push
     ↓
 GitHub Actions
@@ -541,11 +541,11 @@ Manual Approval
 │Deploy Production│
 │  (main branch)  │
 └─────────────────┘
-```
+\`\`\`
 
 ### Environment Strategy
 
-```
+\`\`\`
 Development
 ├── localhost:5000 (Next.js)
 ├── Local PostgreSQL
@@ -560,7 +560,7 @@ Production
 ├── entropy.com
 ├── Supabase production DB
 └── Production services
-```
+\`\`\`
 
 ---
 
@@ -589,7 +589,7 @@ Production
 
 ### Data Relationships
 
-```
+\`\`\`
 User (1) ──< (M) Doubt
 User (1) ──< (M) Comment
 User (1) ──── (1) UserStat
@@ -600,7 +600,7 @@ Doubt (1) ──< (M) Vote
 
 Comment (1) ──< (M) Comment (nested)
 Comment (1) ──< (M) Vote
-```
+\`\`\`
 
 ### Optimization Strategy
 
@@ -626,31 +626,31 @@ Comment (1) ──< (M) Vote
 
 ### Internal Communication
 
-```
+\`\`\`
 Next.js App ←→ PostgreSQL (Prisma)
 Next.js App ←→ AI Agent (HTTP REST)
 Next.js App ←→ Credits Service (HTTP REST)
 AI Agent ←→ Elasticsearch (Native client)
 AI Agent ←→ OpenAI (HTTP API)
 Credits Service ←→ PostgreSQL (Direct)
-```
+\`\`\`
 
 ### External Integration
 
-```
+\`\`\`
 Stripe Webhooks → Next.js API → Credits Service
 OpenAI API → AI Agent → Response
 Resend API → Email Service → Notifications
 Sentry SDK → Error Tracking → Alerts
-```
+\`\`\`
 
 ### Authentication Flow
 
-```
+\`\`\`
 User → Google OAuth → NextAuth.js → Session
 Session → Prisma Adapter → Database
 Microservices → Bearer Token → Validation
-```
+\`\`\`
 
 ---
 
@@ -710,7 +710,7 @@ Microservices → Bearer Token → Validation
 
 ### Tools
 
-```
+\`\`\`
 Sentry
 ├── Error tracking
 ├── Performance monitoring
@@ -725,7 +725,7 @@ Custom Dashboard (Planned)
 ├── Business metrics
 ├── User engagement
 └── Revenue tracking
-```
+\`\`\`
 
 ---
 

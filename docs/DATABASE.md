@@ -42,7 +42,7 @@ Complete PostgreSQL database schema for the Entropy Academic Platform.
 
 Stores user accounts and authentication data.
 
-```sql
+\`\`\`sql
 CREATE TABLE users (
     id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid()::text,
     name VARCHAR,
@@ -64,7 +64,7 @@ CREATE TABLE users (
 
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_created_at ON users(created_at);
-```
+\`\`\`
 
 **Fields**:
 - `id`: Unique identifier (CUID)
@@ -78,7 +78,7 @@ CREATE INDEX idx_users_created_at ON users(created_at);
 
 OAuth provider accounts (NextAuth.js).
 
-```sql
+\`\`\`sql
 CREATE TABLE accounts (
     id VARCHAR PRIMARY KEY,
     user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -97,13 +97,13 @@ CREATE TABLE accounts (
 );
 
 CREATE INDEX idx_accounts_user_id ON accounts(user_id);
-```
+\`\`\`
 
 ### 3. Sessions Table
 
 User sessions (NextAuth.js).
 
-```sql
+\`\`\`sql
 CREATE TABLE sessions (
     id VARCHAR PRIMARY KEY,
     session_token VARCHAR UNIQUE NOT NULL,
@@ -112,13 +112,13 @@ CREATE TABLE sessions (
 );
 
 CREATE INDEX idx_sessions_user_id ON sessions(user_id);
-```
+\`\`\`
 
 ### 4. Doubts Table
 
 Questions posted by users.
 
-```sql
+\`\`\`sql
 CREATE TABLE doubts (
     id VARCHAR PRIMARY KEY,
     title VARCHAR NOT NULL,
@@ -139,7 +139,7 @@ CREATE INDEX idx_doubts_author_created ON doubts(author_id, created_at);
 CREATE INDEX idx_doubts_subject_created ON doubts(subject, created_at);
 CREATE INDEX idx_doubts_resolved_created ON doubts(is_resolved, created_at);
 CREATE INDEX idx_doubts_votes ON doubts(votes);
-```
+\`\`\`
 
 **Key Fields**:
 - `subject`: Categorization (MATHEMATICS, PHYSICS, etc.)
@@ -151,7 +151,7 @@ CREATE INDEX idx_doubts_votes ON doubts(votes);
 
 Answers and nested replies.
 
-```sql
+\`\`\`sql
 CREATE TABLE comments (
     id VARCHAR PRIMARY KEY,
     content TEXT NOT NULL,
@@ -169,7 +169,7 @@ CREATE INDEX idx_comments_doubt_created ON comments(doubt_id, created_at);
 CREATE INDEX idx_comments_author_created ON comments(author_id, created_at);
 CREATE INDEX idx_comments_accepted ON comments(is_accepted);
 CREATE INDEX idx_comments_votes ON comments(votes);
-```
+\`\`\`
 
 **Features**:
 - **Threaded Replies**: `parent_id` for nested comments
@@ -180,7 +180,7 @@ CREATE INDEX idx_comments_votes ON comments(votes);
 
 Tracks upvotes/downvotes on doubts and comments.
 
-```sql
+\`\`\`sql
 CREATE TABLE votes (
     id VARCHAR PRIMARY KEY,
     type VARCHAR NOT NULL,  -- UP or DOWN
@@ -196,7 +196,7 @@ CREATE TABLE votes (
 CREATE INDEX idx_votes_user_created ON votes(user_id, created_at);
 CREATE INDEX idx_votes_doubt ON votes(doubt_id);
 CREATE INDEX idx_votes_comment ON votes(comment_id);
-```
+\`\`\`
 
 **Constraints**:
 - One vote per user per doubt
@@ -211,7 +211,7 @@ CREATE INDEX idx_votes_comment ON votes(comment_id);
 
 Aggregated user statistics.
 
-```sql
+\`\`\`sql
 CREATE TABLE user_stats (
     id VARCHAR PRIMARY KEY,
     user_id VARCHAR UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -229,13 +229,13 @@ CREATE TABLE user_stats (
 
 CREATE INDEX idx_user_stats_points ON user_stats(total_points);
 CREATE INDEX idx_user_stats_level ON user_stats(current_level);
-```
+\`\`\`
 
 ### 8. PointsLedger Table
 
 Transaction log for all point activities.
 
-```sql
+\`\`\`sql
 CREATE TABLE points_ledger (
     id VARCHAR PRIMARY KEY,
     user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -249,7 +249,7 @@ CREATE TABLE points_ledger (
 
 CREATE INDEX idx_points_user_created ON points_ledger(user_id, created_at);
 CREATE INDEX idx_points_event_type ON points_ledger(event_type);
-```
+\`\`\`
 
 **Event Types**:
 - DOUBT_CREATED, COMMENT_CREATED
@@ -262,7 +262,7 @@ CREATE INDEX idx_points_event_type ON points_ledger(event_type);
 
 Level definitions and requirements.
 
-```sql
+\`\`\`sql
 CREATE TABLE levels (
     id VARCHAR PRIMARY KEY,
     level INTEGER UNIQUE NOT NULL,
@@ -275,13 +275,13 @@ CREATE TABLE levels (
 );
 
 CREATE INDEX idx_levels_min_points ON levels(min_points);
-```
+\`\`\`
 
 ### 10. Achievements Table
 
 Achievement definitions.
 
-```sql
+\`\`\`sql
 CREATE TABLE achievements (
     id VARCHAR PRIMARY KEY,
     type VARCHAR NOT NULL,
@@ -293,13 +293,13 @@ CREATE TABLE achievements (
     icon VARCHAR,
     created_at TIMESTAMP DEFAULT NOW()
 );
-```
+\`\`\`
 
 ### 11. AchievementUnlock Table
 
 Tracks unlocked achievements per user.
 
-```sql
+\`\`\`sql
 CREATE TABLE achievement_unlocks (
     id VARCHAR PRIMARY KEY,
     user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -310,13 +310,13 @@ CREATE TABLE achievement_unlocks (
 );
 
 CREATE INDEX idx_achievement_unlocks_user ON achievement_unlocks(user_id, unlocked_at);
-```
+\`\`\`
 
 ### 12. Badges Table
 
 Badge definitions.
 
-```sql
+\`\`\`sql
 CREATE TABLE badges (
     id VARCHAR PRIMARY KEY,
     type VARCHAR NOT NULL,
@@ -326,13 +326,13 @@ CREATE TABLE badges (
     color VARCHAR,
     created_at TIMESTAMP DEFAULT NOW()
 );
-```
+\`\`\`
 
 ### 13. BadgeGrant Table
 
 Tracks awarded badges per user.
 
-```sql
+\`\`\`sql
 CREATE TABLE badge_grants (
     id VARCHAR PRIMARY KEY,
     user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -343,13 +343,13 @@ CREATE TABLE badge_grants (
 );
 
 CREATE INDEX idx_badge_grants_user ON badge_grants(user_id, granted_at);
-```
+\`\`\`
 
 ### 14. Streaks Table
 
 Daily activity streaks.
 
-```sql
+\`\`\`sql
 CREATE TABLE streaks (
     id VARCHAR PRIMARY KEY,
     user_id VARCHAR UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -361,13 +361,13 @@ CREATE TABLE streaks (
 );
 
 CREATE INDEX idx_streaks_last_activity ON streaks(last_activity_date);
-```
+\`\`\`
 
 ### 15. LeaderboardSnapshot Table
 
 Historical leaderboard data.
 
-```sql
+\`\`\`sql
 CREATE TABLE leaderboard_snapshots (
     id VARCHAR PRIMARY KEY,
     user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -384,7 +384,7 @@ CREATE TABLE leaderboard_snapshots (
 
 CREATE INDEX idx_leaderboard_period_scope ON leaderboard_snapshots(period, scope, period_start);
 CREATE INDEX idx_leaderboard_rank ON leaderboard_snapshots(period, scope, rank, period_start);
-```
+\`\`\`
 
 ---
 
@@ -394,7 +394,7 @@ CREATE INDEX idx_leaderboard_rank ON leaderboard_snapshots(period, scope, rank, 
 
 AI chat conversations.
 
-```sql
+\`\`\`sql
 CREATE TABLE conversations (
     id VARCHAR PRIMARY KEY,
     user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -405,13 +405,13 @@ CREATE TABLE conversations (
 );
 
 CREATE INDEX idx_conversations_user_created ON conversations(user_id, created_at);
-```
+\`\`\`
 
 ### 17. Messages Table
 
 Chat messages within conversations.
 
-```sql
+\`\`\`sql
 CREATE TABLE messages (
     id VARCHAR PRIMARY KEY,
     conversation_id VARCHAR NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
@@ -422,13 +422,13 @@ CREATE TABLE messages (
 );
 
 CREATE INDEX idx_messages_conversation_created ON messages(conversation_id, created_at);
-```
+\`\`\`
 
 ### 18. AIRecommendations Table
 
 AI-generated recommendations for users.
 
-```sql
+\`\`\`sql
 CREATE TABLE ai_recommendations (
     id VARCHAR PRIMARY KEY,
     user_id VARCHAR NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -443,7 +443,7 @@ CREATE TABLE ai_recommendations (
 
 CREATE INDEX idx_ai_recommendations_user ON ai_recommendations(user_id, is_read, created_at);
 CREATE INDEX idx_ai_recommendations_doubt ON ai_recommendations(doubt_id);
-```
+\`\`\`
 
 ---
 
@@ -451,7 +451,7 @@ CREATE INDEX idx_ai_recommendations_doubt ON ai_recommendations(doubt_id);
 
 ### Entity Relationship Diagram
 
-```
+\`\`\`
 users (1) ──< (M) doubts
 users (1) ──< (M) comments
 users (1) ──< (M) votes
@@ -476,7 +476,7 @@ conversations (1) ──< (M) messages
 
 achievements (1) ──< (M) achievement_unlocks
 badges (1) ──< (M) badge_grants
-```
+\`\`\`
 
 ### Key Relationships
 
@@ -494,7 +494,7 @@ badges (1) ──< (M) badge_grants
 
 ### Performance Optimization
 
-```sql
+\`\`\`sql
 -- User queries
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_created_at ON users(created_at);
@@ -523,7 +523,7 @@ CREATE INDEX idx_achievement_unlocks_user ON achievement_unlocks(user_id, unlock
 -- Leaderboard queries
 CREATE INDEX idx_leaderboard_period_scope ON leaderboard_snapshots(period, scope, period_start);
 CREATE INDEX idx_leaderboard_rank ON leaderboard_snapshots(period, scope, rank, period_start);
-```
+\`\`\`
 
 ---
 
@@ -531,7 +531,7 @@ CREATE INDEX idx_leaderboard_rank ON leaderboard_snapshots(period, scope, rank, 
 
 ### Using Prisma Migrate
 
-```bash
+\`\`\`bash
 # Create migration
 npx prisma migrate dev --name add_feature_name
 
@@ -543,11 +543,11 @@ npx prisma migrate reset
 
 # Generate Prisma Client
 npx prisma generate
-```
+\`\`\`
 
 ### Common Migration Commands
 
-```bash
+\`\`\`bash
 # Check migration status
 npx prisma migrate status
 
@@ -559,11 +559,11 @@ npx prisma migrate deploy
 
 # View migration history
 npx prisma migrate history
-```
+\`\`\`
 
 ### Seed Database
 
-```typescript
+\`\`\`typescript
 // prisma/seed.ts
 import { PrismaClient } from '@prisma/client'
 
@@ -615,12 +615,12 @@ main()
   .finally(async () => {
     await prisma.$disconnect()
   })
-```
+\`\`\`
 
 Run seed:
-```bash
+\`\`\`bash
 npx prisma db seed
-```
+\`\`\`
 
 ---
 
@@ -628,13 +628,13 @@ npx prisma db seed
 
 ### Backup Strategy
 
-```bash
+\`\`\`bash
 # Backup production database
 pg_dump $DATABASE_URL > backup_$(date +%Y%m%d).sql
 
 # Restore from backup
 psql $DATABASE_URL < backup_20240115.sql
-```
+\`\`\`
 
 ### Automated Backups
 
@@ -647,23 +647,23 @@ Use Supabase/Neon built-in backup features:
 ## Query Examples
 
 ### Get user with stats
-```sql
+\`\`\`sql
 SELECT u.*, us.total_points, us.current_level
 FROM users u
 LEFT JOIN user_stats us ON u.id = us.user_id
 WHERE u.id = $1;
-```
+\`\`\`
 
 ### Get top doubts by votes
-```sql
+\`\`\`sql
 SELECT * FROM doubts
 WHERE subject = 'MATHEMATICS'
 ORDER BY votes DESC, created_at DESC
 LIMIT 10;
-```
+\`\`\`
 
 ### Get leaderboard
-```sql
+\`\`\`sql
 SELECT u.name, l.points, l.rank
 FROM leaderboard_snapshots l
 JOIN users u ON l.user_id = u.id
@@ -676,7 +676,7 @@ WHERE l.period = 'WEEKLY'
   )
 ORDER BY l.rank ASC
 LIMIT 100;
-```
+\`\`\`
 
 ---
 

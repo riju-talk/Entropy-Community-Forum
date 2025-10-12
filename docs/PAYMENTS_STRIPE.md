@@ -46,25 +46,25 @@ Complete guide for integrating Stripe payments for subscriptions and credit purc
 
 ### 2. Environment Variables
 
-```env
+\`\`\`env
 # Add to .env
 STRIPE_SECRET_KEY=sk_test_... # sk_live_... in production
 STRIPE_PUBLISHABLE_KEY=pk_test_... # pk_live_... in production
 STRIPE_WEBHOOK_SECRET=whsec_...
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-```
+\`\`\`
 
 ### 3. Install Dependencies
 
-```bash
+\`\`\`bash
 npm install @stripe/stripe-js @stripe/react-stripe-js stripe
-```
+\`\`\`
 
 ---
 
 ## Architecture
 
-```
+\`\`\`
 ┌──────────────────────────────────────────────┐
 │          User (Browser)                      │
 │                                              │
@@ -100,7 +100,7 @@ npm install @stripe/stripe-js @stripe/react-stripe-js stripe
 │  • Add credits to account                   │
 │  • Send confirmation email                  │
 └──────────────────────────────────────────────┘
-```
+\`\`\`
 
 ---
 
@@ -109,7 +109,7 @@ npm install @stripe/stripe-js @stripe/react-stripe-js stripe
 ### 1. Initialize Stripe
 
 **lib/stripe.ts**
-```typescript
+\`\`\`typescript
 import Stripe from 'stripe'
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -120,12 +120,12 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 export const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 )
-```
+\`\`\`
 
 ### 2. Stripe Client Component
 
 **components/stripe-provider.tsx**
-```typescript
+\`\`\`typescript
 'use client'
 
 import { Elements } from '@stripe/react-stripe-js'
@@ -138,12 +138,12 @@ export function StripeProvider({ children }: { children: React.ReactNode }) {
     </Elements>
   )
 }
-```
+\`\`\`
 
 ### 3. Checkout Session (Subscriptions)
 
 **app/api/stripe/create-checkout-session/route.ts**
-```typescript
+\`\`\`typescript
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { getServerSession } from 'next-auth'
@@ -184,12 +184,12 @@ export async function POST(req: NextRequest) {
     )
   }
 }
-```
+\`\`\`
 
 ### 4. Payment Intent (One-time Credits)
 
 **app/api/stripe/create-payment-intent/route.ts**
-```typescript
+\`\`\`typescript
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { getServerSession } from 'next-auth'
@@ -231,12 +231,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
-```
+\`\`\`
 
 ### 5. Subscription Page
 
 **app/subscription/page.tsx**
-```typescript
+\`\`\`typescript
 'use client'
 
 import { useState } from 'react'
@@ -346,7 +346,7 @@ export default function SubscriptionPage() {
     </div>
   )
 }
-```
+\`\`\`
 
 ---
 
@@ -374,7 +374,7 @@ export default function SubscriptionPage() {
 ## Credit Purchases
 
 **components/buy-credits.tsx**
-```typescript
+\`\`\`typescript
 'use client'
 
 import { useState } from 'react'
@@ -460,7 +460,7 @@ export function BuyCreditsPacks() {
     </div>
   )
 }
-```
+\`\`\`
 
 ---
 
@@ -469,7 +469,7 @@ export function BuyCreditsPacks() {
 ### Setup Webhook Endpoint
 
 **app/api/stripe/webhook/route.ts**
-```typescript
+\`\`\`typescript
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { prisma } from '@/lib/prisma'
@@ -557,7 +557,7 @@ export const config = {
     bodyParser: false,
   },
 }
-```
+\`\`\`
 
 ### Configure Webhook in Stripe
 
@@ -576,30 +576,30 @@ export const config = {
 
 ### Test Mode
 
-```bash
+\`\`\`bash
 # Use test API keys
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PUBLISHABLE_KEY=pk_test_...
-```
+\`\`\`
 
 ### Test Cards
 
-```
+\`\`\`
 Success: 4242 4242 4242 4242
 Decline: 4000 0000 0000 0002
 3D Secure: 4000 0027 6000 3184
-```
+\`\`\`
 
 ### Test Webhooks Locally
 
-```bash
+\`\`\`bash
 # Install Stripe CLI
 stripe listen --forward-to localhost:5000/api/stripe/webhook
 
 # Trigger test events
 stripe trigger checkout.session.completed
 stripe trigger payment_intent.succeeded
-```
+\`\`\`
 
 ---
 
@@ -618,7 +618,7 @@ stripe trigger payment_intent.succeeded
 
 Add to User model in `prisma/schema.prisma`:
 
-```prisma
+\`\`\`prisma
 model User {
   // ... existing fields
   
@@ -630,12 +630,12 @@ model User {
   
   @@map("users")
 }
-```
+\`\`\`
 
 Run migration:
-```bash
+\`\`\`bash
 npx prisma migrate dev --name add_stripe_fields
-```
+\`\`\`
 
 ---
 

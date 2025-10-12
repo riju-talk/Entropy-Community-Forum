@@ -102,16 +102,16 @@ Quick reference for what's implemented vs. planned.
 ## 📝 Environment Variables Status
 
 ### Currently Used ✅
-```env
+\`\`\`env
 DATABASE_URL              # ✅ In use (Prisma)
 NEXTAUTH_URL             # ✅ In use (NextAuth)
 NEXTAUTH_SECRET          # ✅ In use (NextAuth)
 GOOGLE_CLIENT_ID         # ✅ Configured (OAuth)
 GOOGLE_CLIENT_SECRET     # ✅ Configured (OAuth)
-```
+\`\`\`
 
 ### Planned/Future 🔮
-```env
+\`\`\`env
 # Not yet used (from planned features)
 AI_BACKEND_URL           # For AI service
 AI_BACKEND_TOKEN         # For AI service
@@ -120,7 +120,7 @@ STRIPE_WEBHOOK_SECRET    # For Stripe webhooks
 ELASTICSEARCH_URL        # For search
 REDIS_URL                # For caching
 EMAIL_SERVER_*           # For emails
-```
+\`\`\`
 
 ---
 

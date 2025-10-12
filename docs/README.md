@@ -37,7 +37,7 @@ Complete documentation for building and scaling the Entropy Academic Platform.
 ### For Developers
 
 1. **Setup Environment**
-   ```bash
+   \`\`\`bash
    # Clone repository
    git clone <repo-url>
    cd entropy-platform
@@ -47,7 +47,7 @@ Complete documentation for building and scaling the Entropy Academic Platform.
    
    # Copy environment variables
    cp .env.example .env.local
-   ```
+   \`\`\`
 
 2. **Configure Environment** (see [ENV_VARIABLES.md](ENV_VARIABLES.md))
    - Set up DATABASE_URL (PostgreSQL)
@@ -55,18 +55,18 @@ Complete documentation for building and scaling the Entropy Academic Platform.
    - Add OAuth credentials (optional)
 
 3. **Database Setup**
-   ```bash
+   \`\`\`bash
    # Run migrations
    npx prisma migrate dev
    
    # Seed database
    npx prisma db seed
-   ```
+   \`\`\`
 
 4. **Start Development**
-   ```bash
+   \`\`\`bash
    npm run dev
-   ```
+   \`\`\`
 
 ---
 
@@ -223,7 +223,7 @@ Complete documentation for building and scaling the Entropy Academic Platform.
 
 ### AI Agent Service
 
-```bash
+\`\`\`bash
 # Navigate to AI service directory
 cd ai-agent-service
 
@@ -232,13 +232,13 @@ pip install -r requirements.txt
 
 # Start service
 uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
+\`\`\`
 
 See [AI_AGENT.md](AI_AGENT.md) for complete implementation.
 
 ### Credits Service
 
-```bash
+\`\`\`bash
 # Go version
 cd credits-service
 go run cmd/server/main.go
@@ -246,7 +246,7 @@ go run cmd/server/main.go
 # Python version
 cd credits-service
 uvicorn app.main:app --port 8080
-```
+\`\`\`
 
 See [CREDITS_SUBSCRIPTION.md](CREDITS_SUBSCRIPTION.md) for details.
 
@@ -260,13 +260,13 @@ See [CREDITS_SUBSCRIPTION.md](CREDITS_SUBSCRIPTION.md) for details.
 - Credits service: `go run main.go` (port 8080)
 
 ### 2. Database Changes
-```bash
+\`\`\`bash
 # Make schema changes in prisma/schema.prisma
 npx prisma migrate dev --name your_change
 
 # Generate Prisma Client
 npx prisma generate
-```
+\`\`\`
 
 ### 3. Adding Features
 1. Update database schema if needed
@@ -280,15 +280,15 @@ npx prisma generate
 ## 🚢 Deployment
 
 ### Main Application
-```bash
+\`\`\`bash
 # Vercel (recommended)
 vercel --prod
 
 # or connect GitHub repo to Vercel
-```
+\`\`\`
 
 ### Microservices
-```bash
+\`\`\`bash
 # Docker build
 docker build -t ai-agent-service .
 docker run -p 8000:8000 ai-agent-service
@@ -297,7 +297,7 @@ docker run -p 8000:8000 ai-agent-service
 railway up
 # or
 render deploy
-```
+\`\`\`
 
 See [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md) for deployment architecture.
 
@@ -305,7 +305,7 @@ See [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md) for deployment architectu
 
 ## 📊 Architecture Overview
 
-```
+\`\`\`
 ┌─────────────┐
 │   Client    │
 │  (Browser)  │
@@ -322,7 +322,7 @@ See [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md) for deployment architectu
    │(PG)  │ │ • AI Agent  │
    └──────┘ │ • Credits   │
             └─────────────┘
-```
+\`\`\`
 
 ---
 
