@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
 import { useSession, signOut } from "next-auth/react"
 import { Button } from "./ui/button"
@@ -19,11 +18,6 @@ import AuthModal from "./auth-modal"
 
 export default function Header() {
   const { data: session, status } = useSession()
-  const [showAuthModal, setShowAuthModal] = useState(false)
-
-  const handleSignInClick = () => {
-    setShowAuthModal(true)
-  }
 
   return (
     <>
@@ -33,9 +27,9 @@ export default function Header() {
             {/* Logo */}
             <Link href="/" className="flex items-center space-x-2">
               <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">E</span>
+                <span className="text-primary-foreground font-bold text-lg">A</span>
               </div>
-              <span className="font-bold text-xl">Entropy</span>
+              <span className="font-bold text-xl">Athena</span>
             </Link>
 
             {/* Search */}
@@ -111,7 +105,7 @@ export default function Header() {
                   </DropdownMenu>
                 </div>
               ) : (
-                <Button variant="outline" onClick={handleSignInClick}>
+                <Button variant="outline">
                   Sign In
                 </Button>
               )}
@@ -120,7 +114,7 @@ export default function Header() {
         </div>
       </header>
 
-      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+      <AuthModal />
     </>
   )
 }

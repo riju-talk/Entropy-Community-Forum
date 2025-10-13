@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Separator } from "@/components/ui/separator"
+import { Heart } from "lucide-react"
 
 export default function Footer() {
   return (
@@ -10,9 +11,9 @@ export default function Footer() {
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">E</span>
+                <span className="text-primary-foreground font-bold text-lg">A</span>
               </div>
-              <span className="font-bold text-xl">Entropy</span>
+              <span className="font-bold text-xl">Athena</span>
             </div>
             <p className="text-sm text-muted-foreground">
               Academic community platform for students and educators to collaborate, learn, and grow together.
@@ -27,10 +28,10 @@ export default function Footer() {
                 Ask Questions
               </Link>
               <Link href="/ai-agent" className="block text-muted-foreground hover:text-foreground">
-                AI Assistant
+                Athena AI
               </Link>
-              <Link href="/mentorship" className="block text-muted-foreground hover:text-foreground">
-                Find Mentors
+              <Link href="/athena-mentorship" className="block text-muted-foreground hover:text-foreground">
+                Mentorship
               </Link>
               <Link href="/leaderboard" className="block text-muted-foreground hover:text-foreground">
                 Leaderboard
@@ -71,9 +72,11 @@ export default function Footer() {
         <Separator className="my-8" />
 
         <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-          <p className="text-sm text-muted-foreground">© 2025 Entropy. All rights reserved.</p>
-          <div className="flex space-x-4 text-sm text-muted-foreground">
-            <span>Made with ❤️ for education</span>
+          <p className="text-sm text-muted-foreground">© 2025 Athena. All rights reserved.</p>
+          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+            <span>Made with</span>
+            <Heart className="h-4 w-4 text-red-500 fill-current" />
+            <span>for education</span>
           </div>
         </div>
       </div>

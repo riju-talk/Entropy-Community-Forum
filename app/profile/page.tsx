@@ -1,24 +1,28 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Search, CheckCircle, Bookmark, ChevronUp, ChevronDown } from "lucide-react"
 
 export default function ProfilePage() {
   return (
-    <main className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 md:px-6 py-6">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           {/* Left Sidebar */}
           <aside className="md:col-span-3 lg:col-span-2">
-            <Card className="border-neutral-200">
+            <Card>
               <CardContent className="p-4 space-y-2">
                 <Button variant="outline" className="w-full justify-start">
-                  <span className="mr-2">🔍</span> Asked Posts
+                  <Search className="mr-2 h-4 w-4" />
+                  Asked Posts
                 </Button>
-                <Button variant="outline" className="w-full justify-start bg-slate-100">
-                  <span className="mr-2">✓</span> Solved Posts
+                <Button variant="outline" className="w-full justify-start bg-secondary">
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Solved Posts
                 </Button>
                 <Button variant="outline" className="w-full justify-start">
-                  <span className="mr-2">💾</span> Saved Posts
+                  <Bookmark className="mr-2 h-4 w-4" />
+                  Saved Posts
                 </Button>
               </CardContent>
             </Card>
@@ -26,123 +30,68 @@ export default function ProfilePage() {
 
           {/* Main Content */}
           <div className="md:col-span-6 lg:col-span-7">
-            <Card className="border-neutral-200 mb-4">
+            <Card className="mb-4">
               <CardContent className="p-6">
                 <div className="flex items-start gap-3">
                   <div className="flex flex-col items-center">
                     <Button variant="ghost" size="sm" className="h-6 px-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-neutral-400"
-                      >
-                        <path d="m5 15 7-7 7 7" />
-                      </svg>
+                      <ChevronUp className="h-4 w-4" />
                     </Button>
-                    <span className="text-sm font-medium text-neutral-600">1</span>
+                    <span className="text-sm font-medium">1</span>
                     <Button variant="ghost" size="sm" className="h-6 px-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-neutral-400"
-                      >
-                        <path d="m19 9-7 7-7-7" />
-                      </svg>
+                      <ChevronDown className="h-4 w-4" />
                     </Button>
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs text-neutral-500">Asked by 18th year B.Tech • 7 hours ago</span>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                        Computer Science
+                      </Badge>
+                      <Badge variant="outline">React</Badge>
+                      <Badge variant="outline">JavaScript</Badge>
                     </div>
-                    <h3 className="font-medium text-slate-800 mb-2">test</h3>
-                    <div className="text-neutral-600 mb-4">dfgfd</div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" className="h-8 text-neutral-500 hover:text-slate-700">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="mr-1"
-                          >
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                          </svg>
-                          0 Comments
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-8 text-neutral-500 hover:text-slate-700">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="mr-1"
-                          >
-                            <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z" />
-                          </svg>
-                          Answer
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-8 text-neutral-500 hover:text-slate-700">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="mr-1"
-                          >
-                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                          </svg>
-                          Edit
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-8 text-neutral-500 hover:text-slate-700">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="mr-1"
-                          >
-                            <path d="M3 6h18" />
-                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                          </svg>
-                          Delete
-                        </Button>
-                      </div>
+                    <h3 className="font-semibold mb-2">How to implement authentication in React applications?</h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      I'm working on a React application and need to implement user authentication. I've looked into JWT tokens and OAuth, but I'm not sure which approach is best for my use case.
+                    </p>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <span>2 hours ago</span>
+                      <span>5 answers</span>
+                      <span>12 views</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-start gap-3">
+                  <div className="flex flex-col items-center">
+                    <Button variant="ghost" size="sm" className="h-6 px-1">
+                      <ChevronUp className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm font-medium">3</span>
+                    <Button variant="ghost" size="sm" className="h-6 px-1">
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                        Mathematics
+                      </Badge>
+                      <Badge variant="outline">Calculus</Badge>
+                      <Badge variant="outline">Integration</Badge>
+                    </div>
+                    <h3 className="font-semibold mb-2">Understanding definite integrals for probability distributions</h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Can someone explain how definite integrals are used in probability density functions? I'm struggling with the connection between calculus and statistics.
+                    </p>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <span>5 hours ago</span>
+                      <span>8 answers</span>
+                      <span>24 views</span>
                       <Badge className="bg-sage-100 text-sage-700 hover:bg-sage-100">DOUBT RESOLVED</Badge>
                     </div>
                   </div>
@@ -195,7 +144,7 @@ export default function ProfilePage() {
           </aside>
         </div>
       </div>
-    </main>
+    </div>
   )
 }
 

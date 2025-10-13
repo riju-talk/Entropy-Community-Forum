@@ -12,7 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2 } from "lucide-react"
+import { Loader2, Globe, Github } from "lucide-react"
 
 export default function AuthModal({ children }: { children?: React.ReactNode }) {
   const [isOpen, setIsOpen] = React.useState(false)
@@ -69,7 +69,7 @@ export default function AuthModal({ children }: { children?: React.ReactNode }) 
         <DialogTrigger asChild>{children}</DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Welcome to Entropy</DialogTitle>
+            <DialogTitle>Welcome to Athena</DialogTitle>
             <DialogDescription>Sign in to access all features and join the community</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -86,7 +86,7 @@ export default function AuthModal({ children }: { children?: React.ReactNode }) 
                 </>
               ) : (
                 <>
-                  <span className="mr-2">🌐</span>
+                  <Globe className="mr-2 h-4 w-4" />
                   Continue with Google
                 </>
               )}
@@ -104,7 +104,7 @@ export default function AuthModal({ children }: { children?: React.ReactNode }) 
                 </>
               ) : (
                 <>
-                  <span className="mr-2">🐙</span>
+                  <Github className="mr-2 h-4 w-4" />
                   Continue with GitHub
                 </>
               )}
