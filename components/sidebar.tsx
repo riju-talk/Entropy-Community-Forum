@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, BookOpen, GraduationCap, Users, Sparkles, LogOut, Plus, User } from "lucide-react"
+import { Home, HelpCircle, Users, Trophy, Calendar, LogOut, Plus, User, Sparkle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useSession, signOut } from "next-auth/react"
@@ -16,28 +16,33 @@ export default function Sidebar() {
   const navItems = [
     {
       href: "/",
-      label: "Feed",
+      label: "Home",
       icon: Home,
     },
     {
-      href: "/courses",
-      label: "Courses",
-      icon: BookOpen,
-    },
-    {
-      href: "/classrooms",
-      label: "Classrooms",
-      icon: GraduationCap,
-    },
-    {
-      href: "/community",
-      label: "Community",
-      icon: Users,
+      href: "/ask",
+      label: "Ask Question",
+      icon: HelpCircle,
     },
     {
       href: "/ai-agent",
       label: "Athena",
-      icon: Sparkles,
+      icon: Sparkle,
+    },
+    {
+      href: "/mentorship",
+      label: "Mentorship",
+      icon: Users,
+    },
+    {
+      href: "/leaderboard",
+      label: "Leaderboard",
+      icon: Trophy,
+    },
+    {
+      href: "/happenings",
+      label: "Happenings",
+      icon: Calendar,
     },
   ]
 

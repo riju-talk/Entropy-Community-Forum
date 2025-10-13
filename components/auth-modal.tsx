@@ -11,14 +11,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { GoogleLogoIcon } from "@radix-ui/react-icons"
-import { signInWithGoogle } from "@/lib/firebase-client"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2 } from "lucide-react"
 
 export default function AuthModal({ children }: { children?: React.ReactNode }) {
   const [isOpen, setIsOpen] = React.useState(false)
-  const [isLoading, setIsLoading] = React.useState(false)
+  const [isLoading, setIsLoading] = React.useState<string | null>(null)
   const { toast } = useToast()
   const router = useRouter()
   const { data: session } = useSession()
@@ -29,28 +27,31 @@ export default function AuthModal({ children }: { children?: React.ReactNode }) 
     }
   }, [session])
 
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true)
+  const handleSignIn = async (provider: "google" | "github") => {
+    setIsLoading(provider)
     try {
-      const fbIdToken = await signInWithGoogle()
-      signIn("credentials", {
-        fbIdToken: fbIdToken,
+      const result = await signIn(provider, {
+        callbackUrl: "/subscription",
         redirect: false,
-      }).then((response: any) => {
-        if (response?.ok) {
-          setIsOpen(false)
-          router.push("/subscription")
-        }
       })
+
+      if (result?.error) {
+        throw new Error(result.error)
+      }
+
+      if (result?.ok) {
+        setIsOpen(false)
+        router.push("/subscription")
+      }
     } catch (error) {
-      console.error("Google sign-in failed:", error)
+      console.error(`${provider} sign-in failed:`, error)
       toast({
-        title: "Google Sign-in Failed",
-        description: "There was an issue signing in with Google. Please try again later.",
+        title: `${provider.charAt(0).toUpperCase() + provider.slice(1)} Sign-in Failed`,
+        description: `There was an issue signing in with ${provider.charAt(0).toUpperCase() + provider.slice(1)}. Please try again later.`,
         variant: "destructive",
       })
     } finally {
-      setIsLoading(false)
+      setIsLoading(null)
     }
   }
 
@@ -68,20 +69,43 @@ export default function AuthModal({ children }: { children?: React.ReactNode }) 
         <DialogTrigger asChild>{children}</DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Authentication</DialogTitle>
-            <DialogDescription>Choose your preferred authentication method</DialogDescription>
+            <DialogTitle>Welcome to Entropy</DialogTitle>
+            <DialogDescription>Sign in to access all features and join the community</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <Button disabled={isLoading} onClick={handleGoogleSignIn} className="w-full">
-              {isLoading ? (
+            <Button
+              disabled={!!isLoading}
+              onClick={() => handleSignIn("google")}
+              className="w-full"
+              variant="outline"
+            >
+              {isLoading === "google" ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Signing In...
                 </>
               ) : (
                 <>
-                  <GoogleLogoIcon className="mr-2 h-4 w-4" />
-                  Sign in with Google
+                  <span className="mr-2">🌐</span>
+                  Continue with Google
+                </>
+              )}
+            </Button>
+            <Button
+              disabled={!!isLoading}
+              onClick={() => handleSignIn("github")}
+              className="w-full"
+              variant="outline"
+            >
+              {isLoading === "github" ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing In...
+                </>
+              ) : (
+                <>
+                  <span className="mr-2">🐙</span>
+                  Continue with GitHub
                 </>
               )}
             </Button>

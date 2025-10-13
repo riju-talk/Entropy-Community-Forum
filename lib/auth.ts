@@ -1,6 +1,7 @@
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import GitHubProvider from "next-auth/providers/github"
+import GoogleProvider from "next-auth/providers/google"
 import type { NextAuthConfig } from "next-auth"
 
 export const authConfig: NextAuthConfig = {
@@ -42,6 +43,10 @@ export const authConfig: NextAuthConfig = {
       clientId: process.env.GITHUB_ID || "",
       clientSecret: process.env.GITHUB_SECRET || "",
     }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+    }),
   ],
   session: {
     strategy: "jwt",
@@ -70,5 +75,8 @@ export const authConfig: NextAuthConfig = {
     newUser: "/subscription", // Redirect new users to subscription
   },
 }
+
+// Export authOptions for backward compatibility with existing actions
+export const authOptions = authConfig
 
 export const { handlers, auth, signIn, signOut } = NextAuth(authConfig)

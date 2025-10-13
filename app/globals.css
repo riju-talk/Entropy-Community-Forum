@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -24,6 +26,11 @@
     --input: 210 25% 90%;
     --ring: 210 25% 20%;
     --radius: 0.5rem;
+
+    /* Font variables */
+    --font-sans: '__GeistSans_fb8f2c', '__GeistSans_Fallback_fb8f2c';
+    --font-mono: '__GeistMono_f910ec', '__GeistMono_Fallback_f910ec';
+    --font-inter: '__Inter_f367f3', '__Inter_Fallback_f367f3';
 
     /* Custom colors for entropy theme */
     --slate-blue: 215 40% 44%;
@@ -54,9 +61,11 @@
     --input: 210 25% 25%;
     --ring: 210 25% 85%;
   }
-}
 
-@layer base {
+  html {
+    font-family: var(--font-sans);
+  }
+
   * {
     @apply border-border;
   }

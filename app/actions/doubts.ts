@@ -6,15 +6,18 @@ import { getServerSession } from "next-auth"
 import { prisma } from "@/lib/prisma"
 import { authOptions } from "@/lib/auth"
 import { createDoubtSchema, voteSchema } from "@/lib/validations"
-import type { Subject, VoteType } from "@prisma/client"
 
 export async function createDoubt(formData: FormData) {
   const session = await getServerSession(authOptions)
 
+  if (!session?.user?.id && formData.get("isAnonymous") !== "true") {
+    throw new Error("Authentication required")
+  }
+
   const data = {
     title: formData.get("title") as string,
     content: formData.get("content") as string,
-    subject: formData.get("subject") as Subject,
+    subject: formData.get("subject") as string,
     tags: JSON.parse((formData.get("tags") as string) || "[]"),
     isAnonymous: formData.get("isAnonymous") === "true",
     imageUrl: (formData.get("imageUrl") as string) || undefined,
@@ -25,7 +28,8 @@ export async function createDoubt(formData: FormData) {
   const doubt = await prisma.doubt.create({
     data: {
       ...validatedData,
-      authorId: validatedData.isAnonymous ? null : session?.user?.id,
+      subject: validatedData.subject as any, // Cast to avoid enum type issues
+      authorId: validatedData.isAnonymous ? null : (session as any)?.user?.id,
     },
   })
 
@@ -42,46 +46,51 @@ export async function getDoubts({
 }: {
   page?: number
   limit?: number
-  subject?: Subject
+  subject?: string
   sortBy?: string
   order?: "asc" | "desc"
 } = {}) {
-  const skip = (page - 1) * limit
+  try {
+    const skip = (page - 1) * limit
 
-  const doubts = await prisma.doubt.findMany({
-    where: subject ? { subject } : undefined,
-    include: {
-      author: {
-        select: {
-          id: true,
-          name: true,
-          image: true,
-          role: true,
+    const doubts = await prisma.doubt.findMany({
+      where: subject ? { subject: subject as any } : undefined,
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            role: true,
+          },
+        },
+        _count: {
+          select: {
+            comments: true,
+            userVotes: true,
+          },
         },
       },
-      _count: {
-        select: {
-          comments: true,
-          userVotes: true,
-        },
+      orderBy: {
+        [sortBy]: order,
       },
-    },
-    orderBy: {
-      [sortBy]: order,
-    },
-    skip,
-    take: limit,
-  })
+      skip,
+      take: limit,
+    })
 
-  const total = await prisma.doubt.count({
-    where: subject ? { subject } : undefined,
-  })
+    const total = await prisma.doubt.count({
+      where: subject ? { subject: subject as any } : undefined,
+    })
 
-  return {
-    doubts,
-    total,
-    hasMore: skip + limit < total,
-    page,
+    return {
+      doubts,
+      total,
+      hasMore: skip + limit < total,
+      page,
+    }
+  } catch (error) {
+    console.error("Error fetching doubts:", error)
+    throw new Error("Database connection failed. Please ensure environment variables are set up correctly.")
   }
 }
 
@@ -137,10 +146,10 @@ export async function getDoubtById(id: string) {
   return doubt
 }
 
-export async function voteOnDoubt(doubtId: string, voteType: VoteType) {
+export async function voteOnDoubt(doubtId: string, voteType: string) {
   const session = await getServerSession(authOptions)
 
-  if (!session?.user?.id) {
+  if (!(session as any)?.user?.id) {
     throw new Error("Authentication required")
   }
 
@@ -150,7 +159,7 @@ export async function voteOnDoubt(doubtId: string, voteType: VoteType) {
   const existingVote = await prisma.vote.findUnique({
     where: {
       userId_doubtId: {
-        userId: session.user.id,
+        userId: (session as any).user.id,
         doubtId,
       },
     },
@@ -166,15 +175,15 @@ export async function voteOnDoubt(doubtId: string, voteType: VoteType) {
       // Update vote type
       await prisma.vote.update({
         where: { id: existingVote.id },
-        data: { type: voteType },
+        data: { type: voteType as any },
       })
     }
   } else {
     // Create new vote
     await prisma.vote.create({
       data: {
-        type: voteType,
-        userId: session.user.id,
+        type: voteType as any,
+        userId: (session as any).user.id,
         doubtId,
       },
     })

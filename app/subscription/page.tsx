@@ -25,12 +25,12 @@ export default function SubscriptionPage() {
       id: "free",
       name: "Free",
       price: 0,
-      description: "Perfect for getting started",
+      description: "Perfect for getting started with Athena",
       icon: Sparkles,
       color: "from-gray-500 to-gray-600",
       features: [
         "Access to basic Q&A",
-        "5 Spark conversations per day",
+        "5 Athena conversations per day",
         "Community discussions",
         "Basic doubt resolution",
         "Mobile app access",
@@ -46,8 +46,8 @@ export default function SubscriptionPage() {
       color: "from-blue-500 to-purple-600",
       features: [
         "Everything in Free",
-        "Unlimited Spark conversations",
-        "All study tools (mindmap, flowchart, quiz)",
+        "Unlimited Athena conversations",
+        "All study tools (code review, brainstorming, task management)",
         "Priority support",
         "Offline mode",
         "Advanced analytics",
@@ -82,7 +82,7 @@ export default function SubscriptionPage() {
       <div className="text-center max-w-3xl mx-auto">
         <h1 className="text-4xl font-bold mb-4">Choose Your Plan</h1>
         <p className="text-muted-foreground text-lg mb-6">
-          Unlock the full potential of Entropy with our subscription plans
+          Unlock the full potential of Athena with our subscription plans
         </p>
 
         {/* Billing Toggle */}

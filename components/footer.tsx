@@ -51,9 +51,6 @@ export default function Footer() {
               <Link href="/community" className="block text-muted-foreground hover:text-foreground">
                 Communities
               </Link>
-              <Link href="/research" className="block text-muted-foreground hover:text-foreground">
-                Research
-              </Link>
             </div>
           </div>
 
@@ -67,12 +64,6 @@ export default function Footer() {
               <Link href="/contact" className="block text-muted-foreground hover:text-foreground">
                 Contact Us
               </Link>
-              <Link href="/privacy" className="block text-muted-foreground hover:text-foreground">
-                Privacy Policy
-              </Link>
-              <Link href="/terms" className="block text-muted-foreground hover:text-foreground">
-                Terms of Service
-              </Link>
             </div>
           </div>
         </div>
@@ -80,7 +71,7 @@ export default function Footer() {
         <Separator className="my-8" />
 
         <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-          <p className="text-sm text-muted-foreground">© 2024 Entropy. All rights reserved.</p>
+          <p className="text-sm text-muted-foreground">© 2025 Entropy. All rights reserved.</p>
           <div className="flex space-x-4 text-sm text-muted-foreground">
             <span>Made with ❤️ for education</span>
           </div>

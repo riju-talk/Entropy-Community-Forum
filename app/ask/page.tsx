@@ -4,6 +4,7 @@ import type React from "react"
 import { useSpeechToText } from "@/hooks/use-speech-to-text"
 
 import { useState, useRef } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -14,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { MessageSquare, Code, ImageIcon, FileText, X, Plus, Upload, Mic, MicOff, Send } from "lucide-react"
+import { createDoubt } from "@/app/actions/doubts"
 
 interface Attachment {
   id: string
@@ -35,7 +37,9 @@ export default function AskPage() {
   const [codeLanguage, setCodeLanguage] = useState("javascript")
   const [activeTab, setActiveTab] = useState("text")
   const [isRecording, setIsRecording] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const router = useRouter()
 
   const { listening, supported, start, stop } = useSpeechToText({ lang: "en-US", interimResults: true })
 
@@ -104,16 +108,37 @@ export default function AskPage() {
     })
   }
 
-  const handleSubmit = () => {
-    // Submit logic here
-    console.log({
-      title,
-      description,
-      subject,
-      tags,
-      attachments,
-      isAnonymous,
-    })
+  const handleSubmit = async () => {
+    if (!title.trim() || !description.trim() || !subject) {
+      alert("Please fill in all required fields")
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const formData = new FormData()
+      formData.append("title", title)
+      formData.append("content", description)
+      formData.append("subject", subject)
+      formData.append("tags", JSON.stringify(tags))
+      formData.append("isAnonymous", isAnonymous.toString())
+
+      // For now, we'll handle attachments as metadata in the content
+      // In a real app, you'd upload files to a storage service first
+      if (attachments.length > 0) {
+        const attachmentText = attachments
+          .map((att) => `[${att.type.toUpperCase()}: ${att.name || "attachment"}]`)
+          .join("\n")
+        formData.append("content", `${description}\n\n${attachmentText}`)
+      }
+
+      await createDoubt(formData)
+    } catch (error) {
+      console.error("Error creating doubt:", error)
+      alert("Failed to post question. Please try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const getAttachmentIcon = (type: string) => {
@@ -349,10 +374,25 @@ export default function AskPage() {
 
               {/* Submit */}
               <div className="flex justify-end gap-2">
-                <Button variant="outline">Save Draft</Button>
-                <Button onClick={handleSubmit} className="flex items-center gap-2">
-                  <Send className="h-4 w-4" />
-                  Post Question
+                <Button variant="outline" disabled={isSubmitting}>
+                  Save Draft
+                </Button>
+                <Button
+                  onClick={handleSubmit}
+                  className="flex items-center gap-2"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Posting...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      Post Question
+                    </>
+                  )}
                 </Button>
               </div>
             </CardContent>
