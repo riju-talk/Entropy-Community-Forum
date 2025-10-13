@@ -12,7 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Globe, Github } from "lucide-react"
+import { Loader2, Google, Github } from "lucide-react"
 
 export default function AuthModal({ children }: { children?: React.ReactNode }) {
   const [isOpen, setIsOpen] = React.useState(false)

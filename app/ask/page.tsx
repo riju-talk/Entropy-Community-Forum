@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-import { useSpeechToText } from "@/hooks/use-speech-to-text"
 
 import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
@@ -14,7 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { MessageSquare, Code, ImageIcon, FileText, X, Plus, Upload, Mic, MicOff, Send } from "lucide-react"
+import { MessageSquare, Code, ImageIcon, FileText, X, Plus, Upload, Send } from "lucide-react"
 import { createDoubt } from "@/app/actions/doubts"
 
 interface Attachment {
@@ -36,12 +35,9 @@ export default function AskPage() {
   const [codeContent, setCodeContent] = useState("")
   const [codeLanguage, setCodeLanguage] = useState("javascript")
   const [activeTab, setActiveTab] = useState("text")
-  const [isRecording, setIsRecording] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
-
-  const { listening, supported, start, stop } = useSpeechToText({ lang: "en-US", interimResults: true })
 
   const addAttachment = (type: Attachment["type"], content: string, name?: string, language?: string) => {
     const newAttachment: Attachment = {
@@ -91,23 +87,6 @@ export default function AskPage() {
     }
   }
 
-  const toggleRecording = () => {
-    if (!supported) {
-      alert("Voice input is not supported in this browser.")
-      return
-    }
-    if (listening) {
-      stop()
-      setIsRecording(false)
-      return
-    }
-    setIsRecording(true)
-    start((transcript) => {
-      // Keep the cursor append-only; user can edit the textarea if needed
-      setDescription(transcript)
-    })
-  }
-
   const handleSubmit = async () => {
     if (!title.trim() || !description.trim() || !subject) {
       alert("Please fill in all required fields")
@@ -155,10 +134,10 @@ export default function AskPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="bg-background">
       <div className="container mx-auto px-4 py-6">
         <div className="max-w-4xl mx-auto">
-          <div className="mb-6">
+          <div className="mb-6 pb-4">
             <h1 className="text-3xl font-bold mb-2">Ask Anything</h1>
             <p className="text-muted-foreground">
               Get help from the community with text, code, images, and more. Ask any combination of questions!
@@ -205,18 +184,7 @@ export default function AskPage() {
 
               {/* Multi-modal Input */}
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label>Question Details</Label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={toggleRecording}
-                    className={listening ? "text-red-500" : ""}
-                  >
-                    {listening ? <MicOff className="h-4 w-4 mr-1" /> : <Mic className="h-4 w-4 mr-1" />}
-                    {listening ? "Stop Recording" : "Voice Input"}
-                  </Button>
-                </div>
+                <Label>Question Details</Label>
 
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
                   <TabsList className="grid w-full grid-cols-4">

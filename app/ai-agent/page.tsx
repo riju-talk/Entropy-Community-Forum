@@ -76,14 +76,14 @@ export default function SparkPage() {
     },
     {
       id: "quiz",
-      name: "Generate a Quiz",
+      name: "Quizzing",
       icon: ClipboardList,
       description: "Test your knowledge",
       active: false,
     },
     {
       id: "flashcard",
-      name: "Generate Flashcards",
+      name: "Flashcards",
       icon: FileText,
       description: "Create study flashcards",
       active: false,
