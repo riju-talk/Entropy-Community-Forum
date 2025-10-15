@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { 
-  Loader2, 
-  Send, 
-  Sparkles, 
-  GitBranch, 
+import {
+  Loader2,
+  Send,
+  Sparkles,
+  GitBranch,
   Brain,
   ClipboardList,
   MessageSquare,
@@ -21,6 +21,7 @@ import {
 } from "lucide-react"
 import { getUserCredits, checkCreditsAndDeduct, incrementDocumentCount, decrementDocumentCount } from "@/app/actions/credits"
 import { useToast } from "@/hooks/use-toast"
+import { sparkAPI } from "@/lib/spark-api"
 
 interface Message {
   id: string
@@ -128,9 +129,20 @@ export default function SparkPage() {
       }
 
       const newFiles = Array.from(files).slice(0, remainingSlots)
-      
+
       for (const file of newFiles) {
         await incrementDocumentCount()
+
+        // Upload to backend
+        try {
+          await sparkAPI.uploadDocument(
+            userCredits.subscriptionTier === "FREE" ? "free_user" : "premium_user",
+            file
+          )
+        } catch (error) {
+          await decrementDocumentCount() // Revert on failure
+          throw error
+        }
       }
 
       const newDocuments = newFiles.map((file) => ({
@@ -152,7 +164,7 @@ export default function SparkPage() {
         description: error.message || "Failed to upload documents",
         variant: "destructive",
       })
-      
+
       if (error.message?.includes("limit reached")) {
         router.push("/subscription")
       }
@@ -187,7 +199,7 @@ export default function SparkPage() {
     try {
       // Check and deduct credits
       const result = await checkCreditsAndDeduct(operation)
-      
+
       if (!result.allowed) {
         toast({
           title: "Insufficient Credits",
@@ -209,91 +221,65 @@ export default function SparkPage() {
       setInput("")
       setIsLoading(true)
 
-      await new Promise((resolve) => setTimeout(resolve, 1500 + Math.random() * 2000))
+      let aiResponse = ""
+      let sessionId = undefined
 
-      let aiResponse = "I understand your question. Let me help you with that."
-      const inputLower = input.toLowerCase()
+      if (operation === "chat") {
+        // Use actual chat API
+        const chatResponse = await sparkAPI.chat(userCredits.subscriptionTier === "FREE" ? "free_user" : "premium_user", input)
+        aiResponse = chatResponse.response
+        sessionId = chatResponse.session_id
 
-      if (operation === "mindmap" || inputLower.includes("mindmap") || inputLower.includes("concept")) {
-        aiResponse = `📍 **Mind Map Generated** (Cost: ${result.cost} credits)
+        // Show follow-up questions if available
+        if (chatResponse.follow_up_questions && chatResponse.follow_up_questions.length > 0) {
+          aiResponse += `\n\n**Follow-up questions:**\n${chatResponse.follow_up_questions.map((q, i) => `${i + 1}. ${q}`).join('\n')}`
+        }
 
-Central Topic: ${input.slice(0, 30)}...
+      } else if (operation === "flashcard") {
+        // Use actual flashcard API
+        const flashcardResponse = await sparkAPI.generateFlashcards(
+          userCredits.subscriptionTier === "FREE" ? "free_user" : "premium_user",
+          input,
+          5,
+          "medium"
+        )
+        aiResponse = `🗂️ **${flashcardResponse.total_generated} Flashcards Generated** (Cost: ${flashcardResponse.credits_used} credits)\n\n`
 
-Main Branches:
-├─ Core Concept 1
-│  ├─ Sub-point A
-│  └─ Sub-point B
-├─ Core Concept 2
-│  ├─ Related idea
-│  └─ Application
-└─ Core Concept 3
-   └─ Summary
+        flashcardResponse.flashcards.forEach((card, i) => {
+          aiResponse += `**Card ${i + 1}**\nFront: ${card.front}\nBack: ${card.back}\n\n`
+        })
 
-This helps organize your understanding visually.`
-      } else if (operation === "flowchart" || inputLower.includes("flowchart") || inputLower.includes("process")) {
-        aiResponse = `📊 **Flowchart Created** (Cost: ${result.cost} credits)
+      } else if (operation === "quiz") {
+        // Use actual quiz API
+        const quizResponse = await sparkAPI.generateQuiz(
+          userCredits.subscriptionTier === "FREE" ? "free_user" : "premium_user",
+          input,
+          3,
+          ["mcq", "true_false"]
+        )
+        aiResponse = `📝 **Quiz Generated** (Cost: ${quizResponse.credits_used} credits)\n\n`
 
-[Start]
-   ↓
-[Input/Question]
-   ↓
-[Process Data] → [Decision?]
-   ↓                 ↓
-  Yes               No
-   ↓                 ↓
-[Action]      [Alternative]
-   ↓                 ↓
-   └──→ [Output] ←──┘
-          ↓
-        [End]
+        quizResponse.quiz.forEach((question, i) => {
+          aiResponse += `**Q${i + 1}:** ${question.question}\n`
+          if (question.options) {
+            question.options.forEach((option, j) => {
+              aiResponse += `${option}\n`
+            })
+          }
+          aiResponse += `**Answer:** ${question.correct_answer}\n**Explanation:** ${question.explanation}\n\n`
+        })
 
-This visualizes your process flow.`
-      } else if (operation === "quiz" || inputLower.includes("quiz") || inputLower.includes("test")) {
-        aiResponse = `📝 **Quiz Generated** (Cost: ${result.cost} credits)
-
-**Question 1:** What is the main concept here?
-A) Option A
-B) Option B  
-C) Option C
-D) Option D
-
-**Question 2:** How does this apply in practice?
-A) Practical application
-B) Theoretical only
-C) Both approaches
-D) Neither
-
-**Question 3:** Key takeaway?
-[Short answer required]
-
-Answer key provided at the end!`
-      } else if (operation === "flashcard" || inputLower.includes("flashcard")) {
-        aiResponse = `🗂️ **Flashcards Created** (Cost: ${result.cost} credits)
-
-**Card 1**
-Front: What is ${input.split(" ")[0]}?
-Back: [Key definition and explanation]
-
-**Card 2**
-Front: How does it work?
-Back: [Step-by-step process]
-
-**Card 3**
-Front: When to use it?
-Back: [Use cases and applications]
-
-**Card 4**
-Front: Common mistakes?
-Back: [Pitfalls to avoid]
-
-Ready to study!`
-      } else {
-        const responses = [
-          `Based on my analysis of similar questions on Entropy, here's what I found:\n\n✓ This topic has been discussed 15 times in the ${["Computer Science", "Mathematics", "Physics"][Math.floor(Math.random() * 3)]} community.\n✓ Top rated answer suggests: [Key insight here]\n✓ Common approach: [Solution pattern]\n\nLet me explain in detail...`,
-          `I've searched through Entropy and found 3 highly relevant posts:\n\n1. "${input.slice(0, 20)}..." - 45 upvotes ⭐\n2. "Understanding the basics" - 32 upvotes\n3. "Practical guide" - 28 upvotes\n\nHere's my comprehensive answer...`,
-          `Great question! This connects to several discussions on Entropy.\n\n🔍 Found 12 related posts\n💡 Key insight from top answer\n📚 Recommended resources\n\nLet me break this down step by step...`,
-        ]
-        aiResponse = responses[Math.floor(Math.random() * responses.length)] + `\n\n(Cost: ${result.cost} credit)`
+      } else if (operation === "mindmap") {
+        // Use actual mindmap API
+        const mindmapResponse = await sparkAPI.generateMindMap(
+          userCredits.subscriptionTier === "FREE" ? "free_user" : "premium_user",
+          input,
+          3,
+          "hierarchical"
+        )
+        aiResponse = `📍 **Mind Map Generated** (Cost: ${mindmapResponse.credits_used} credits)\n\n`
+        aiResponse += `**Mermaid Code:**\n\`\`\`mermaid\n${mindmapResponse.mermaid_code}\n\`\`\`\n\n`
+        aiResponse += `**Details:** ${mindmapResponse.mind_map.topic} (${mindmapResponse.mind_map.style}, ${mindmapResponse.mind_map.depth} levels, ${mindmapResponse.mind_map.node_count} nodes)`
       }
 
       const aiMessage: Message = {
@@ -312,7 +298,7 @@ Ready to study!`
         description: error.message || "Failed to send message",
         variant: "destructive",
       })
-      
+
       if (error.message?.includes("Authentication required")) {
         router.push("/auth/signin")
       } else if (error.message?.includes("credits")) {
