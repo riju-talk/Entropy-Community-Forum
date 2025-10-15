@@ -1,68 +1,46 @@
 import NextAuth from "next-auth"
-import Credentials from "next-auth/providers/credentials"
 import GitHubProvider from "next-auth/providers/github"
 import GoogleProvider from "next-auth/providers/google"
-import type { NextAuthConfig } from "next-auth"
+import { PrismaAdapter } from "@auth/prisma-adapter"
+import { prisma } from "@/lib/prisma"
 
-export const authConfig: NextAuthConfig = {
+export const authConfig = {
+  adapter: PrismaAdapter(prisma),
   providers: [
-    Credentials({
-      async authorize(credentials) {
-        const fbIdToken = credentials?.fbIdToken
-        if (!fbIdToken || typeof fbIdToken !== "string") {
-          return null
-        }
-
-        // Call custom API route that uses Firebase Admin to verify the token.
-        const authResponse = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/firebase`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fbIdToken }),
-        })
-
-        if (!authResponse.ok) {
-          console.error("Firebase token verification failed")
-          return null
-        }
-
-        const user = await authResponse.json()
-
-        if (user) {
-          // Any object returned will be saved in the session
-          return user
-        } else {
-          // If you return null then an error message is displayed
-          return null
-        }
-      },
-      credentials: {
-        fbIdToken: { label: "Firebase ID Token", type: "string" },
-      },
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      allowDangerousEmailAccountLinking: true,
     }),
     GitHubProvider({
       clientId: process.env.GITHUB_ID || "",
       clientSecret: process.env.GITHUB_SECRET || "",
-    }),
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      allowDangerousEmailAccountLinking: true,
     }),
   ],
   session: {
-    strategy: "jwt",
+    strategy: "jwt" as const,
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }: any) {
       if (user) {
-        token.user = user
+        token.id = user.id
+        token.email = user.email
+        token.name = user.name
+        token.image = user.image
       }
       return token
     },
-    async session({ session, token }) {
-      session.user = token.user as any
+    async session({ session, token }: any) {
+      if (session.user) {
+        session.user.id = token.id as string
+        session.user.email = token.email as string
+        session.user.name = token.name as string
+        session.user.image = token.image as string
+      }
       return session
     },
-    async redirect({ url, baseUrl }) {
+    async redirect({ url, baseUrl }: any) {
       // Allows relative callback URLs
       if (url.startsWith("/")) return `${baseUrl}${url}`
       // Allows callback URLs on the same domain
@@ -71,9 +49,10 @@ export const authConfig: NextAuthConfig = {
     },
   },
   pages: {
-    signIn: "/auth/signin", // Override default sign-in to use modal
-    newUser: "/subscription", // Redirect new users to subscription
+    signIn: "/", // Redirect to home page for sign-in
+    error: "/", // Error page
   },
+  debug: process.env.NODE_ENV === "development",
 }
 
 // Export authOptions for backward compatibility with existing actions
