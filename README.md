@@ -52,58 +52,98 @@ A comprehensive Next.js application for students to ask doubts, share knowledge,
 ## Getting Started
 
 ### Prerequisites
-- Node.js 18+ 
-- npm or yarn
-- Supabase account
-- Google/GitHub OAuth apps (optional)
+- **Node.js**: 18+ 
+- **Python**: 3.11+ (for AI Agent)
+- **PostgreSQL**: 15+ or Supabase account
+- **OpenAI API Key**: Required for AI features
+- **OAuth Apps** (optional): Google/GitHub for social login
 
-### Installation
+### Quick Setup
+
+#### Automated Setup (Windows, Recommended)
+
+```powershell
+.\setup.ps1
+```
+
+If you are on Linux/Mac, follow the Manual Setup steps below.
+
+The setup script will:
+- Check prerequisites
+- Create environment files
+- Generate secure secrets
+- Install dependencies
+- Setup database schema
+
+#### Manual Setup
 
 1. **Clone the repository**
-   \`\`\`bash
+   ```bash
    git clone <repository-url>
-   cd entropy-doubt-platform
-   \`\`\`
+   cd entropy-community-forum
+   ```
 
 2. **Install dependencies**
-   \`\`\`bash
+   ```bash
+   # Next.js dependencies
    npm install
-   \`\`\`
+   
+   # AI Agent dependencies
+   cd spark-ai-agent
+   pip install -r requirements.txt
+   cd ..
+   ```
 
 3. **Set up environment variables**
-   \`\`\`bash
+   ```bash
    cp .env.example .env.local
-   \`\`\`
+   ```
    
-   Fill in your environment variables:
-   \`\`\`env
+   Edit `.env.local` with your values:
+   ```env
    # Database
-   DATABASE_URL="your-supabase-connection-string"
+   DATABASE_URL="postgresql://user:password@localhost:5432/entropy_db"
    
    # NextAuth.js
-   NEXTAUTH_URL="http://localhost:3000"
+   NEXTAUTH_URL="http://localhost:5000"
    NEXTAUTH_SECRET="your-secret-key"
    
-   # OAuth Providers (optional)
+   # AI Agent
+   NEXT_PUBLIC_SPARK_API_URL="http://localhost:8000"
+   NEXT_PUBLIC_AI_BACKEND_TOKEN="your-secure-token"
+   
+   # OpenAI (Required)
+   OPENAI_API_KEY="sk-your-openai-api-key"
+   
+   # OAuth Providers (Optional)
    GOOGLE_CLIENT_ID="your-google-client-id"
    GOOGLE_CLIENT_SECRET="your-google-client-secret"
    GITHUB_ID="your-github-client-id"
    GITHUB_SECRET="your-github-client-secret"
-   \`\`\`
+   ```
 
 4. **Set up the database**
-   \`\`\`bash
-   npx prisma db push
+   ```bash
    npx prisma generate
-   \`\`\`
+   npx prisma db push
+   ```
 
-5. **Run the development server**
-   \`\`\`bash
+5. **Run the development servers**
+   
+   **Terminal 1 - Next.js:**
+   ```bash
    npm run dev
-   \`\`\`
+   ```
+   
+   **Terminal 2 - AI Agent:**
+   ```bash
+   cd spark-ai-agent
+   python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+   ```
 
-6. **Open your browser**
-   Navigate to [http://localhost:3000](http://localhost:3000)
+6. **Access the application**
+   - Frontend: [http://localhost:5000](http://localhost:5000)
+   - AI Agent API: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ### Database Setup
 
@@ -117,36 +157,29 @@ The application uses Prisma with Supabase PostgreSQL. The schema includes:
 
 ### Deployment
 
-#### Vercel (Recommended)
+For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md)
 
-1. **Push to GitHub**
-   \`\`\`bash
-   git add .
-   git commit -m "Initial commit"
-   git push origin main
-   \`\`\`
+#### Quick Deploy Options
 
-2. **Deploy to Vercel**
-   - Connect your GitHub repository to Vercel
-   - Add environment variables in Vercel dashboard
-   - Deploy automatically on push
+**Option 1: Docker Compose (Recommended)**
+```bash
+docker-compose up -d
+```
 
-3. **Set up Supabase**
-   - Create a new Supabase project
-   - Copy the connection string to `DATABASE_URL`
-   - Run `npx prisma db push` to create tables
+**Option 2: Vercel + Railway**
+- Deploy Next.js to Vercel
+- Deploy AI Agent to Railway
+- Use Supabase for database
 
-#### Manual Deployment
+**Option 3: VPS with PM2**
+```bash
+npm run build
+pm2 start npm --name "entropy" -- start
+cd spark-ai-agent
+pm2 start "uvicorn app.main:app --host 0.0.0.0 --port 8000" --name "spark-ai"
+```
 
-1. **Build the application**
-   \`\`\`bash
-   npm run build
-   \`\`\`
-
-2. **Start the production server**
-   \`\`\`bash
-   npm start
-   \`\`\`
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete instructions.
 
 ## Project Structure
 
