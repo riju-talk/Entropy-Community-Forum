@@ -25,7 +25,7 @@ export default function SubscriptionPage() {
       id: "free",
       name: "Free",
       price: 0,
-      description: "Perfect for getting started with Athena",
+      description: "Perfect for getting started with entropy",
       icon: Sparkles,
       color: "from-gray-500 to-gray-600",
       features: [
@@ -82,7 +82,7 @@ export default function SubscriptionPage() {
       <div className="text-center max-w-3xl mx-auto">
         <h1 className="text-4xl font-bold mb-4">Choose Your Plan</h1>
         <p className="text-muted-foreground text-lg mb-6">
-          Unlock the full potential of Athena with our subscription plans
+          Unlock the full potential of entropy with our subscription plans
         </p>
 
         {/* Billing Toggle */}

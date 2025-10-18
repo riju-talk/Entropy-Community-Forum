@@ -17,12 +17,12 @@ export default function AboutPage() {
                 <Sparkles className="h-8 w-8 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-4xl md:text-5xl font-bold mb-2">About Athena</h1>
+                <h1 className="text-4xl md:text-5xl font-bold mb-2">About entropy</h1>
                 <p className="text-muted-foreground text-lg">Revolutionizing academic collaboration since 2024</p>
               </div>
             </div>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Athena is a comprehensive platform designed for students, educators, and researchers to collaborate,
+              entropy is a comprehensive platform designed for students, educators, and researchers to collaborate,
               share knowledge, and solve academic challenges together.
             </p>
           </div>
@@ -62,7 +62,7 @@ export default function AboutPage() {
 
         {/* Features Section */}
         <section className="mb-16">
-          <h2 className="text-3xl font-bold text-center mb-12">Why Choose Athena?</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">Why Choose entropy?</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <Card>
               <CardContent className="p-8 text-center">
@@ -138,7 +138,7 @@ export default function AboutPage() {
         <section className="text-center">
           <Card className="bg-primary/5 border-primary/20">
             <CardContent className="p-12">
-              <h2 className="text-3xl font-bold mb-4">Ready to Join Athena?</h2>
+              <h2 className="text-3xl font-bold mb-4">Ready to Join entropy?</h2>
               <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
                 Start your learning journey today and become part of a global community of curious minds.
               </p>
@@ -160,236 +160,6 @@ export default function AboutPage() {
         </section>
       </div>
     </div>
-  )
-}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="font-serif text-3xl font-bold text-slate-800 mb-6">Our Mission & Vision</h2>
-              <div className="space-y-6">
-                <div className="border-l-4 border-slate-700 pl-6">
-                  <h3 className="font-serif text-xl font-semibold text-slate-800 mb-2">Mission</h3>
-                  <p className="text-neutral-600">
-                    To cultivate knowledge, foster innovation, and empower individuals to address global challenges
-                    through inclusive education, rigorous research, and meaningful community engagement.
-                  </p>
-                </div>
-                <div className="border-l-4 border-slate-700 pl-6">
-                  <h3 className="font-serif text-xl font-semibold text-slate-800 mb-2">Vision</h3>
-                  <p className="text-neutral-600">
-                    To be a leading global institution that transcends boundaries, embraces diversity, and inspires
-                    transformative solutions for a more equitable, sustainable, and peaceful world.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-6">
-                <div className="text-center">
-                  <div className="bg-slate-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
-                    <BookOpen className="h-8 w-8 text-slate-700" />
-                  </div>
-                  <p className="font-medium text-slate-800">Excellence</p>
-                </div>
-                <div className="text-center">
-                  <div className="bg-slate-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
-                    <Globe className="h-8 w-8 text-slate-700" />
-                  </div>
-                  <p className="font-medium text-slate-800">Global Perspective</p>
-                </div>
-                <div className="text-center">
-                  <div className="bg-slate-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
-                    <Users className="h-8 w-8 text-slate-700" />
-                  </div>
-                  <p className="font-medium text-slate-800">Inclusivity</p>
-                </div>
-                <div className="text-center">
-                  <div className="bg-slate-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
-                    <Award className="h-8 w-8 text-slate-700" />
-                  </div>
-                  <p className="font-medium text-slate-800">Innovation</p>
-                </div>
-              </div>
-            </div>
-            <div className="relative h-[400px] rounded-lg overflow-hidden">
-              <Image
-                src="/placeholder.svg?height=800&width=600"
-                alt="University values"
-                fill
-                className="object-cover"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* History */}
-      <section className="py-16 bg-neutral-50">
-        <div className="container mx-auto px-4 md:px-6">
-          <h2 className="font-serif text-3xl font-bold text-slate-800 mb-10 text-center">Our History</h2>
-
-          <div className="relative">
-            {/* Timeline line */}
-            <div className="absolute left-1/2 transform -translate-x-1/2 h-full w-1 bg-slate-200"></div>
-
-            <div className="space-y-16">
-              {timelineEvents.map((event, index) => (
-                <div key={index} className={`relative flex items-center ${index % 2 === 0 ? "flex-row-reverse" : ""}`}>
-                  {/* Timeline dot */}
-                  <div className="absolute left-1/2 transform -translate-x-1/2 w-4 h-4 rounded-full bg-slate-700"></div>
-
-                  {/* Content */}
-                  <div className={`w-5/12 ${index % 2 === 0 ? "text-right pr-8" : "pl-8"}`}>
-                    <div className="bg-white p-6 rounded-lg shadow-sm">
-                      <h3 className="font-serif text-xl font-semibold text-slate-800 mb-2">{event.year}</h3>
-                      <p className="text-neutral-600">{event.description}</p>
-                    </div>
-                  </div>
-
-                  {/* Empty space for the other side */}
-                  <div className="w-5/12"></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Leadership */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4 md:px-6">
-          <h2 className="font-serif text-3xl font-bold text-slate-800 mb-10 text-center">University Leadership</h2>
-
-          <Tabs defaultValue="executive" className="w-full">
-            <TabsList className="mb-8 w-full max-w-md mx-auto grid grid-cols-3 h-auto">
-              <TabsTrigger value="executive" className="py-2">
-                Executive Team
-              </TabsTrigger>
-              <TabsTrigger value="deans" className="py-2">
-                Deans
-              </TabsTrigger>
-              <TabsTrigger value="board" className="py-2">
-                Board of Trustees
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="executive" className="mt-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {executiveTeam.map((person, index) => (
-                  <Card key={index} className="border-neutral-200">
-                    <div className="relative h-64 overflow-hidden">
-                      <Image
-                        src={person.image || "/placeholder.svg?height=400&width=300"}
-                        alt={person.name}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <CardContent className="p-6">
-                      <h3 className="font-serif text-xl font-semibold text-slate-800 mb-1">{person.name}</h3>
-                      <p className="text-neutral-500 mb-3">{person.title}</p>
-                      <p className="text-neutral-600 text-sm">{person.bio}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="deans" className="mt-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {deans.map((person, index) => (
-                  <Card key={index} className="border-neutral-200">
-                    <div className="relative h-64 overflow-hidden">
-                      <Image
-                        src={person.image || "/placeholder.svg?height=400&width=300"}
-                        alt={person.name}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <CardContent className="p-6">
-                      <h3 className="font-serif text-xl font-semibold text-slate-800 mb-1">{person.name}</h3>
-                      <p className="text-neutral-500 mb-3">{person.title}</p>
-                      <p className="text-neutral-600 text-sm">{person.bio}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="board" className="mt-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {boardMembers.map((person, index) => (
-                  <Card key={index} className="border-neutral-200">
-                    <div className="relative h-64 overflow-hidden">
-                      <Image
-                        src={person.image || "/placeholder.svg?height=400&width=300"}
-                        alt={person.name}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <CardContent className="p-6">
-                      <h3 className="font-serif text-xl font-semibold text-slate-800 mb-1">{person.name}</h3>
-                      <p className="text-neutral-500 mb-3">{person.title}</p>
-                      <p className="text-neutral-600 text-sm">{person.bio}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </section>
-
-      {/* Campus Locations */}
-      <section className="py-16 bg-neutral-50">
-        <div className="container mx-auto px-4 md:px-6">
-          <h2 className="font-serif text-3xl font-bold text-slate-800 mb-10 text-center">Our Global Campuses</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {campuses.map((campus, index) => (
-              <Card key={index} className="border-neutral-200 hover:shadow-md transition-shadow duration-300">
-                <div className="relative h-48 overflow-hidden">
-                  <Image
-                    src={campus.image || "/placeholder.svg?height=400&width=600"}
-                    alt={campus.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <CardContent className="p-6">
-                  <h3 className="font-serif text-xl font-semibold text-slate-800 mb-2">{campus.name}</h3>
-                  <p className="text-neutral-600 mb-4">{campus.description}</p>
-                  <Link
-                    href={`/campus/${campus.id}`}
-                    className="text-slate-700 hover:text-slate-600 font-medium flex items-center gap-1"
-                  >
-                    Explore campus <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-16 bg-slate-800 text-white">
-        <div className="container mx-auto px-4 md:px-6 text-center">
-          <h2 className="font-serif text-3xl font-bold mb-6">Join Our Global Community</h2>
-          <p className="text-neutral-300 max-w-2xl mx-auto mb-8">
-            Become part of a diverse and innovative academic community dedicated to addressing the world's most pressing
-            challenges.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button className="bg-white text-slate-800 hover:bg-neutral-100">Apply Now</Button>
-            <Button variant="outline" className="border-white text-white hover:bg-white/10">
-              Schedule a Visit
-            </Button>
-          </div>
-        </div>
-      </section>
-    </main>
   )
 }
 

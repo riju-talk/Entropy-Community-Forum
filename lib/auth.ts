@@ -1,21 +1,52 @@
 import NextAuth from "next-auth"
-import GitHubProvider from "next-auth/providers/github"
-import GoogleProvider from "next-auth/providers/google"
+import Credentials from "next-auth/providers/credentials"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
+import { adminAuth } from "@/lib/firebaseAdmin"
 
 export const authConfig = {
   adapter: PrismaAdapter(prisma),
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || "",
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
-      allowDangerousEmailAccountLinking: true,
-    }),
-    GitHubProvider({
-      clientId: process.env.GITHUB_ID || "",
-      clientSecret: process.env.GITHUB_SECRET || "",
-      allowDangerousEmailAccountLinking: true,
+    Credentials({
+      name: "Firebase",
+      credentials: {
+        idToken: { label: "ID Token", type: "text" },
+      },
+      async authorize(credentials) {
+        const idToken = credentials?.idToken as string | undefined
+        if (!idToken) return null
+
+        // Verify Firebase ID token
+        const decoded = await adminAuth.verifyIdToken(idToken)
+        const uid = decoded.uid
+        const email = decoded.email || `${uid}@users.noreply.firebaseapp.com`
+        const emailVerified = !!decoded.email_verified
+        const name = (decoded as any).name || decoded.name || null
+        const picture = (decoded as any).picture || decoded.picture || null
+
+        // Upsert user in Prisma by email
+        const user = await prisma.user.upsert({
+          where: { email },
+          create: {
+            email,
+            name: name ?? undefined,
+            image: picture ?? undefined,
+            emailVerified: emailVerified ? new Date() : undefined,
+          },
+          update: {
+            name: name ?? undefined,
+            image: picture ?? undefined,
+            emailVerified: emailVerified ? new Date() : undefined,
+          },
+        })
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name ?? undefined,
+          image: user.image ?? undefined,
+        }
+      },
     }),
   ],
   session: {

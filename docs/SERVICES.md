@@ -213,9 +213,9 @@ This document lists all external services required or recommended for the Entrop
 
 **Purpose**: Send transactional emails and notifications
 
-**Provider Options**: 
+**Provider Options**:
+- Nodemailer (Self-hosted SMTP)
 - SendGrid (12,000 emails/month free)
-- Resend (100 emails/day free, modern API)
 - AWS SES (62,000 emails/month free)
 - Mailgun (5,000 emails/month free)
 
@@ -232,7 +232,7 @@ This document lists all external services required or recommended for the Entrop
 - `EMAIL_SERVER_PASSWORD`
 - `EMAIL_FROM`
 
-**Recommended**: **Resend** (best developer experience)
+**Recommended**: **Nodemailer** (self-hosted, no external dependency)
 
 ---
 
@@ -402,7 +402,7 @@ This document lists all external services required or recommended for the Entrop
     ┌──────────────────────────────┐
     │  Future Services             │
     │  • Stripe (Payments)         │
-    │  • Email (Resend)            │
+    │  • Email (Nodemailer)        │
     │  • Storage (Supabase)        │
     │  • Monitoring (Sentry)       │
     └──────────────────────────────┘
@@ -421,7 +421,7 @@ This document lists all external services required or recommended for the Entrop
 ### Production (Small Scale)
 - Database: $0 (free tier) or $7/month
 - AI Service: $5-10/month (Railway)
-- Email: Free (Resend 100/day)
+- Email: Free (Nodemailer with personal SMTP)
 - Monitoring: Free (Sentry 5k events)
 - **Total: ~$15/month**
 

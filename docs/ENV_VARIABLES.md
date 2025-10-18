@@ -7,20 +7,46 @@ Important
 - Changes to environment variables apply only to new deployments; redeploy to take effect. [^1][^2]
 
 Required (Auth + Database)
-- NEXTAUTH_URL
-  - Description: Site URL for NextAuth callbacks and links
-  - Example: https://your-app.vercel.app
-- NEXTAUTH_SECRET
-  - Description: Cryptographic secret for NextAuth
-- GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
-  - Description: Google OAuth provider credentials
-- GITHUB_ID / GITHUB_SECRET
-  - Description: GitHub OAuth provider credentials
 - DATABASE_URL
   - Description: Postgres connection URL used by Prisma
   - Note: If your Prisma schema references POSTGRES_PRISMA_URL instead, set that instead of DATABASE_URL to avoid redundancy. Use only one primary database URL.
 
-AI Backend (Required for Athena)
+NextAuth (Credentials)
+- NEXTAUTH_SECRET
+  - Description: Cryptographic secret used to sign NextAuth JWTs and cookies
+  - Example: generate via `openssl rand -base64 32`
+- NEXTAUTH_URL (optional in local dev)
+  - Description: Public base URL used for callbacks in some deployments
+  - Example: https://your-app.vercel.app
+Note: Google/GitHub OAuth client secrets are NOT required, since we use a Credentials provider with Firebase ID tokens.
+
+Firebase Authentication (Google + GitHub)
+- NEXT_PUBLIC_FIREBASE_API_KEY
+  - Description: Public web API key for Firebase client SDK
+- NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+  - Description: Firebase Auth domain (e.g., your-project.firebaseapp.com)
+- NEXT_PUBLIC_FIREBASE_PROJECT_ID
+  - Description: Firebase project ID
+- NEXT_PUBLIC_FIREBASE_APP_ID
+  - Description: Web app ID from Firebase settings
+- NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+  - Description: Optional; required if using messaging
+- NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+  - Description: Optional; required if using Analytics
+
+Firebase Admin (Server-side)
+- FIREBASE_ADMIN_PROJECT_ID
+  - Description: Project ID used by firebase-admin
+- FIREBASE_ADMIN_CLIENT_EMAIL
+  - Description: Service account client email (from the JSON key)
+- FIREBASE_ADMIN_PRIVATE_KEY
+  - Description: Service account private key. Keep quoted and escape newlines as \n
+Example:
+```
+FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEv...\n-----END PRIVATE KEY-----\n"
+```
+
+AI Backend (Required for Athena agent)
 - AI_BACKEND_URL
   - Description: Base URL of your external AI microservice
   - Example: https://api.your-ai-service.com
@@ -47,6 +73,20 @@ Stripe (Optional, if you enable payments)
 - STRIPE_WEBHOOK_SECRET
   - Description: Webhook signing secret for verifying Stripe events
 
+Email Service (Optional, for Nodemailer)
+- SMTP_HOST
+  - Description: SMTP server hostname (e.g., smtp.gmail.com)
+  - Example: smtp.gmail.com
+- SMTP_PORT
+  - Description: SMTP server port (e.g., 587 for Gmail)
+  - Example: 587
+- SMTP_USER
+  - Description: SMTP username/email
+  - Example: your-email@gmail.com
+- SMTP_PASS
+  - Description: SMTP password or app password
+  - Example: your-app-password
+
 Vercel/Neon Postgres (Optional)
 If you linked Vercel’s Postgres integration, you may see these injected automatically:
 - POSTGRES_PRISMA_URL
@@ -61,7 +101,29 @@ Best Practices
 - Store secrets at the Project (or Team) level in Vercel and avoid committing secrets to git.
 
 Examples
-See .env.example for a ready-to-copy template.
+Add the following (adjust values) to `.env.local` for auth + DB:
+
+```
+# Database
+DATABASE_URL=postgresql://user:pass@host:5432/dbname
+
+# Firebase Client (public)
+NEXT_PUBLIC_FIREBASE_API_KEY=...
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_FIREBASE_APP_ID=1:XXXXXXXXXXXX:web:YYYYYYYYYYYYYYYY
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=XXXXXXXXXXXX
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-XXXXXXXXXX
+
+# Firebase Admin (server)
+FIREBASE_ADMIN_PROJECT_ID=your-project-id
+FIREBASE_ADMIN_CLIENT_EMAIL=service-account@your-project-id.iam.gserviceaccount.com
+FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+
+# Athena Agent Backend
+AI_BACKEND_URL=https://api.your-ai-service.com
+AI_BACKEND_TOKEN=super-secret-token
+```
 
 References
 - Vercel: Environment variables overview and lifecycle [^1][^2]
