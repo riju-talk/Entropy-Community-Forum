@@ -57,6 +57,7 @@
     "clsx": "^2.1.1",
     "cmdk": "latest",
     "embla-carousel-react": "latest",
+    "firebase": "^12.4.0",
     "firebase-admin": "latest",
     "geist": "latest",
     "input-otp": "latest",

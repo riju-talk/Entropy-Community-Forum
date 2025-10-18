@@ -350,12 +350,13 @@ const schema = z.object({
 
 ### Email (Planned)
 
-#### Resend
+#### Nodemailer
 - **Purpose**: Transactional emails
 - **Features**:
-  - Modern API
-  - React email templates
-  - Analytics
+  - SMTP-based email sending
+  - HTML and text support
+  - Attachment support
+  - Custom transport options
 
 ---
 
@@ -607,7 +608,7 @@ const schema = z.object({
 - **Redis**: Caching layer
 - **Elasticsearch**: Advanced search
 - **Stripe**: Payment processing
-- **Resend**: Email service
+- **Nodemailer**: Email service
 - **Sentry**: Error monitoring
 - **Docker**: Production containers
 

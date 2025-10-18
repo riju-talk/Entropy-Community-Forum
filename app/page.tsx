@@ -6,7 +6,7 @@ export default function HomePage() {
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold">Welcome to Athena</h1>
+        <h1 className="text-3xl font-bold">Welcome to entropy</h1>
         <p className="text-muted-foreground text-lg">Your academic community for STEM learning and collaboration</p>
       </div>
 

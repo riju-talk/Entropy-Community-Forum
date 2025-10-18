@@ -1,6 +1,5 @@
 "use client"
-import React, { useEffect } from "react"
-import { signIn, signOut, useSession } from "next-auth/react"
+import React from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,37 +11,37 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Google, Github } from "lucide-react"
+import { Loader2, Globe, Github } from "lucide-react"
+import { signInWithGoogle, signInWithGithub, getIdToken, signOutClient } from "@/lib/firebaseClient"
+import { signIn } from "next-auth/react"
 
 export default function AuthModal({ children }: { children?: React.ReactNode }) {
   const [isOpen, setIsOpen] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState<string | null>(null)
   const { toast } = useToast()
   const router = useRouter()
-  const { data: session } = useSession()
-
-  useEffect(() => {
-    if (session?.user) {
-      setIsOpen(false)
-    }
-  }, [session])
 
   const handleSignIn = async (provider: "google" | "github") => {
     setIsLoading(provider)
     try {
-      const result = await signIn(provider, {
-        callbackUrl: "/subscription",
+      if (provider === "google") {
+        await signInWithGoogle()
+      } else {
+        await signInWithGithub()
+      }
+
+      const token = await getIdToken(true)
+      if (!token) throw new Error("No ID token after sign-in")
+
+      // Create NextAuth session using Credentials provider
+      const result = await signIn("credentials", {
+        idToken: token,
         redirect: false,
       })
+      if (result?.error) throw new Error(result.error)
 
-      if (result?.error) {
-        throw new Error(result.error)
-      }
-
-      if (result?.ok) {
-        setIsOpen(false)
-        router.push("/subscription")
-      }
+      setIsOpen(false)
+      router.push("/subscription")
     } catch (error) {
       console.error(`${provider} sign-in failed:`, error)
       toast({
@@ -57,7 +56,7 @@ export default function AuthModal({ children }: { children?: React.ReactNode }) 
 
   const handleSignOut = async () => {
     try {
-      await signOut()
+      await signOutClient()
     } catch (error) {
       console.error("Sign-out failed:", error)
     }
@@ -69,7 +68,7 @@ export default function AuthModal({ children }: { children?: React.ReactNode }) 
         <DialogTrigger asChild>{children}</DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Welcome to Athena</DialogTitle>
+            <DialogTitle>Welcome to entropy</DialogTitle>
             <DialogDescription>Sign in to access all features and join the community</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
