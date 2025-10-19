@@ -59,10 +59,6 @@ This document lists all external services required or recommended for the Entrop
 
 ## OAuth Providers (Optional)
 
-### 3. Google OAuth
-
-**Purpose**: Enable "Sign in with Google" functionality
-
 **Setup Instructions**:
 1. Go to [Google Cloud Console](https://console.cloud.google.com)
 2. Create a new project or select existing

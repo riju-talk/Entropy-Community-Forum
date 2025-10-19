@@ -10,8 +10,8 @@ import AuthModal from "@/components/auth-modal"
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const { status } = useSession()
-  const isAuthenticated = status === "authenticated"
+  const { data: session } = useSession()
+  const isAuthenticated = !!session
 
   const navItems = [
     {
@@ -79,9 +79,9 @@ export default function Sidebar() {
         <div className="px-3 py-2">
           <div className="mt-2 space-y-1">
             <Button variant="ghost" className="w-full justify-start px-4" asChild>
-              <Link href="/profile" className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                My Profile
+              <Link href="/create-community" className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Create Community
               </Link>
             </Button>
             <Button variant="ghost" className="w-full justify-start px-4" onClick={handleSignOut}>

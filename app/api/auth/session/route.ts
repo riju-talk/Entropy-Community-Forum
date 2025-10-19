@@ -1,3 +1,4 @@
+// app/api/auth/session/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { adminAuth } from "@/lib/firebaseAdmin"
 import { prisma } from "@/lib/prisma"
@@ -15,25 +16,19 @@ function extractBearerToken(req: NextRequest): string | null {
 export async function GET(req: NextRequest) {
   try {
     const idToken = extractBearerToken(req)
-    if (!idToken) {
-      return NextResponse.json({ user: null }, { status: 200 })
-    }
+    if (!idToken) return NextResponse.json({ user: null }, { status: 200 })
 
     const decoded = await adminAuth.verifyIdToken(idToken)
     const email = decoded.email
-
-    if (!email) {
-      return NextResponse.json({ user: null }, { status: 200 })
-    }
+    if (!email) return NextResponse.json({ user: null }, { status: 200 })
 
     const user = await prisma.user.findUnique({
       where: { email },
-      // @ts-ignore prisma proxy typing
-      include: { accounts: false },
     })
 
     return NextResponse.json({ user, firebase: { uid: decoded.uid } }, { status: 200 })
   } catch (error) {
+    console.error("/api/auth/session error", error)
     return NextResponse.json({ user: null }, { status: 200 })
   }
 }

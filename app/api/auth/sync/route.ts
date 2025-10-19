@@ -1,3 +1,4 @@
+// app/api/auth/sync/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { adminAuth } from "@/lib/firebaseAdmin"
 import { prisma } from "@/lib/prisma"
@@ -15,20 +16,16 @@ function extractBearerToken(req: NextRequest): string | null {
 export async function POST(req: NextRequest) {
   try {
     const idToken = extractBearerToken(req)
-    if (!idToken) {
-      return NextResponse.json({ error: "Missing Authorization Bearer token" }, { status: 401 })
-    }
+    if (!idToken) return NextResponse.json({ error: "Missing Authorization Bearer token" }, { status: 401 })
 
-    // Verify Firebase ID token
     const decoded = await adminAuth.verifyIdToken(idToken)
 
     const uid = decoded.uid
     const email = decoded.email || `${uid}@users.noreply.firebaseapp.com`
     const emailVerified = !!decoded.email_verified
-    const name = (decoded as any).name || decoded.name || null
-    const picture = (decoded as any).picture || decoded.picture || null
+    const name = (decoded as any).name ?? null
+    const picture = (decoded as any).picture ?? null
 
-    // Upsert user by email (unique)
     const user = await prisma.user.upsert({
       where: { email },
       create: {
@@ -45,12 +42,12 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    return NextResponse.json({ user, firebase: { uid } }, { status: 200 })
+    return NextResponse.json({ ok: true, user, firebase: { uid } }, { status: 200 })
   } catch (error: any) {
+    console.error("/api/auth/sync error", error)
     if (error?.code === "auth/argument-error" || error?.code === "auth/invalid-id-token") {
       return NextResponse.json({ error: "Invalid ID token" }, { status: 401 })
     }
-    console.error("/api/auth/sync error", error)
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
   }
 }

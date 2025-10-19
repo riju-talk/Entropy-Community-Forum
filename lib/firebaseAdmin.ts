@@ -1,33 +1,66 @@
-import 'server-only'
-import { App, cert, getApps, initializeApp } from 'firebase-admin/app'
-import { getAuth } from 'firebase-admin/auth'
+// lib/firebaseAdmin.ts
+import { initializeApp, getApp, getApps, cert } from "firebase-admin/app"
+import { getAuth } from "firebase-admin/auth"
 
-let app: App | undefined
+function parseServiceAccountEnv(): Record<string, any> {
+  const envRaw = process.env.FIREBASE_SERVICE_ACCOUNT || process.env.FIREBASE_PRIVATE_KEY || ""
 
-export function getFirebaseAdminApp(): App {
-  if (!getApps().length) {
-    const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID
-    const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL
-    let privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY
-
-    if (!projectId || !clientEmail || !privateKey) {
-      throw new Error('Missing Firebase Admin environment variables')
-    }
-
-    // Handle escaped newlines in env
-    if (privateKey.includes('\\n')) {
-      privateKey = privateKey.replace(/\\n/g, '\n')
-    }
-
-    app = initializeApp({
-      credential: cert({
-        projectId,
-        clientEmail,
-        privateKey,
-      }),
-    })
+  if (!envRaw) {
+    throw new Error(
+      "FIREBASE_SERVICE_ACCOUNT (or FIREBASE_PRIVATE_KEY) is not set. Set it to a base64-encoded JSON or the JSON string."
+    )
   }
-  return app || getApps()[0]!
+
+  // Try full JSON first (common in local dev if you pasted it directly)
+  try {
+    const maybeJson = envRaw.trim()
+    if (maybeJson.startsWith("{")) {
+      return JSON.parse(maybeJson)
+    }
+  } catch (e) {
+    // fallthrough
+  }
+
+  // Try base64 decode (common in Vercel / .env encoding)
+  try {
+    const decoded = Buffer.from(envRaw, "base64").toString("utf-8")
+    const trimmed = decoded.trim()
+    if (trimmed.startsWith("{")) {
+      return JSON.parse(trimmed)
+    }
+  } catch (e) {
+    // fallthrough
+  }
+
+  // Try replacing escaped newlines (sometimes JSON in env replaces \n)
+  try {
+    const replaced = envRaw.replace(/\\n/g, "\n").trim()
+    if (replaced.startsWith("{")) {
+      return JSON.parse(replaced)
+    }
+  } catch (e) {
+    // fallthrough
+  }
+
+  // If nothing worked, throw with helpful hint
+  throw new Error(
+    "Failed to parse Firebase service account JSON. Ensure FIREBASE_SERVICE_ACCOUNT is either: (a) base64-encoded JSON, (b) raw JSON string, or (c) JSON string with escaped newlines (\\n)."
+  )
 }
 
-export const adminAuth = getAuth(getFirebaseAdminApp())
+export function initFirebaseAdmin() {
+  if (getApps().length > 0) {
+    const app = getApp();
+    return { app, auth: getAuth(app) };
+  }
+
+  const serviceAccount = parseServiceAccountEnv();
+  const app = initializeApp({
+    credential: cert(serviceAccount),
+  });
+
+  return { app, auth: getAuth(app) };
+}
+
+// default export: auth helper
+export const { auth: adminAuth } = initFirebaseAdmin();

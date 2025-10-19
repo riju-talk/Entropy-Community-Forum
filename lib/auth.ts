@@ -1,92 +1,98 @@
-import NextAuth from "next-auth"
-import Credentials from "next-auth/providers/credentials"
-import { PrismaAdapter } from "@auth/prisma-adapter"
+// lib/auth.ts
+import { NextAuthOptions } from "next-auth"
+import CredentialsProvider from "next-auth/providers/credentials"
+import GoogleProvider from "next-auth/providers/google"
+import GitHubProvider from "next-auth/providers/github"
+import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import { adminAuth } from "@/lib/firebaseAdmin"
 
-export const authConfig = {
-  adapter: PrismaAdapter(prisma),
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string
+      name?: string | null
+      email?: string | null
+      image?: string | null
+    }
+  }
+
+  interface User {
+    id: string
+    name?: string | null
+    email?: string | null
+    image?: string | null
+    emailVerified?: Date | null
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id?: string
+    name?: string
+    email?: string
+    picture?: string
+  }
+}
+
+export const authOptions: NextAuthOptions = {
   providers: [
-    Credentials({
+    CredentialsProvider({
+      id: "firebase",
       name: "Firebase",
       credentials: {
-        idToken: { label: "ID Token", type: "text" },
+        idToken: { label: "Firebase ID Token", type: "text" },
       },
       async authorize(credentials) {
-        const idToken = credentials?.idToken as string | undefined
-        if (!idToken) return null
+        if (!credentials?.idToken) return null
+        try {
+          const decoded = await adminAuth.verifyIdToken(credentials.idToken)
+          const uid = decoded.uid
+          const email = decoded.email || `${uid}@users.noreply.firebaseapp.com`
+          const emailVerified = !!decoded.email_verified
+          const name = (decoded as any).name ?? null
+          const picture = (decoded as any).picture ?? null
 
-        // Verify Firebase ID token
-        const decoded = await adminAuth.verifyIdToken(idToken)
-        const uid = decoded.uid
-        const email = decoded.email || `${uid}@users.noreply.firebaseapp.com`
-        const emailVerified = !!decoded.email_verified
-        const name = (decoded as any).name || decoded.name || null
-        const picture = (decoded as any).picture || decoded.picture || null
-
-        // Upsert user in Prisma by email
-        const user = await prisma.user.upsert({
-          where: { email },
-          create: {
+          // Since we're not using adapter, return user directly
+          return {
+            id: uid,
+            name,
             email,
-            name: name ?? undefined,
-            image: picture ?? undefined,
-            emailVerified: emailVerified ? new Date() : undefined,
-          },
-          update: {
-            name: name ?? undefined,
-            image: picture ?? undefined,
-            emailVerified: emailVerified ? new Date() : undefined,
-          },
-        })
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name ?? undefined,
-          image: user.image ?? undefined,
+            image: picture,
+          }
+        } catch (err) {
+          console.error("Credentials authorize error:", err)
+          return null
         }
       },
     }),
   ],
   session: {
-    strategy: "jwt" as const,
+    strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, user, account }: any) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        token.email = user.email
-        token.name = user.name
-        token.image = user.image
+        token.name = user.name ?? undefined
+        token.email = user.email ?? undefined
+        token.picture = user.image ?? undefined
       }
       return token
     },
-    async session({ session, token }: any) {
+    async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string
-        session.user.email = token.email as string
-        session.user.name = token.name as string
-        session.user.image = token.image as string
+        session.user.name = token.name ?? session.user.name
+        session.user.email = token.email ?? session.user.email
+        session.user.image = token.picture ?? session.user.image
       }
       return session
     },
-    async redirect({ url, baseUrl }: any) {
-      // Allows relative callback URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`
-      // Allows callback URLs on the same domain
-      else if (new URL(url).origin === baseUrl) return url
-      return baseUrl
-    },
   },
   pages: {
-    signIn: "/", // Redirect to home page for sign-in
-    error: "/", // Error page
+    signIn: "/",
+    error: "/",
   },
   debug: process.env.NODE_ENV === "development",
 }
-
-// Export authOptions for backward compatibility with existing actions
-export const authOptions = authConfig
-
-export const { handlers, auth, signIn, signOut } = NextAuth(authConfig)
