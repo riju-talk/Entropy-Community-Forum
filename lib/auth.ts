@@ -68,10 +68,10 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   session: {
-    strategy: "jwt",
+    strategy: "jwt" as const,
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }: any) {
       if (user) {
         token.id = user.id
         token.name = user.name ?? undefined
