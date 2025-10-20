@@ -1,8 +1,8 @@
 // lib/auth.ts
 import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
-import GoogleProvider from "next-auth/providers/google"
 import GitHubProvider from "next-auth/providers/github"
+import GoogleProvider from "next-auth/providers/google"
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import { adminAuth } from "@/lib/firebaseAdmin"
@@ -36,7 +36,16 @@ declare module "next-auth/jwt" {
 }
 
 export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
   providers: [
+    GitHubProvider({
+      clientId: process.env.GITHUB_ID!,
+      clientSecret: process.env.GITHUB_SECRET!,
+    }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_ID!,
+      clientSecret: process.env.GOOGLE_SECRET!,
+    }),
     CredentialsProvider({
       id: "firebase",
       name: "Firebase",
@@ -53,25 +62,25 @@ export const authOptions: NextAuthOptions = {
           const name = (decoded as any).name ?? null
           const picture = (decoded as any).picture ?? null
 
-          // Since we're not using adapter, return user directly
           return {
             id: uid,
             name,
             email,
             image: picture,
+            emailVerified: emailVerified ? new Date() : null,
           }
         } catch (err) {
-          console.error("Credentials authorize error:", err)
+          console.error("Firebase authorize error:", err)
           return null
         }
       },
     }),
   ],
   session: {
-    strategy: "jwt" as const,
+    strategy: "database",
   },
   callbacks: {
-    async jwt({ token, user, account }: any) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id
         token.name = user.name ?? undefined
@@ -80,12 +89,12 @@ export const authOptions: NextAuthOptions = {
       }
       return token
     },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string
-        session.user.name = token.name ?? session.user.name
-        session.user.email = token.email ?? session.user.email
-        session.user.image = token.picture ?? session.user.image
+    async session({ session, user }) {
+      if (session.user && user) {
+        session.user.id = user.id
+        session.user.name = user.name ?? session.user.name
+        session.user.email = user.email ?? session.user.email
+        session.user.image = user.image ?? session.user.image
       }
       return session
     },
