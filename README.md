@@ -1,245 +1,135 @@
-# Entropy - Global Learning Platform
+# Turborepo starter
 
-A comprehensive Next.js application for students to ask doubts, share knowledge, and learn collaboratively. Built with modern technologies including Next.js 14, Prisma, Supabase, and NextAuth.js.
+This Turborepo starter is maintained by the Turborepo core team.
 
-## Features
+## Using this example
 
-### Core Functionality
-- **Ask & Answer Doubts**: Students can post questions and get answers from peers and teachers
-- **Anonymous Posting**: Option to post questions and answers anonymously
-- **Voting System**: Upvote/downvote questions and answers to highlight quality content
-- **Subject Categories**: Organize content by academic subjects
-- **Tagging System**: Add relevant tags to improve discoverability
-- **Accepted Answers**: Question authors can mark the best answer as accepted
-- **Real-time Updates**: Live updates when new answers are posted
+Run the following command:
 
-### User Experience
-- **Responsive Design**: Works seamlessly on desktop, tablet, and mobile
-- **Dark/Light Mode**: Toggle between themes for comfortable viewing
-- **Infinite Scroll**: Lazy loading with smooth pagination
-- **Search Functionality**: Find relevant doubts and topics quickly
-- **User Profiles**: View user activity and reputation
-- **Markdown Support**: Rich text formatting in questions and answers
-
-### Authentication & Security
-- **Multiple Sign-in Options**: Google, GitHub, and email/password
-- **Secure Sessions**: JWT-based authentication with NextAuth.js
-- **Role-based Access**: Different permissions for students, teachers, and admins
-- **Data Validation**: Server-side validation with Zod schemas
-
-## Tech Stack
-
-### Frontend
-- **Next.js 14**: React framework with App Router
-- **TypeScript**: Type-safe development
-- **Tailwind CSS**: Utility-first CSS framework
-- **Radix UI**: Accessible component primitives
-- **React Hook Form**: Form handling and validation
-- **React Markdown**: Markdown rendering with syntax highlighting
-
-### Backend
-- **Prisma ORM**: Type-safe database client
-- **Supabase**: PostgreSQL database hosting
-- **NextAuth.js**: Authentication solution
-- **Server Actions**: Server-side form handling
-- **Zod**: Schema validation
-
-### Development Tools
-- **ESLint**: Code linting
-- **Prettier**: Code formatting
-- **TypeScript**: Static type checking
-
-## Getting Started
-
-### Prerequisites
-- **Node.js**: 18+ 
-- **Python**: 3.11+ (for AI Agent)
-- **PostgreSQL**: 15+ or Supabase account
-- **OpenAI API Key**: Required for AI features
-- **OAuth Apps** (optional): Google/GitHub for social login
-
-### Quick Setup
-
-#### Automated Setup (Windows, Recommended)
-
-```powershell
-.\setup.ps1
+```sh
+npx create-turbo@latest
 ```
 
-If you are on Linux/Mac, follow the Manual Setup steps below.
+## What's inside?
 
-The setup script will:
-- Check prerequisites
-- Create environment files
-- Generate secure secrets
-- Install dependencies
-- Setup database schema
+This Turborepo includes the following packages/apps:
 
-#### Manual Setup
+### Apps and Packages
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd entropy-community-forum
-   ```
+- `docs`: a [Next.js](https://nextjs.org/) app
+- `web`: another [Next.js](https://nextjs.org/) app
+- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
+- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
+- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
 
-2. **Install dependencies**
-   ```bash
-   # Next.js dependencies
-   npm install
-   
-   # AI Agent dependencies
-   cd spark-ai-agent
-   pip install -r requirements.txt
-   cd ..
-   ```
+Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
 
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env.local
-   ```
-   
-   Edit `.env.local` with your values:
-   ```env
-   # Database
-   DATABASE_URL="postgresql://user:password@localhost:5432/entropy_db"
-   
-   # NextAuth.js
-   NEXTAUTH_URL="http://localhost:5000"
-   NEXTAUTH_SECRET="your-secret-key"
-   
-   # AI Agent
-   NEXT_PUBLIC_SPARK_API_URL="http://localhost:8000"
-   NEXT_PUBLIC_AI_BACKEND_TOKEN="your-secure-token"
-   
-   # OpenAI (Required)
-   OPENAI_API_KEY="sk-your-openai-api-key"
-   
-   # OAuth Providers (Optional)
-   GOOGLE_CLIENT_ID="your-google-client-id"
-   GOOGLE_CLIENT_SECRET="your-google-client-secret"
-   GITHUB_ID="your-github-client-id"
-   GITHUB_SECRET="your-github-client-secret"
-   ```
+### Utilities
 
-4. **Set up the database**
-   ```bash
-   npx prisma generate
-   npx prisma db push
-   ```
+This Turborepo has some additional tools already setup for you:
 
-5. **Run the development servers**
-   
-   **Terminal 1 - Next.js:**
-   ```bash
-   npm run dev
-   ```
-   
-   **Terminal 2 - AI Agent:**
-   ```bash
-   cd spark-ai-agent
-   python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-   ```
+- [TypeScript](https://www.typescriptlang.org/) for static type checking
+- [ESLint](https://eslint.org/) for code linting
+- [Prettier](https://prettier.io) for code formatting
 
-6. **Access the application**
-   - Frontend: [http://localhost:5000](http://localhost:5000)
-   - AI Agent API: [http://localhost:8000/docs](http://localhost:8000/docs)
+### Build
 
-### Database Setup
+To build all apps and packages, run the following command:
 
-The application uses Prisma with Supabase PostgreSQL. The schema includes:
+```
+cd my-turborepo
 
-- **Users**: Authentication and profile information
-- **Doubts**: Questions posted by users
-- **Comments**: Answers and replies to doubts
-- **Votes**: Upvote/downvote system
-- **Sessions/Accounts**: NextAuth.js authentication tables
+# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
+turbo build
 
-### Deployment
-
-For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md)
-
-#### Quick Deploy Options
-
-**Option 1: Docker Compose (Recommended)**
-```bash
-docker-compose up -d
+# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
+npx turbo build
+yarn dlx turbo build
+pnpm exec turbo build
 ```
 
-**Option 2: Vercel + Railway**
-- Deploy Next.js to Vercel
-- Deploy AI Agent to Railway
-- Use Supabase for database
+You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
 
-**Option 3: VPS with PM2**
-```bash
-npm run build
-pm2 start npm --name "entropy" -- start
-cd spark-ai-agent
-pm2 start "uvicorn app.main:app --host 0.0.0.0 --port 8000" --name "spark-ai"
+```
+# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
+turbo build --filter=docs
+
+# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
+npx turbo build --filter=docs
+yarn exec turbo build --filter=docs
+pnpm exec turbo build --filter=docs
 ```
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete instructions.
+### Develop
 
-## Project Structure
+To develop all apps and packages, run the following command:
 
-\`\`\`
-├── app/                    # Next.js App Router
-│   ├── actions/           # Server Actions
-│   ├── api/               # API Routes
-│   ├── auth/              # Authentication pages
-│   ├── ask/               # Ask doubt page
-│   ├── doubts/            # Doubt detail pages
-│   └── globals.css        # Global styles
-├── components/            # React components
-│   ├── ui/                # Reusable UI components
-│   └── ...                # Feature components
-├── lib/                   # Utility functions
-│   ├── auth.ts            # NextAuth configuration
-│   ├── prisma.ts          # Prisma client
-│   ├── utils.ts           # Helper functions
-│   └── validations.ts     # Zod schemas
-├── prisma/                # Database schema
-│   └── schema.prisma      # Prisma schema
-└── hooks/                 # Custom React hooks
-\`\`\`
+```
+cd my-turborepo
 
-## API Endpoints
+# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
+turbo dev
 
-### REST API
-- `GET /api/doubts` - Fetch doubts with pagination
-- `POST /api/doubts` - Create new doubt (via Server Action)
+# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
+npx turbo dev
+yarn exec turbo dev
+pnpm exec turbo dev
+```
 
-### Server Actions
-- `createDoubt` - Create a new doubt
-- `createComment` - Add answer to doubt
-- `voteOnDoubt` - Vote on doubt
-- `voteOnComment` - Vote on answer
-- `markCommentAsAccepted` - Mark answer as accepted
+You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
 
-## Contributing
+```
+# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
+turbo dev --filter=web
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
+npx turbo dev --filter=web
+yarn exec turbo dev --filter=web
+pnpm exec turbo dev --filter=web
+```
 
-## License
+### Remote Caching
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+> [!TIP]
+> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
 
-## Support
+Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
 
-For support, email support@entropy-platform.com or join our Discord community.
+By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
 
-## Roadmap
+```
+cd my-turborepo
 
-- [ ] Real-time notifications
-- [ ] Mobile app (React Native)
-- [ ] AI-powered doubt suggestions
-- [ ] Advanced search with filters
-- [ ] Reputation and badge system
-- [ ] Video/audio support
-- [ ] Study groups and classrooms
-- [ ] Integration with learning management systems
+# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
+turbo login
+
+# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
+npx turbo login
+yarn exec turbo login
+pnpm exec turbo login
+```
+
+This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+
+Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+
+```
+# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
+turbo link
+
+# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
+npx turbo link
+yarn exec turbo link
+pnpm exec turbo link
+```
+
+## Useful Links
+
+Learn more about the power of Turborepo:
+
+- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
+- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
+- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
+- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
+- [Configuration Options](https://turborepo.com/docs/reference/configuration)
+- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)

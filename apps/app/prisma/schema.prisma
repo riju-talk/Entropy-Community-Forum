@@ -1,0 +1,481 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role      @default(STUDENT)
+  bio           String?
+  university    String?
+  course        String?
+  year          Int?
+  reputation    Int       @default(0)
+  credits       Int       @default(100)
+  subscriptionTier String @default("FREE")
+  documentCount Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts              Account[]
+  sessions              Session[]
+  doubts                Doubt[]
+  comments              Comment[]
+  votes                 Vote[]
+  userStats             UserStat?
+  pointsLedger          PointsLedger[]
+  achievementUnlocks    AchievementUnlock[]
+  badgeGrants           BadgeGrant[]
+  streaks               Streak[]
+  leaderboardSnapshots  LeaderboardSnapshot[] @relation("UserLeaderboardSnapshots")
+  conversations         Conversation[]
+  aiRecommendations     AIRecommendation[]
+  createdCommunities    Community[]
+  communityMemberships  CommunityMember[]
+  addedDoubts           CommunityDoubt[]
+
+  @@map("users")
+  @@index([createdAt])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Doubt {
+  id          String      @id @default(cuid())
+  title       String
+  content     String      @db.Text
+  subject     Subject
+  tags        String[]
+  imageUrl    String?
+  isAnonymous Boolean     @default(false)
+  isResolved  Boolean     @default(false)
+  votes       Int         @default(0)
+  views       Int         @default(0)
+  authorId    String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  author            User?              @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  comments          Comment[]
+  userVotes         Vote[]
+  aiRecommendations AIRecommendation[]
+  pointsLedger      PointsLedger[]     @relation("PointsLedgerDoubt")
+  communityDoubts   CommunityDoubt[]
+
+  @@map("doubts")
+  @@index([authorId, createdAt])
+  @@index([subject, createdAt])
+  @@index([isResolved, createdAt])
+  @@index([votes])
+}
+
+model Comment {
+  id          String   @id @default(cuid())
+  content     String   @db.Text
+  isAnonymous Boolean  @default(false)
+  isAccepted  Boolean  @default(false)
+  votes       Int      @default(0)
+  doubtId     String
+  authorId    String?
+  parentId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  doubt        Doubt          @relation(fields: [doubtId], references: [id], onDelete: Cascade)
+  author       User?          @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  parent       Comment?       @relation("CommentReplies", fields: [parentId], references: [id])
+  replies      Comment[]      @relation("CommentReplies")
+  userVotes    Vote[]
+  pointsLedger PointsLedger[] @relation("PointsLedgerComment")
+
+  @@map("comments")
+  @@index([doubtId, createdAt])
+  @@index([authorId, createdAt])
+  @@index([isAccepted])
+  @@index([votes])
+}
+
+model Vote {
+  id        String   @id @default(cuid())
+  type      VoteType
+  userId    String
+  doubtId   String?
+  commentId String?
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  doubt   Doubt?   @relation(fields: [doubtId], references: [id], onDelete: Cascade)
+  comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, doubtId])
+  @@unique([userId, commentId])
+  @@map("votes")
+  @@index([userId, createdAt])
+  @@index([doubtId])
+  @@index([commentId])
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum Subject {
+  COMPUTER_SCIENCE
+  MATHEMATICS
+  PHYSICS
+  CHEMISTRY
+  BIOLOGY
+  ENGINEERING
+  BUSINESS
+  LITERATURE
+  HISTORY
+  PSYCHOLOGY
+  OTHER
+}
+
+enum VoteType {
+  UP
+  DOWN
+}
+
+// Gamification System Models
+
+model UserStat {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  totalPoints         Int      @default(0)
+  currentLevel        Int      @default(1)
+  doubtsAsked         Int      @default(0)
+  doubtsResolved      Int      @default(0)
+  commentsPosted      Int      @default(0)
+  acceptedAnswers     Int      @default(0)
+  upvotesReceived     Int      @default(0)
+  downvotesReceived   Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_stats")
+  @@index([totalPoints])
+  @@index([currentLevel])
+}
+
+model PointsLedger {
+  id          String         @id @default(cuid())
+  userId      String
+  eventType   PointEventType
+  points      Int
+  description String?
+  doubtId     String?
+  commentId   String?
+  createdAt   DateTime       @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  doubt   Doubt?   @relation("PointsLedgerDoubt", fields: [doubtId], references: [id], onDelete: SetNull)
+  comment Comment? @relation("PointsLedgerComment", fields: [commentId], references: [id], onDelete: SetNull)
+
+  @@map("points_ledger")
+  @@index([userId, createdAt])
+  @@index([eventType])
+  @@index([doubtId])
+  @@index([commentId])
+}
+
+enum PointEventType {
+  DOUBT_CREATED
+  COMMENT_CREATED
+  UPVOTE_RECEIVED
+  DOWNVOTE_RECEIVED
+  ANSWER_ACCEPTED
+  DOUBT_RESOLVED
+  DAILY_LOGIN
+  STREAK_BONUS
+  ACHIEVEMENT_UNLOCKED
+  BADGE_EARNED
+}
+
+model Level {
+  id          String   @id @default(cuid())
+  level       Int      @unique
+  name        String
+  minPoints   Int
+  maxPoints   Int?
+  icon        String?
+  color       String?
+  createdAt   DateTime @default(now())
+
+  @@map("levels")
+  @@index([minPoints])
+}
+
+model Achievement {
+  id          String          @id @default(cuid())
+  type        AchievementType
+  name        String          @unique
+  description String
+  criteria    Json
+  points      Int
+  rarity      AchievementRarity
+  icon        String?
+  createdAt   DateTime        @default(now())
+
+  unlocks AchievementUnlock[]
+
+  @@map("achievements")
+}
+
+enum AchievementType {
+  FIRST_DOUBT
+  FIRST_COMMENT
+  PROBLEM_SOLVER
+  STREAK_MASTER
+  MENTOR
+  TOP_CONTRIBUTOR
+  SUBJECT_EXPERT
+  COMMUNITY_LEADER
+  RISING_STAR
+  KNOWLEDGE_SEEKER
+}
+
+enum AchievementRarity {
+  COMMON
+  UNCOMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+model AchievementUnlock {
+  id            String   @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@map("achievement_unlocks")
+  @@index([userId, unlockedAt])
+}
+
+model Badge {
+  id          String    @id @default(cuid())
+  type        BadgeType
+  name        String    @unique
+  description String
+  icon        String?
+  color       String?
+  createdAt   DateTime  @default(now())
+
+  grants BadgeGrant[]
+
+  @@map("badges")
+}
+
+enum BadgeType {
+  AI_MASTER
+  PHYSICS_GURU
+  MATH_WIZARD
+  CODE_NINJA
+  BIO_EXPERT
+  PROBLEM_SOLVER
+  HELPER
+  INNOVATOR
+  TUTOR
+  RESEARCH_STAR
+}
+
+model BadgeGrant {
+  id        String   @id @default(cuid())
+  userId    String
+  badgeId   String
+  grantedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge Badge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@map("badge_grants")
+  @@index([userId, grantedAt])
+}
+
+model Streak {
+  id               String    @id @default(cuid())
+  userId           String
+  currentStreak    Int       @default(0)
+  longestStreak    Int       @default(0)
+  lastActivityDate DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+  @@map("streaks")
+  @@index([lastActivityDate])
+}
+
+// Leaderboard System
+
+model LeaderboardSnapshot {
+  id          String            @id @default(cuid())
+  userId      String
+  period      LeaderboardPeriod
+  scope       LeaderboardScope
+  points      Int
+  rank        Int
+  periodStart DateTime
+  periodEnd   DateTime
+  createdAt   DateTime          @default(now())
+
+  user User @relation("UserLeaderboardSnapshots", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, period, scope, periodStart])
+  @@map("leaderboard_snapshots")
+  @@index([period, scope, periodStart])
+  @@index([period, scope, rank, periodStart])
+}
+
+enum LeaderboardPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  ALL_TIME
+}
+
+enum LeaderboardScope {
+  GLOBAL
+  SUBJECT_CS
+  SUBJECT_MATH
+  SUBJECT_PHYSICS
+  SUBJECT_CHEMISTRY
+  SUBJECT_BIOLOGY
+  SUBJECT_ENGINEERING
+}
+
+// AI Integration System
+
+model Conversation {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String?
+  context   Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@map("conversations")
+  @@index([userId, createdAt])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  role           String
+  content        String   @db.Text
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+  @@index([conversationId, createdAt])
+}
+
+model Community {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  subject     Subject?
+  isPublic    Boolean  @default(true)
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  creator User?   @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  members CommunityMember[]
+  doubts  CommunityDoubt[]
+
+  @@map("communities")
+  @@index([subject])
+  @@index([isPublic])
+  @@index([createdBy])
+}
+
+model CommunityMember {
+  id          String   @id @default(cuid())
+  userId      String
+  communityId String
+  role        CommunityRole @default(MEMBER)
+  joinedAt    DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, communityId])
+  @@map("community_members")
+  @@index([userId])
+  @@index([communityId])
+}
+
+model CommunityDoubt {
+  id          String   @id @default(cuid())
+  doubtId     String
+  communityId String
+  addedBy     String?
+  addedAt     DateTime @default(now())
+
+  doubt     Doubt     @relation(fields: [doubtId], references: [id], onDelete: Cascade)
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  adder     User?     @relation(fields: [addedBy], references: [id], onDelete: SetNull)
+
+  @@unique([doubtId, communityId])
+  @@map("community_doubts")
+  @@index([communityId])
+  @@index([doubtId])
+}
+
+enum CommunityRole {
+  ADMIN
+  MODERATOR
+  MEMBER
+}
