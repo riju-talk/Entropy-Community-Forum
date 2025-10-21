@@ -8,6 +8,8 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
+    "test": "npm --workspace apps/tests run test",
+    "test:watch": "npm --workspace apps/tests run test:watch",
     "docker:build:ai": "docker build -t entropy/ai-agent:latest -f apps/ai-agent/Dockerfile apps/ai-agent"
   },
   "devDependencies": {
