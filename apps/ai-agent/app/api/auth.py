@@ -14,6 +14,11 @@ async def verify_token(
     """
     Verify Bearer token authentication
     """
+    # If no token is configured for the backend, skip verification (development mode)
+    if not settings.AI_BACKEND_TOKEN:
+        # Accept any provided token or none
+        return credentials.credentials if credentials else ""
+
     token = credentials.credentials
 
     if token != settings.AI_BACKEND_TOKEN:

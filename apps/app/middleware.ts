@@ -4,6 +4,16 @@ import type { NextRequest } from "next/server"
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Protected routes that require authentication
+  const protectedRoutes = ['/create-community', '/ask', '/profile', '/mentorship']
+  
+  if (protectedRoutes.some(route => pathname.startsWith(route))) {
+    const token = request.cookies.get('next-auth.session-token')
+    if (!token) {
+      return NextResponse.redirect(new URL('/auth/signin', request.url))
+    }
+  }
+
   // Add security headers for API routes
   if (pathname.startsWith("/api/")) {
     const response = NextResponse.next()
@@ -13,7 +23,7 @@ export async function middleware(request: NextRequest) {
     response.headers.set("X-Content-Type-Options", "nosniff")
     response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin")
 
-    // Rate limiting headers (you can implement rate limiting logic here)
+    // Rate limiting headers
     response.headers.set("X-RateLimit-Limit", "100")
     response.headers.set("X-RateLimit-Remaining", "99")
     response.headers.set("X-RateLimit-Reset", new Date(Date.now() + 60000).toISOString())

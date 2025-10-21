@@ -1,0 +1,12 @@
+{
+  "name": "ai-agent",
+  "private": true,
+  "scripts": {
+    "dev": "powershell -Command \"$env:DEBUG='true'; python -m pip install -r requirements.txt; python setup.py; python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload\"",
+    "start": "python -m uvicorn app.main:app --host 0.0.0.0 --port 8000",
+    "install-deps": "python -m pip install -r requirements.txt",
+    "lint": "echo \"ai-agent: no linter configured\"",
+    "test": "echo \"ai-agent: no tests configured\" && exit 0",
+    "check-types": "echo \"ai-agent: no types to check\""
+  }
+}

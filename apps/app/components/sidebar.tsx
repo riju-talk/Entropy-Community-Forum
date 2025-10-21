@@ -10,20 +10,38 @@ import { useEffect, useState } from "react"
 import AuthModal from "@/components/auth-modal"
 
 export default function Sidebar() {
-  const pathname = usePathname()
-  const { data: session } = useSession()
-  const isAuthenticated = !!session
+  const pathname = usePathname() || "/"
+  const { data: session, status } = useSession()
+  const isAuthenticated = status === "authenticated"
 
-  const [communities, setCommunities] = useState([])
-  const [credits, setCredits] = useState(0)
+  const [communities, setCommunities] = useState<any[]>([])
+  const [credits, setCredits] = useState<number>(0)
 
   useEffect(() => {
-    fetch("/api/communities").then(res => res.json()).then(setCommunities).catch(console.error)
+    const ac = new AbortController()
 
-    if (session?.user?.email) {
-      fetch("/api/users/me/credits").then(res => res.json()).then(d => setCredits(d.credits)).catch(console.error)
+    fetch("/api/communities", { signal: ac.signal })
+      .then((res) => res.ok ? res.json() : [])
+      .then((data) => setCommunities(Array.isArray(data) ? data : []))
+      .catch((err: any) => {
+        if (err?.name !== 'AbortError') console.error(err)
+      })
+
+    // Only fetch credits when session is authenticated
+    if (status === "authenticated" && session?.user?.email) {
+      fetch("/api/users/me/credits", { signal: ac.signal })
+        .then((res) => res.ok ? res.json() : { credits: 0 })
+        .then((d: any) => setCredits(typeof d?.credits === 'number' ? d.credits : 0))
+        .catch((err: any) => {
+          if (err?.name !== 'AbortError') console.error(err)
+        })
+    } else {
+      // Reset credits when not authenticated
+      setCredits(0)
     }
-  }, [session])
+
+    return () => ac.abort()
+  }, [status, session])
 
   const navItems = [
     {
@@ -73,7 +91,8 @@ export default function Sidebar() {
               variant="ghost"
               className={cn(
                 "w-full justify-start px-4",
-                pathname === item.href
+                // Active when exact match for root, or when pathname starts with the nav href
+                (item.href === "/" ? pathname === "/" : pathname?.startsWith(item.href))
                   ? "bg-secondary text-primary"
                   : "text-muted-foreground hover:text-slate-900 dark:hover:text-slate-50",
               )}
@@ -141,12 +160,6 @@ export default function Sidebar() {
       ) : (
         <div className="px-3 py-2">
           <div className="mt-2 space-y-1">
-            <AuthModal>
-              <Button variant="ghost" className="w-full justify-start px-4">
-                <Plus className="h-4 w-4" />
-                Create Community
-              </Button>
-            </AuthModal>
             <AuthModal>
               <Button variant="ghost" className="w-full justify-start px-4">
                 <User className="h-4 w-4" />

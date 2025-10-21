@@ -4,7 +4,6 @@ Provides context-aware chat with RAG
 """
 
 from typing import List, Dict, Optional
-from langchain.chat_models import ChatOpenAI
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
@@ -128,11 +127,8 @@ Answer: {response[:500]}...
 Generate 3 insightful follow-up questions that would help deepen understanding.
 Return only the questions, numbered 1-3, one per line."""
 
-            llm = ChatOpenAI(
-                temperature=0.7,
-                model=settings.LLM_MODEL
-            )
-
+            # Use centralized LLM (ChatGroq) for follow-up generation
+            llm = get_llm()
             follow_up_response = llm.predict(prompt)
 
             # Parse questions

@@ -4,9 +4,9 @@ Creates visual concept maps in Mermaid format
 """
 
 from typing import Dict, Any
-from langchain.chat_models import ChatOpenAI
 
 from app.core.vector_store import get_vector_store
+from app.core.llm import get_llm
 from app.config import settings
 from app.utils.logger import setup_logger
 
@@ -15,10 +15,8 @@ logger = setup_logger(__name__)
 class MindMapService:
     def __init__(self):
         self.vector_store = get_vector_store()
-        self.llm = ChatOpenAI(
-            temperature=0.7,
-            model=settings.LLM_MODEL
-        )
+        # Use centralized LLM wrapper (ChatGroq) so the backend uses GROQ
+        self.llm = get_llm()
 
     async def generate_mindmap(
         self,
