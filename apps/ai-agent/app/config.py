@@ -98,7 +98,8 @@ class Settings(BaseSettings):
 
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 30
-
+    CHUNK_SIZE: int = os.getenv("CHUNK_SIZE", 1000)
+    CHUNK_OVERLAP: int = os.getenv("CHUNK_OVERLAP", 200)
     # Web Search removed (no Tavily)
 
 settings = Settings()

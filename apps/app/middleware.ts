@@ -5,7 +5,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Protected routes that require authentication
-  const protectedRoutes = ['/create-community', '/ask', '/profile', '/mentorship']
+  const protectedRoutes = ['/create-community', '/profile']
   
   if (protectedRoutes.some(route => pathname.startsWith(route))) {
     const token = request.cookies.get('next-auth.session-token')

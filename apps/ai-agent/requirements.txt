@@ -6,13 +6,16 @@ pydantic-settings>=2.0.0
 python-multipart>=0.0.6
 
 # LangChain
+langchain>=0.1.0
 langchain-community>=0.0.10
+langchain-huggingface>=0.0.1
 langchain-groq>=0.0.2
 groq>=0.3.0
 gpt4all>=1.0.0
 
 # Vector Store & Embeddings
 chromadb>=0.4.0
+langchain-chroma>=0.1.0
 sentence-transformers>=2.2.0
 torch>=2.0.0  # needed by sentence-transformers
 numpy>=1.24.0  # needed by various ML packages

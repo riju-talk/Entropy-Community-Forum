@@ -4,9 +4,9 @@ Handles document storage, retrieval, and similarity search
 """
 
 from typing import Optional, List, Dict, Any
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_core import Document
+from langchain_core.documents import Document
 
 from app.core.embeddings import get_embeddings
 from app.config import settings
@@ -16,8 +16,8 @@ logger = setup_logger(__name__)
 
 _vector_store: Optional[Chroma] = None
 _text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=1000,
-    chunk_overlap=200,
+    chunk_size=settings.CHUNK_SIZE,
+    chunk_overlap=settings.CHUNK_OVERLAP,
     length_function=len,
     add_start_index=True,
 )
@@ -45,8 +45,8 @@ def init_vector_store() -> Chroma:
             collection_metadata={
                 "description": "Document storage for Spark AI Agent",
                 "embedding_model": settings.EMBEDDING_MODEL,
-                "chunk_size": _text_splitter.chunk_size,
-                "chunk_overlap": _text_splitter.chunk_overlap
+                "chunk_size": settings.CHUNK_SIZE,
+                "chunk_overlap": settings.CHUNK_OVERLAP
             }
         )
 

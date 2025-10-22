@@ -2,12 +2,13 @@ import { initializeApp, getApps, FirebaseApp } from "firebase/app"
 import { getAuth, GoogleAuthProvider, GithubAuthProvider, onIdTokenChanged, User, signInWithPopup, signOut } from "firebase/auth"
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  apiKey: "AIzaSyBfIJ_-5FMtEShFjxm-5S5xrAZL2W4T6Uw",
+  authDomain: "entropy-53ac4.firebaseapp.com",
+  projectId: "entropy-53ac4",
+  storageBucket: "entropy-53ac4.firebasestorage.app",
+  messagingSenderId: "336909724845",
+  appId: "1:336909724845:web:bce86cb84c780a1a15aa24",
+  measurementId: "G-4E3FP09S5S"
 }
 
 function getFirebaseApp(): FirebaseApp {

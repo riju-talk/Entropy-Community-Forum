@@ -4,7 +4,7 @@ Provides embedding models and configuration
 """
 
 from typing import Optional
-from langchain_community.embeddings import HuggingFaceEmbeddings, GPT4AllEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from app.config import settings
 from app.utils.logger import setup_logger
 

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Star, Users, MessageCircle, Calendar, Search, Filter, Award, BookOpen } from "lucide-react"
+import AuthModal from "@/components/auth-modal"
 
 const mentors = [
   {
@@ -277,14 +278,18 @@ export default function MentorshipPage() {
                     <div className="flex items-center justify-between pt-2">
                       <span className="font-semibold text-lg">{mentor.price}</span>
                       <div className="flex space-x-2">
-                        <Button variant="outline" size="sm">
-                          <MessageCircle className="h-4 w-4 mr-1" />
-                          Message
-                        </Button>
-                        <Button size="sm">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          Book
-                        </Button>
+                        <AuthModal>
+                          <Button variant="outline" size="sm">
+                            <MessageCircle className="h-4 w-4 mr-1" />
+                            Message
+                          </Button>
+                        </AuthModal>
+                        <AuthModal>
+                          <Button size="sm">
+                            <Calendar className="h-4 w-4 mr-1" />
+                            Book
+                          </Button>
+                        </AuthModal>
                       </div>
                     </div>
                   </div>
@@ -319,7 +324,9 @@ export default function MentorshipPage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-lg">{program.price}</span>
-                      <Button>Enroll Now</Button>
+                      <AuthModal>
+                        <Button>Enroll Now</Button>
+                      </AuthModal>
                     </div>
                   </div>
                 </CardContent>
