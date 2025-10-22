@@ -1,6 +1,5 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-// Removed Geist font (not installed in this workspace). Use Next's Google fonts instead.
 import { JetBrains_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Inter } from "next/font/google"
@@ -18,11 +17,22 @@ const jetbrains = JetBrains_Mono({ subsets: ["latin"], display: "swap", variable
 
 export const metadata: Metadata = {
   title: {
-    default: "Entropy - Academic Community Platform",
-    template: "%s | Entropy"
+    default: "Entropy - Academic community platform",
+    template: "%s | Entropy",
   },
-  description: "A comprehensive academic community platform for STEM learning, doubt resolution, and collaborative education. Connect with students, educators, and experts worldwide.",
-  keywords: ["academic", "education", "STEM", "learning", "community", "doubts", "questions", "answers", "collaboration"],
+  description:
+    "A comprehensive academic community platform for STEM learning, doubt resolution, and collaborative education. Connect with students, educators, and experts worldwide.",
+  keywords: [
+    "academic",
+    "education",
+    "STEM",
+    "learning",
+    "community",
+    "doubts",
+    "questions",
+    "answers",
+    "collaboration",
+  ],
   authors: [{ name: "Entropy Team" }],
   creator: "Entropy",
   publisher: "Entropy",
@@ -39,22 +49,24 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "/",
-    title: "Entropy - Academic Community Platform",
-    description: "A comprehensive academic community platform for STEM learning, doubt resolution, and collaborative education.",
+    title: "Entropy - Academic community platform",
+    description:
+      "A comprehensive academic community platform for STEM learning, doubt resolution, and collaborative education.",
     siteName: "Entropy",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Entropy - Academic Community Platform",
+        alt: "Entropy - Academic community platform",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Entropy - Academic Community Platform",
-    description: "A comprehensive academic community platform for STEM learning, doubt resolution, and collaborative education.",
+    title: "Entropy - Academic community platform",
+    description:
+      "A comprehensive academic community platform for STEM learning, doubt resolution, and collaborative education.",
     images: ["/og-image.png"],
     creator: "@entropy",
   },
@@ -68,11 +80,6 @@ export const metadata: Metadata = {
       "max-image-preview": "large",
       "max-snippet": -1,
     },
-  },
-  verification: {
-    google: process.env.GOOGLE_SITE_VERIFICATION,
-    yandex: process.env.YANDEX_VERIFICATION,
-    yahoo: process.env.YAHOO_VERIFICATION,
   },
 }
 
@@ -93,7 +100,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-  <html lang="en" className={`${inter.variable} ${jetbrains.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${jetbrains.variable}`} suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
@@ -106,7 +113,7 @@ export default function RootLayout({
         <meta name="color-scheme" content="light dark" />
         <link rel="icon" href="/favicon.ico" />
       </head>
-      <body className={`${inter.variable} antialiased`}>
+      <body className={`${inter.variable} antialiased bg-background`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <AuthProvider>
             <ErrorBoundary>

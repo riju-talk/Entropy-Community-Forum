@@ -1,7 +1,7 @@
 # Remaining Core Files - Part 2
 
 ### 12. `app/services/document_service.py`
-```python
+\`\`\`python
 """
 Document Processing Service
 Handles PDF/TXT uploads and indexing
@@ -86,10 +86,10 @@ class DocumentService:
         except Exception as e:
             logger.error(f"Error listing documents: {str(e)}")
             return []
-```
+\`\`\`
 
 ### 13. `app/services/embedding_service.py`
-```python
+\`\`\`python
 """
 Text Embedding Service
 Provides text-to-vector conversion
@@ -140,10 +140,10 @@ class EmbeddingService:
 def get_embedding_service() -> EmbeddingService:
     """Get singleton embedding service instance"""
     return EmbeddingService()
-```
+\`\`\`
 
 ### 14. `app/core/vector_store.py`
-```python
+\`\`\`python
 """
 Vector Store Integration (ChromaDB)
 """
@@ -199,10 +199,10 @@ def get_vector_store() -> Chroma:
     if _vector_store is None:
         return init_vector_store()
     return _vector_store
-```
+\`\`\`
 
 ### 15. `app/core/llm.py`
-```python
+\`\`\`python
 """
 LLM Client Wrapper
 """
@@ -236,10 +236,10 @@ def get_llm() -> ChatOpenAI:
         logger.info("LLM initialized successfully")
     
     return _llm_instance
-```
+\`\`\`
 
 ### 16. `app/api/routes.py`
-```python
+\`\`\`python
 """
 API Routes - All 4 Functions
 """
@@ -553,10 +553,10 @@ async def service_info():
         "supported_file_types": settings.ALLOWED_FILE_TYPES,
         "max_upload_size_mb": settings.MAX_UPLOAD_SIZE / (1024 * 1024)
     }
-```
+\`\`\`
 
 ### 17. `app/utils/logger.py`
-```python
+\`\`\`python
 """
 Logging configuration
 """
@@ -591,10 +591,10 @@ def setup_logger(name: str) -> logging.Logger:
         logger.addHandler(handler)
     
     return logger
-```
+\`\`\`
 
 ### 18. `app/utils/helpers.py`
-```python
+\`\`\`python
 """
 Helper utility functions
 """
@@ -620,10 +620,10 @@ def format_response(data: Any, message: str = None) -> Dict:
         response["message"] = message
     response["timestamp"] = datetime.now().isoformat()
     return response
-```
+\`\`\`
 
 ### 19. `requirements.txt`
-```txt
+\`\`\`txt
 # FastAPI
 fastapi==0.109.2
 uvicorn[standard]==0.27.1
@@ -656,10 +656,10 @@ httpx==0.26.0
 # Database (optional)
 asyncpg==0.29.0
 psycopg2-binary==2.9.9
-```
+\`\`\`
 
 ### 20. `requirements-dev.txt`
-```txt
+\`\`\`txt
 # Testing
 pytest==7.4.4
 pytest-asyncio==0.23.4
@@ -674,10 +674,10 @@ isort==5.13.2
 
 # Development
 ipython==8.21.0
-```
+\`\`\`
 
 ### 21. `.env.example`
-```env
+\`\`\`env
 # Application
 DEBUG=True
 APP_NAME=Spark AI Agent
@@ -711,10 +711,10 @@ CHAT_LONG_COST=2.0
 FLASHCARD_COST=3.0
 QUIZ_COST=4.0
 MINDMAP_COST=2.5
-```
+\`\`\`
 
 ### 22. `Dockerfile`
-```dockerfile
+\`\`\`dockerfile
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -748,10 +748,10 @@ HEALTHCHECK --interval=30s --timeout=3s \
 
 # Run application
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
+\`\`\`
 
 ### 23. `docker-compose.yml`
-```yaml
+\`\`\`yaml
 version: '3.8'
 
 services:
@@ -768,10 +768,10 @@ services:
       - ./data:/app/data
       - ./app:/app/app
     restart: unless-stopped
-```
+\`\`\`
 
 ### 24. `README.md`
-```markdown
+\`\`\`markdown
 # 🌟 Spark AI Agent
 
 Intelligent study assistant for the Entropy platform with 4 core functions:

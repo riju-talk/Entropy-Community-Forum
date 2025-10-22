@@ -42,9 +42,9 @@ Firebase Admin (Server-side)
 - FIREBASE_ADMIN_PRIVATE_KEY
   - Description: Service account private key. Keep quoted and escape newlines as \n
 Example:
-```
+\`\`\`
 FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEv...\n-----END PRIVATE KEY-----\n"
-```
+\`\`\`
 
 AI Backend (Required for Athena agent)
 - AI_BACKEND_URL
@@ -103,7 +103,7 @@ Best Practices
 Examples
 Add the following (adjust values) to `.env.local` for auth + DB:
 
-```
+\`\`\`
 # Database
 DATABASE_URL=postgresql://user:pass@host:5432/dbname
 
@@ -123,7 +123,7 @@ FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE K
 # Athena Agent Backend
 AI_BACKEND_URL=https://api.your-ai-service.com
 AI_BACKEND_TOKEN=super-secret-token
-```
+\`\`\`
 
 References
 - Vercel: Environment variables overview and lifecycle [^1][^2]

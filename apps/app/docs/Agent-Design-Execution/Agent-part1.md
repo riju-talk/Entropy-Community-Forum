@@ -2,7 +2,7 @@
 
 ## 📁 Project Directory Structure
 
-```
+\`\`\`
 spark-ai-agent/
 ├── app/
 │   ├── __init__.py
@@ -82,12 +82,12 @@ spark-ai-agent/
 ├── pytest.ini                       # Pytest configuration
 ├── pyproject.toml                   # Python project metadata
 └── README.md                        # Main documentation
-```
+\`\`\`
 
 ## 📄 Complete File Contents
 
 ### 1. `app/main.py`
-```python
+\`\`\`python
 """
 Spark AI Agent - Main FastAPI Application
 Provides 4 core functions:
@@ -199,10 +199,10 @@ if __name__ == "__main__":
         port=8000,
         reload=settings.DEBUG
     )
-```
+\`\`\`
 
 ### 2. `app/config.py`
-```python
+\`\`\`python
 """
 Configuration management for Spark AI Agent
 """
@@ -260,10 +260,10 @@ settings = Settings()
 # Create necessary directories
 os.makedirs(settings.CHROMA_PERSIST_DIR, exist_ok=True)
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-```
+\`\`\`
 
 ### 3. `app/api/auth.py`
-```python
+\`\`\`python
 """
 Authentication middleware
 """
@@ -290,10 +290,10 @@ async def verify_token(
         )
     
     return token
-```
+\`\`\`
 
 ### 4. `app/schemas/chat.py`
-```python
+\`\`\`python
 """
 Chat-related Pydantic models
 """
@@ -326,10 +326,10 @@ class ChatResponse(BaseModel):
 class ConversationHistory(BaseModel):
     session_id: str
     messages: List[Dict[str, str]]
-```
+\`\`\`
 
 ### 5. `app/schemas/flashcard.py`
-```python
+\`\`\`python
 """
 Flashcard-related Pydantic models
 """
@@ -367,10 +367,10 @@ class FlashcardResponse(BaseModel):
     flashcards: List[Flashcard]
     credits_used: float
     total_generated: int
-```
+\`\`\`
 
 ### 6. `app/schemas/quiz.py`
-```python
+\`\`\`python
 """
 Quiz-related Pydantic models
 """
@@ -414,10 +414,10 @@ class QuizResponse(BaseModel):
     quiz: List[QuizQuestion]
     credits_used: float
     total_questions: int
-```
+\`\`\`
 
 ### 7. `app/schemas/mindmap.py`
-```python
+\`\`\`python
 """
 Mind map-related Pydantic models
 """
@@ -451,10 +451,10 @@ class MindMapResponse(BaseModel):
     mind_map: Dict[str, Any]
     mermaid_code: str
     credits_used: float
-```
+\`\`\`
 
 ### 8. `app/services/chat_service.py`
-```python
+\`\`\`python
 """
 Conversational AI Service - Function 1
 Provides context-aware chat with RAG
@@ -610,10 +610,10 @@ Return only the questions, numbered 1-3, one per line."""
                 "What are some real-world applications?",
                 "How does this relate to other topics?"
             ]
-```
+\`\`\`
 
 ### 9. `app/services/flashcard_service.py`
-```python
+\`\`\`python
 """
 Flashcard Generation Service - Function 2
 Creates study flashcards from materials
@@ -717,10 +717,10 @@ Generate {num_cards} flashcards now:"""
             })
         
         return flashcards[:num_cards]
-```
+\`\`\`
 
 ### 10. `app/services/quiz_service.py`
-```python
+\`\`\`python
 """
 Quiz Generation Service - Function 3
 Creates interactive quizzes with auto-grading
@@ -865,10 +865,10 @@ Generate {num_questions} questions now:"""
                 })
         
         return quiz
-```
+\`\`\`
 
 ### 11. `app/services/mindmap_service.py`
-```python
+\`\`\`python
 """
 Mind Map Generation Service - Function 4
 Creates visual concept maps in Mermaid format
@@ -973,6 +973,6 @@ Output ONLY the Mermaid code, starting with graph/flowchart/mindmap."""
             code = f"graph TD\n    {code}"
         
         return code
-```
+\`\`\`
 
 I'll continue with the remaining files in the next response due to length...

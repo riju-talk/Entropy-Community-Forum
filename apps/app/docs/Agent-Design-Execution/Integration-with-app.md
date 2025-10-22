@@ -494,23 +494,23 @@ Your Next.js app is now connected to Spark AI Agent.
 ### 1. Configure Environment
 
 Edit `.env.local`:
-```env
+\`\`\`env
 NEXT_PUBLIC_SPARK_API_URL=http://localhost:8000
 NEXT_PUBLIC_AI_BACKEND_TOKEN=your-actual-token-here
-```
+\`\`\`
 
 ### 2. Start Spark AI Server
 
 In the `spark-ai-agent` directory:
-```bash
+\`\`\`bash
 cd spark-ai-agent
 source venv/bin/activate
 uvicorn app.main:app --reload --port 8000
-```
+\`\`\`
 
 ### 3. Use in Your Components
 
-```typescript
+\`\`\`typescript
 import { sparkAPI } from "@/lib/spark-api"
 
 // In your component
@@ -538,76 +538,76 @@ const handleMindMap = async () => {
   const mindmap = await sparkAPI.generateMindMap(userId, topic)
   console.log(mindmap.mermaid_code)
 }
-```
+\`\`\`
 
 ### 4. Test Integration
 
-```bash
+\`\`\`bash
 # Install tsx if needed
 npm install -D tsx
 
 # Run test
 npx tsx scripts/test-spark-integration.ts
-```
+\`\`\`
 
 ## 📚 Available Functions
 
 ### 1. Chat
-```typescript
+\`\`\`typescript
 sparkAPI.chat(userId: string, message: string, sessionId?: string)
-```
+\`\`\`
 
 ### 2. Flashcards
-```typescript
+\`\`\`typescript
 sparkAPI.generateFlashcards(
   userId: string,
   topic: string,
   numCards?: number,
   difficulty?: "easy" | "medium" | "hard"
 )
-```
+\`\`\`
 
 ### 3. Quiz
-```typescript
+\`\`\`typescript
 sparkAPI.generateQuiz(
   userId: string,
   topic: string,
   numQuestions?: number,
   questionTypes?: string[]
 )
-```
+\`\`\`
 
 ### 4. Mind Map
-```typescript
+\`\`\`typescript
 sparkAPI.generateMindMap(
   userId: string,
   topic: string,
   depth?: number,
   style?: "hierarchical" | "radial" | "flowchart"
 )
-```
+\`\`\`
 
 ### Document Upload
-```typescript
+\`\`\`typescript
 sparkAPI.uploadDocument(userId: string, file: File)
 sparkAPI.listDocuments(userId: string)
-```
+\`\`\`
 
 ## 🔧 Adding to Your Pages
 
 Replace the existing AI agent page with the enhanced version:
 
-```bash
+\`\`\`bash
 # Copy the enhanced Spark page
 cp /path/to/spark_page_enhanced.tsx app/spark/page.tsx
-```
+\`\`\`
 
 Or create a new route:
 
-```bash
+\`\`\`bash
 mkdir -p app/ai
 # Add the Spark page component
-```
+\`\`\`
 
 ## 🐛 Troubleshooting
 

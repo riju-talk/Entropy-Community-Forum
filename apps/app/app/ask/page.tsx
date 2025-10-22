@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -102,8 +102,6 @@ export default function AskPage() {
       formData.append("tags", JSON.stringify(tags))
       formData.append("isAnonymous", isAnonymous.toString())
 
-      // For now, we'll handle attachments as metadata in the content
-      // In a real app, you'd upload files to a storage service first
       if (attachments.length > 0) {
         const attachmentText = attachments
           .map((att) => `[${att.type.toUpperCase()}: ${att.name || "attachment"}]`)
@@ -112,6 +110,7 @@ export default function AskPage() {
       }
 
       await createDoubt(formData)
+      router.push("/community")
     } catch (error) {
       console.error("Error creating doubt:", error)
       alert("Failed to post question. Please try again.")
@@ -134,185 +133,203 @@ export default function AskPage() {
   }
 
   return (
-    <main className="bg-background">
-      <div className="container mx-auto px-4 py-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-6 pb-4">
-            <h1 className="text-3xl font-bold mb-2">Ask Anything</h1>
-            <p className="text-muted-foreground">
-              Get help from the community with text, code, images, and more. Ask any combination of questions!
-            </p>
-          </div>
+    <main>
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8 space-y-3">
+          <h1 className="text-3xl font-bold">Ask a question</h1>
+          <p className="text-muted-foreground">Get help from the community with text, code, images, and more</p>
+        </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
-                Create Your Question
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Title */}
-              <div className="space-y-2">
-                <Label htmlFor="title">Question Title</Label>
-                <Input
-                  id="title"
-                  placeholder="What's your question about?"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
+        <Card>
+          <CardHeader className="border-b">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              <div>
+                <CardTitle>Create your question</CardTitle>
+                <CardDescription>Fill in the details below to post your question</CardDescription>
               </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6 space-y-6">
+            {/* Title */}
+            <div className="space-y-2">
+              <Label htmlFor="title" className="text-base font-medium">
+                Question title
+              </Label>
+              <Input
+                id="title"
+                placeholder="What's your question about?"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="h-10"
+              />
+              <p className="text-xs text-muted-foreground">Be specific and clear about what you're asking</p>
+            </div>
 
-              {/* Subject */}
-              <div className="space-y-2">
-                <Label htmlFor="subject">Subject</Label>
-                <Select value={subject} onValueChange={setSubject}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a subject" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="COMPUTER_SCIENCE">Computer Science</SelectItem>
-                    <SelectItem value="MATHEMATICS">Mathematics</SelectItem>
-                    <SelectItem value="PHYSICS">Physics</SelectItem>
-                    <SelectItem value="CHEMISTRY">Chemistry</SelectItem>
-                    <SelectItem value="BIOLOGY">Biology</SelectItem>
-                    <SelectItem value="ENGINEERING">Engineering</SelectItem>
-                    <SelectItem value="OTHER">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Subject */}
+            <div className="space-y-2">
+              <Label htmlFor="subject" className="text-base font-medium">
+                Subject
+              </Label>
+              <Select value={subject} onValueChange={setSubject}>
+                <SelectTrigger className="h-10">
+                  <SelectValue placeholder="Select a subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="COMPUTER_SCIENCE">Computer science</SelectItem>
+                  <SelectItem value="MATHEMATICS">Mathematics</SelectItem>
+                  <SelectItem value="PHYSICS">Physics</SelectItem>
+                  <SelectItem value="CHEMISTRY">Chemistry</SelectItem>
+                  <SelectItem value="BIOLOGY">Biology</SelectItem>
+                  <SelectItem value="ENGINEERING">Engineering</SelectItem>
+                  <SelectItem value="OTHER">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-              {/* Multi-modal Input */}
-              <div className="space-y-4">
-                <Label>Question Details</Label>
+            {/* Multi-modal Input */}
+            <div className="space-y-4">
+              <Label className="text-base font-medium">Question details</Label>
 
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="grid w-full grid-cols-4">
-                    <TabsTrigger value="text">Text</TabsTrigger>
-                    <TabsTrigger value="code">Code</TabsTrigger>
-                    <TabsTrigger value="image">Image</TabsTrigger>
-                    <TabsTrigger value="document">Document</TabsTrigger>
-                  </TabsList>
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid w-full grid-cols-4 bg-muted p-1">
+                  <TabsTrigger value="text" className="text-xs md:text-sm">
+                    Text
+                  </TabsTrigger>
+                  <TabsTrigger value="code" className="text-xs md:text-sm">
+                    Code
+                  </TabsTrigger>
+                  <TabsTrigger value="image" className="text-xs md:text-sm">
+                    Image
+                  </TabsTrigger>
+                  <TabsTrigger value="document" className="text-xs md:text-sm">
+                    Document
+                  </TabsTrigger>
+                </TabsList>
 
-                  <TabsContent value="text" className="mt-4">
-                    <Textarea
-                      placeholder="Describe your question in detail. You can combine this with code, images, or documents..."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      className="min-h-[120px]"
-                    />
-                  </TabsContent>
-
-                  <TabsContent value="code" className="mt-4 space-y-4">
-                    <div className="flex gap-2">
-                      <Select value={codeLanguage} onValueChange={setCodeLanguage}>
-                        <SelectTrigger className="w-40">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="javascript">JavaScript</SelectItem>
-                          <SelectItem value="python">Python</SelectItem>
-                          <SelectItem value="java">Java</SelectItem>
-                          <SelectItem value="cpp">C++</SelectItem>
-                          <SelectItem value="html">HTML</SelectItem>
-                          <SelectItem value="css">CSS</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button onClick={handleCodeAdd} disabled={!codeContent.trim()}>
-                        Add Code
-                      </Button>
-                    </div>
-                    <Textarea
-                      placeholder="Paste your code here..."
-                      value={codeContent}
-                      onChange={(e) => setCodeContent(e.target.value)}
-                      className="font-mono text-sm min-h-[200px]"
-                    />
-                  </TabsContent>
-
-                  <TabsContent value="image" className="mt-4">
-                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleImageUpload}
-                        accept="image/*"
-                        className="hidden"
-                      />
-                      <Button
-                        variant="outline"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="flex items-center gap-2"
-                      >
-                        <Upload className="h-4 w-4" />
-                        Upload Image
-                      </Button>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Upload screenshots, diagrams, or any relevant images
-                      </p>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="document" className="mt-4">
-                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
-                      <input
-                        type="file"
-                        onChange={handleDocumentUpload}
-                        accept=".pdf,.doc,.docx,.txt"
-                        className="hidden"
-                        id="document-upload"
-                      />
-                      <Button
-                        variant="outline"
-                        onClick={() => document.getElementById("document-upload")?.click()}
-                        className="flex items-center gap-2"
-                      >
-                        <Upload className="h-4 w-4" />
-                        Upload Document
-                      </Button>
-                      <p className="text-sm text-muted-foreground mt-2">Upload PDFs, Word documents, or text files</p>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-
-              {/* Attachments */}
-              {attachments.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Attachments</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {attachments.map((attachment) => (
-                      <Badge key={attachment.id} variant="secondary" className="flex items-center gap-1 pr-1">
-                        {getAttachmentIcon(attachment.type)}
-                        <span className="text-xs">{attachment.name || attachment.type}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
-                          onClick={() => removeAttachment(attachment.id)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Tags */}
-              <div className="space-y-2">
-                <Label>Tags</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    placeholder="Add a tag"
-                    onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())}
+                <TabsContent value="text" className="mt-4">
+                  <Textarea
+                    placeholder="Describe your question in detail. You can combine this with code, images, or documents..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="min-h-[150px] resize-none"
                   />
-                  <Button type="button" onClick={handleAddTag} variant="outline">
-                    <Plus className="h-4 w-4" />
-                  </Button>
+                </TabsContent>
+
+                <TabsContent value="code" className="mt-4 space-y-3">
+                  <div className="flex gap-2">
+                    <Select value={codeLanguage} onValueChange={setCodeLanguage}>
+                      <SelectTrigger className="w-40 h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="javascript">JavaScript</SelectItem>
+                        <SelectItem value="python">Python</SelectItem>
+                        <SelectItem value="java">Java</SelectItem>
+                        <SelectItem value="cpp">C++</SelectItem>
+                        <SelectItem value="html">HTML</SelectItem>
+                        <SelectItem value="css">CSS</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button onClick={handleCodeAdd} disabled={!codeContent.trim()}>
+                      Add code
+                    </Button>
+                  </div>
+                  <Textarea
+                    placeholder="Paste your code here..."
+                    value={codeContent}
+                    onChange={(e) => setCodeContent(e.target.value)}
+                    className="font-mono text-sm min-h-[200px] resize-none"
+                  />
+                </TabsContent>
+
+                <TabsContent value="image" className="mt-4">
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center space-y-4">
+                    <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto">
+                      <ImageIcon className="h-6 w-6 text-primary" />
+                    </div>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleImageUpload}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                    <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="mx-auto">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload image
+                    </Button>
+                    <p className="text-sm text-muted-foreground">
+                      Upload screenshots, diagrams, or any relevant images
+                    </p>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="document" className="mt-4">
+                  <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center space-y-4">
+                    <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto">
+                      <FileText className="h-6 w-6 text-primary" />
+                    </div>
+                    <input
+                      type="file"
+                      onChange={handleDocumentUpload}
+                      accept=".pdf,.doc,.docx,.txt"
+                      className="hidden"
+                      id="document-upload"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => document.getElementById("document-upload")?.click()}
+                      className="mx-auto"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload document
+                    </Button>
+                    <p className="text-sm text-muted-foreground">Upload PDFs, Word documents, or text files</p>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+
+            {/* Attachments */}
+            {attachments.length > 0 && (
+              <div className="space-y-3 p-4 bg-muted/50 rounded-lg border">
+                <Label className="text-sm font-medium">Attachments</Label>
+                <div className="flex flex-wrap gap-2">
+                  {attachments.map((attachment) => (
+                    <Badge key={attachment.id} variant="secondary" className="flex items-center gap-1 pr-1">
+                      {getAttachmentIcon(attachment.type)}
+                      <span className="text-xs">{attachment.name || attachment.type}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                        onClick={() => removeAttachment(attachment.id)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  ))}
                 </div>
+              </div>
+            )}
+
+            {/* Tags */}
+            <div className="space-y-3">
+              <Label className="text-base font-medium">Tags</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  placeholder="Add a tag"
+                  onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())}
+                  className="h-10"
+                />
+                <Button type="button" onClick={handleAddTag} variant="outline">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              {tags.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {tags.map((tag) => (
                     <Badge key={tag} variant="secondary" className="flex items-center gap-1">
@@ -327,45 +344,43 @@ export default function AskPage() {
                     </Badge>
                   ))}
                 </div>
-                <p className="text-sm text-muted-foreground">Add up to 5 tags to help others find your question</p>
-              </div>
+              )}
+              <p className="text-xs text-muted-foreground">Add up to 5 tags to help others find your question</p>
+            </div>
 
-              {/* Anonymous option */}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="anonymous"
-                  checked={isAnonymous}
-                  onCheckedChange={(checked) => setIsAnonymous(checked === true)}
-                />
-                <Label htmlFor="anonymous">Post anonymously</Label>
-              </div>
+            {/* Anonymous option */}
+            <div className="flex items-center space-x-2 p-3 bg-muted/50 rounded-lg">
+              <Checkbox
+                id="anonymous"
+                checked={isAnonymous}
+                onCheckedChange={(checked) => setIsAnonymous(checked === true)}
+              />
+              <Label htmlFor="anonymous" className="cursor-pointer flex-1">
+                Post anonymously
+              </Label>
+            </div>
 
-              {/* Submit */}
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" disabled={isSubmitting}>
-                  Save Draft
-                </Button>
-                <Button
-                  onClick={handleSubmit}
-                  className="flex items-center gap-2"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      Posting...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4" />
-                      Post Question
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            {/* Submit */}
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" disabled={isSubmitting}>
+                Save draft
+              </Button>
+              <Button onClick={handleSubmit} className="gap-2" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Posting...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" />
+                    Post question
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </main>
   )

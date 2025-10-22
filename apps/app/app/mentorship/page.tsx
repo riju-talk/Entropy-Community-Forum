@@ -14,96 +14,50 @@ const mentors = [
   {
     id: 1,
     name: "Dr. Sarah Chen",
-    title: "AI Research Scientist",
+    title: "AI research scientist",
     company: "Google DeepMind",
-    expertise: ["Machine Learning", "Deep Learning", "Computer Vision"],
+    expertise: ["Machine learning", "Deep learning", "Computer vision"],
     rating: 4.9,
     reviews: 127,
     sessions: 450,
     price: "$80/hour",
     availability: "Available",
-    bio: "PhD in Computer Science from Stanford. 8+ years in AI research with focus on computer vision and neural networks.",
-    achievements: ["Published 50+ papers", "Google AI Award 2023", "TEDx Speaker"],
+    bio: "PhD in computer science from Stanford. 8+ years in AI research.",
+    achievements: ["Published 50+ papers", "Google AI Award 2023", "TEDx speaker"],
     languages: ["English", "Mandarin"],
     responseTime: "< 2 hours",
   },
   {
     id: 2,
     name: "Prof. Michael Rodriguez",
-    title: "Quantum Physics Professor",
+    title: "Quantum physics professor",
     company: "MIT",
-    expertise: ["Quantum Computing", "Theoretical Physics", "Mathematics"],
+    expertise: ["Quantum computing", "Theoretical physics", "Mathematics"],
     rating: 4.8,
     reviews: 89,
     sessions: 320,
     price: "$100/hour",
     availability: "Busy",
-    bio: "Professor of Physics at MIT specializing in quantum mechanics and quantum computing applications.",
-    achievements: ["Nobel Prize Nominee", "MIT Excellence Award", "Author of 3 books"],
+    bio: "Professor of physics at MIT specializing in quantum mechanics.",
+    achievements: ["Nobel Prize nominee", "MIT Excellence Award", "Author of 3 books"],
     languages: ["English", "Spanish"],
     responseTime: "< 4 hours",
   },
   {
     id: 3,
     name: "Dr. Emily Watson",
-    title: "Biotech Engineer",
+    title: "Biotech engineer",
     company: "Moderna",
-    expertise: ["Biotechnology", "Genetic Engineering", "Pharmaceuticals"],
+    expertise: ["Biotechnology", "Genetic engineering", "Pharmaceuticals"],
     rating: 4.9,
     reviews: 156,
     sessions: 280,
     price: "$75/hour",
     availability: "Available",
-    bio: "Leading biotech engineer with expertise in mRNA technology and vaccine development.",
-    achievements: ["COVID-19 Vaccine Development", "Biotech Innovation Award", "Nature Publications"],
+    bio: "Leading biotech engineer with expertise in mRNA technology.",
+    achievements: ["COVID-19 vaccine development", "Biotech Innovation Award", "Nature publications"],
     languages: ["English", "French"],
     responseTime: "< 1 hour",
-  },
-  {
-    id: 4,
-    name: "Alex Kim",
-    title: "Senior Software Engineer",
-    company: "Tesla",
-    expertise: ["Robotics", "Autonomous Systems", "Python", "C++"],
-    rating: 4.7,
-    reviews: 203,
-    sessions: 520,
-    price: "$60/hour",
-    availability: "Available",
-    bio: "Senior engineer working on Tesla's autopilot systems and robotics. Passionate about mentoring new developers.",
-    achievements: ["Tesla Innovation Award", "Open Source Contributor", "Robotics Competition Judge"],
-    languages: ["English", "Korean"],
-    responseTime: "< 3 hours",
-  },
-]
-
-const mentorshipPrograms = [
-  {
-    id: 1,
-    title: "AI Mastery Program",
-    description: "12-week intensive program covering machine learning, deep learning, and AI applications",
-    duration: "12 weeks",
-    participants: 25,
-    price: "$1,200",
-    level: "Intermediate",
-  },
-  {
-    id: 2,
-    title: "Quantum Computing Bootcamp",
-    description: "8-week program introducing quantum algorithms and quantum programming",
-    duration: "8 weeks",
-    participants: 15,
-    price: "$800",
-    level: "Beginner",
-  },
-  {
-    id: 3,
-    title: "Biotech Innovation Track",
-    description: "10-week program focusing on biotechnology applications and research methods",
-    duration: "10 weeks",
-    participants: 20,
-    price: "$1,000",
-    level: "Advanced",
   },
 ]
 
@@ -113,8 +67,8 @@ export default function MentorshipPage() {
 
   const expertiseAreas = [
     "all",
-    "Machine Learning",
-    "Quantum Computing",
+    "Machine learning",
+    "Quantum computing",
     "Biotechnology",
     "Robotics",
     "Physics",
@@ -131,66 +85,55 @@ export default function MentorshipPage() {
   })
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Find Your STEM Mentor</h1>
-        <p className="text-muted-foreground mb-6">Connect with industry experts and accelerate your learning journey</p>
-
-        {/* Search and Filter */}
-        <div className="flex gap-4 mb-6">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search mentors..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <Button variant="outline">
-            <Filter className="h-4 w-4 mr-2" />
-            Filters
-          </Button>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold">500+</div>
-              <div className="text-sm text-muted-foreground">Expert Mentors</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold">10k+</div>
-              <div className="text-sm text-muted-foreground">Sessions Completed</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold">4.8</div>
-              <div className="text-sm text-muted-foreground">Average Rating</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold">95%</div>
-              <div className="text-sm text-muted-foreground">Success Rate</div>
-            </CardContent>
-          </Card>
-        </div>
+    <div className="space-y-8">
+      <div className="space-y-3">
+        <h1 className="text-4xl font-bold">Find your STEM mentor</h1>
+        <p className="text-muted-foreground">Connect with industry experts and accelerate your learning journey</p>
       </div>
 
-      <Tabs defaultValue="mentors" className="mb-8">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="mentors">Find Mentors</TabsTrigger>
+      {/* Search and Filter */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search mentors..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 h-10"
+          />
+        </div>
+        <Button variant="outline" className="bg-transparent">
+          <Filter className="h-4 w-4 mr-2" />
+          Filters
+        </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Expert mentors", value: "500+" },
+          { label: "Sessions completed", value: "10k+" },
+          { label: "Average rating", value: "4.8" },
+          { label: "Success rate", value: "95%" },
+        ].map((stat, idx) => (
+          <Card key={idx} className="hover:shadow-lg transition-shadow">
+            <CardContent className="p-4 text-center">
+              <div className="text-2xl font-bold">{stat.value}</div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wider">{stat.label}</div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Tabs defaultValue="mentors" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 bg-muted p-1">
+          <TabsTrigger value="mentors">Find mentors</TabsTrigger>
           <TabsTrigger value="programs">Programs</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="mentors">
+        <TabsContent value="mentors" className="space-y-6">
           {/* Expertise Filter */}
-          <div className="flex flex-wrap gap-2 mb-6">
+          <div className="flex flex-wrap gap-2">
             {expertiseAreas.map((area) => (
               <Button
                 key={area}
@@ -199,7 +142,7 @@ export default function MentorshipPage() {
                 onClick={() => setSelectedExpertise(area)}
                 className="capitalize"
               >
-                {area === "all" ? "All Areas" : area}
+                {area === "all" ? "All areas" : area}
               </Button>
             ))}
           </div>
@@ -207,12 +150,12 @@ export default function MentorshipPage() {
           {/* Mentors Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredMentors.map((mentor) => (
-              <Card key={mentor.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start space-x-4">
-                    <Avatar className="h-16 w-16">
+              <Card key={mentor.id} className="hover:shadow-lg transition-shadow flex flex-col">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start space-x-3">
+                    <Avatar className="h-12 w-12 border-2 border-primary/20">
                       <AvatarImage src="/placeholder.svg" alt={mentor.name} />
-                      <AvatarFallback>
+                      <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-600 text-white">
                         {mentor.name
                           .split(" ")
                           .map((n) => n[0])
@@ -221,111 +164,76 @@ export default function MentorshipPage() {
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">{mentor.name}</CardTitle>
-                        <Badge variant={mentor.availability === "Available" ? "default" : "secondary"}>
+                        <CardTitle className="text-base">{mentor.name}</CardTitle>
+                        <Badge
+                          variant={mentor.availability === "Available" ? "default" : "secondary"}
+                          className="text-xs"
+                        >
                           {mentor.availability}
                         </Badge>
                       </div>
-                      <CardDescription className="font-medium">{mentor.title}</CardDescription>
-                      <p className="text-sm text-muted-foreground">{mentor.company}</p>
+                      <CardDescription className="text-xs">{mentor.title}</CardDescription>
+                      <p className="text-xs text-muted-foreground">{mentor.company}</p>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {/* Rating and Stats */}
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                        <span className="font-medium">{mentor.rating}</span>
-                        <span className="text-muted-foreground ml-1">({mentor.reviews} reviews)</span>
-                      </div>
-                      <div className="flex items-center text-muted-foreground">
-                        <Users className="h-4 w-4 mr-1" />
-                        {mentor.sessions} sessions
-                      </div>
+                <CardContent className="flex-1 space-y-3">
+                  {/* Rating and Stats */}
+                  <div className="flex items-center justify-between text-xs bg-muted/50 p-2 rounded">
+                    <div className="flex items-center gap-1">
+                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                      <span className="font-medium">{mentor.rating}</span>
+                      <span className="text-muted-foreground">({mentor.reviews})</span>
                     </div>
-
-                    {/* Expertise Tags */}
-                    <div className="flex flex-wrap gap-1">
-                      {mentor.expertise.map((skill) => (
-                        <Badge key={skill} variant="outline" className="text-xs">
-                          {skill}
-                        </Badge>
-                      ))}
-                    </div>
-
-                    {/* Bio */}
-                    <p className="text-sm text-muted-foreground line-clamp-2">{mentor.bio}</p>
-
-                    {/* Achievements */}
-                    <div className="space-y-1">
-                      {mentor.achievements.slice(0, 2).map((achievement) => (
-                        <div key={achievement} className="flex items-center text-xs text-muted-foreground">
-                          <Award className="h-3 w-3 mr-1 text-yellow-500" />
-                          {achievement}
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Languages and Response Time */}
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Languages: {mentor.languages.join(", ")}</span>
-                      <span>Response: {mentor.responseTime}</span>
-                    </div>
-
-                    {/* Price and Actions */}
-                    <div className="flex items-center justify-between pt-2">
-                      <span className="font-semibold text-lg">{mentor.price}</span>
-                      <div className="flex space-x-2">
-                        <AuthModal>
-                          <Button variant="outline" size="sm">
-                            <MessageCircle className="h-4 w-4 mr-1" />
-                            Message
-                          </Button>
-                        </AuthModal>
-                        <AuthModal>
-                          <Button size="sm">
-                            <Calendar className="h-4 w-4 mr-1" />
-                            Book
-                          </Button>
-                        </AuthModal>
-                      </div>
+                    <div className="flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      {mentor.sessions}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
 
-        <TabsContent value="programs">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mentorshipPrograms.map((program) => (
-              <Card key={program.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <CardTitle className="text-lg">{program.title}</CardTitle>
-                    <Badge variant="secondary">{program.level}</Badge>
+                  {/* Expertise Tags */}
+                  <div className="flex flex-wrap gap-1">
+                    {mentor.expertise.map((skill) => (
+                      <Badge key={skill} variant="outline" className="text-xs">
+                        {skill}
+                      </Badge>
+                    ))}
                   </div>
-                  <CardDescription>{program.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <div className="flex items-center">
-                        <BookOpen className="h-4 w-4 mr-1 text-muted-foreground" />
-                        <span>{program.duration}</span>
+
+                  {/* Bio */}
+                  <p className="text-xs text-muted-foreground line-clamp-2">{mentor.bio}</p>
+
+                  {/* Achievements */}
+                  <div className="space-y-1">
+                    {mentor.achievements.slice(0, 2).map((achievement) => (
+                      <div key={achievement} className="flex items-center text-xs text-muted-foreground gap-1">
+                        <Award className="h-3 w-3 text-yellow-500" />
+                        {achievement}
                       </div>
-                      <div className="flex items-center">
-                        <Users className="h-4 w-4 mr-1 text-muted-foreground" />
-                        <span>{program.participants} spots</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-lg">{program.price}</span>
+                    ))}
+                  </div>
+
+                  {/* Languages and Response Time */}
+                  <div className="text-xs text-muted-foreground space-y-1 border-t pt-2">
+                    <div>Languages: {mentor.languages.join(", ")}</div>
+                    <div>Response: {mentor.responseTime}</div>
+                  </div>
+
+                  {/* Price and Actions */}
+                  <div className="flex items-center justify-between pt-3 border-t gap-2">
+                    <span className="font-semibold">{mentor.price}</span>
+                    <div className="flex space-x-2 gap-1">
                       <AuthModal>
-                        <Button>Enroll Now</Button>
+                        <Button variant="outline" size="sm" className="h-8 bg-transparent">
+                          <MessageCircle className="h-3 w-3 mr-1" />
+                          Message
+                        </Button>
+                      </AuthModal>
+                      <AuthModal>
+                        <Button size="sm" className="h-8">
+                          <Calendar className="h-3 w-3 mr-1" />
+                          Book
+                        </Button>
                       </AuthModal>
                     </div>
                   </div>
@@ -334,22 +242,70 @@ export default function MentorshipPage() {
             ))}
           </div>
         </TabsContent>
-      </Tabs>
 
-      {filteredMentors.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">No mentors found matching your criteria.</p>
-          <Button
-            className="mt-4"
-            onClick={() => {
-              setSearchTerm("")
-              setSelectedExpertise("all")
-            }}
-          >
-            Clear Filters
-          </Button>
-        </div>
-      )}
+        <TabsContent value="programs" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              {
+                title: "AI mastery program",
+                description: "12-week intensive program covering machine learning and AI",
+                duration: "12 weeks",
+                participants: 25,
+                price: "$1,200",
+                level: "Intermediate",
+              },
+              {
+                title: "Quantum computing bootcamp",
+                description: "8-week program introducing quantum algorithms",
+                duration: "8 weeks",
+                participants: 15,
+                price: "$800",
+                level: "Beginner",
+              },
+              {
+                title: "Biotech innovation track",
+                description: "10-week program focusing on biotechnology applications",
+                duration: "10 weeks",
+                participants: 20,
+                price: "$1,000",
+                level: "Advanced",
+              },
+            ].map((program, idx) => (
+              <Card key={idx} className="hover:shadow-lg transition-shadow">
+                <CardHeader className="pb-3 border-b">
+                  <div className="flex justify-between items-start gap-2">
+                    <CardTitle className="text-base">{program.title}</CardTitle>
+                    <Badge variant="secondary" className="text-xs">
+                      {program.level}
+                    </Badge>
+                  </div>
+                  <CardDescription className="text-xs">{program.description}</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-4 space-y-3">
+                  <div className="flex justify-between text-xs">
+                    <div className="flex items-center gap-1">
+                      <BookOpen className="h-3 w-3" />
+                      {program.duration}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      {program.participants} spots
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <span className="font-semibold">{program.price}</span>
+                    <AuthModal>
+                      <Button size="sm" className="h-8">
+                        Enroll now
+                      </Button>
+                    </AuthModal>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import Header from "@/components/header"
 import DoubtCard from "@/components/doubt-card"
+import { AlphaBadge } from "@/components/ui/alpha-badge"
 
 export default function CommunityPage() {
   return (
@@ -16,7 +17,9 @@ export default function CommunityPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <div>
-            <h1 className="font-serif text-3xl font-bold text-slate-800 mb-2">Global Community</h1>
+            <h1 className="font-serif text-3xl font-bold text-slate-800 mb-2">
+              Global Community <AlphaBadge />
+            </h1>
             <p className="text-neutral-600">Connect with learners worldwide and share knowledge</p>
           </div>
           <Button className="bg-slate-700 hover:bg-slate-600 mt-4 md:mt-0" asChild>
@@ -90,7 +93,7 @@ export default function CommunityPage() {
                 </SelectContent>
               </Select>
 
-              <Button variant="outline" className="w-full sm:w-auto ml-auto">
+              <Button variant="outline" className="w-full sm:w-auto ml-auto bg-transparent">
                 <Filter className="h-4 w-4 mr-2" /> More Filters
               </Button>
             </div>

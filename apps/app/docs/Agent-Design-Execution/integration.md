@@ -211,22 +211,22 @@ Intelligent study assistant for Entropy platform.
 ## 🚀 Quick Start
 
 ### 1. Setup (Already Done!)
-```bash
+\`\`\`bash
 # Virtual environment is activated
 # Dependencies are installed
-```
+\`\`\`
 
 ### 2. Configure API Keys
 Edit `.env` file and add:
-```env
+\`\`\`env
 OPENAI_API_KEY=sk-your-actual-key
 AI_BACKEND_TOKEN=your-secure-token
-```
+\`\`\`
 
 ### 3. Run Server
-```bash
+\`\`\`bash
 uvicorn app.main:app --reload --port 8000
-```
+\`\`\`
 
 Visit: http://localhost:8000/docs
 
@@ -239,7 +239,7 @@ Visit: http://localhost:8000/docs
 
 ## 🧪 Test API
 
-```bash
+\`\`\`bash
 # Health check
 curl http://localhost:8000/health
 
@@ -255,11 +255,11 @@ curl -X POST http://localhost:8000/api/chat \
     "user_id": "test_user",
     "message": "Explain neural networks"
   }'
-```
+\`\`\`
 
 ## 📁 Project Structure
 
-```
+\`\`\`
 spark-ai-agent/
 ├── app/
 │   ├── main.py              # FastAPI entry point
@@ -279,13 +279,13 @@ spark-ai-agent/
 ├── tests/                   # Test suite
 ├── data/                    # Storage
 └── .env                     # Configuration
-```
+\`\`\`
 
 ## 🔗 Integration with Next.js
 
 In your Next.js app (`lib/spark-api.ts`):
 
-```typescript
+\`\`\`typescript
 const API_BASE_URL = "http://localhost:8000";
 const AI_TOKEN = process.env.AI_BACKEND_TOKEN;
 
@@ -300,13 +300,13 @@ async function chat(userId: string, message: string) {
   });
   return response.json();
 }
-```
+\`\`\`
 
 ## 🐳 Docker Deployment
 
-```bash
+\`\`\`bash
 docker-compose up -d
-```
+\`\`\`
 
 ## 📊 Monitoring
 

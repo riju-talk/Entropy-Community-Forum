@@ -29,44 +29,44 @@ A modern Next.js application for students to ask doubts, share knowledge, and le
 ### Setup (Automated)
 
 **Windows:**
-```bash
+\`\`\`bash
 setup.bat
-```
+\`\`\`
 
 **Linux/Mac:**
-```bash
+\`\`\`bash
 chmod +x setup.sh
 ./setup.sh
-```
+\`\`\`
 
 ### Manual Setup
 
 1. **Install dependencies**
-   ```bash
+   \`\`\`bash
    npm install
-   ```
+   \`\`\`
 
 2. **Set up environment variables**
-   ```bash
+   \`\`\`bash
    cp .env.example .env.local
-   ```
+   \`\`\`
    Edit `.env.local` with your database credentials:
-   ```env
+   \`\`\`env
    DATABASE_URL="postgresql://username:password@localhost:5432/entropy_db"
    NEXTAUTH_URL="http://localhost:5000"
    NEXTAUTH_SECRET="your-secret-key"
-   ```
+   \`\`\`
 
 3. **Set up database**
-   ```bash
+   \`\`\`bash
    npx prisma generate
    npx prisma db push
-   ```
+   \`\`\`
 
 4. **Start development server**
-   ```bash
+   \`\`\`bash
    npm run dev
-   ```
+   \`\`\`
 
 5. **Access the application**
    - Open [http://localhost:5000](http://localhost:5000)
@@ -84,7 +84,7 @@ chmod +x setup.sh
 
 ## Project Structure
 
-```
+\`\`\`
 ├── app/                 # Next.js App Router
 │   ├── api/            # API routes
 │   ├── auth/           # Authentication pages
@@ -96,7 +96,7 @@ chmod +x setup.sh
 │   └── prisma.ts     # Prisma client
 ├── prisma/           # Database schema
 └── hooks/           # Custom React hooks
-```
+\`\`\`
 
 ## Contributing
 
