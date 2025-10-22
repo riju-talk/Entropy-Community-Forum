@@ -5,8 +5,8 @@ Handles document storage, retrieval, and similarity search
 
 from typing import Optional, List, Dict, Any
 from langchain_community.vectorstores import Chroma
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.docstore.document import Document
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_core import Document
 
 from app.core.embeddings import get_embeddings
 from app.config import settings
