@@ -141,7 +141,8 @@ export default function DoubtsFeed() {
     )
   }
 
-  if (doubts.length === 0) {
+  // Ensure doubts is initialized and an array before checking length
+  if (!doubts || !Array.isArray(doubts) || doubts.length === 0) {
     return (
       <Card>
         <CardContent className="p-6 text-center">

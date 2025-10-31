@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { adminFirestore } from "@/lib/firebaseAdmin";
-import { requireAuth } from "@/lib/apiAuth";
+import { useSess }
 
 // GET /api/users/me/credits - Get current user's credits
 export async function GET(request: Request) {

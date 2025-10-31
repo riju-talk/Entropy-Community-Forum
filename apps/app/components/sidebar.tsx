@@ -6,16 +6,26 @@ import { Home, HelpCircle, Users, Trophy, Calendar, LogOut, Plus, User, Sparkles
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useSession, signOut } from "next-auth/react"
+import type { Session } from "next-auth"
 import { useEffect, useState } from "react"
 import AuthModal from "@/components/auth-modal"
-import { signOutClient } from "@/lib/firebaseClient"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { useRouter } from "next/navigation"
 
-export default function Sidebar() {
+export default function Sidebar({ serverSession }: { serverSession?: Session | null }) {
   const pathname = usePathname() || "/"
-  const { data: session, status } = useSession()
-  const isAuthenticated = status === "authenticated"
+  const { data: clientSession, status } = useSession()
+  const session = serverSession ?? clientSession
+  const isAuthenticated = !!serverSession ? true : status === "authenticated"
+
+  // debug: print server vs client session in the browser console
+  // eslint-disable-next-line no-console
+  console.debug("[Sidebar] serverSession present:", typeof serverSession !== "undefined" ? !!serverSession : "<no-prop>")
+  // eslint-disable-next-line no-console
+  console.debug("[Sidebar] serverSession (user email):", serverSession?.user?.email ?? null)
+  // eslint-disable-next-line no-console
+  console.debug("[Sidebar] client.useSession status:", status, "client.data email:", clientSession?.user?.email ?? null)
 
   const [communities, setCommunities] = useState<any[]>([])
   const [credits, setCredits] = useState<number>(0)
@@ -30,7 +40,7 @@ export default function Sidebar() {
         if (err?.name !== "AbortError") console.error(err)
       })
 
-    if (status === "authenticated" && session?.user?.email) {
+    if (isAuthenticated && session?.user?.email) {
       fetch("/api/users/me/credits", { signal: ac.signal })
         .then((res) => (res.ok ? res.json() : { credits: 0 }))
         .then((d: any) => setCredits(typeof d?.credits === "number" ? d.credits : 0))
@@ -42,7 +52,7 @@ export default function Sidebar() {
     }
 
     return () => ac.abort()
-  }, [status, session])
+  }, [status, clientSession, serverSession])
 
   const navItems = [
     {
@@ -64,22 +74,37 @@ export default function Sidebar() {
       href: "/mentorship",
       label: "Mentorship",
       icon: Users,
+      comingSoon: true,
     },
     {
       href: "/leaderboard",
       label: "Leaderboard",
       icon: Trophy,
+      comingSoon: true,
     },
     {
       href: "/happenings",
       label: "Happenings",
       icon: Calendar,
+      comingSoon: true,
     },
   ]
 
-  const handleSignOut = () => {
-    signOut()
-    signOutClient()
+  const router = useRouter()
+
+  const userInitial = session?.user?.name?.charAt(0) ?? session?.user?.email?.charAt(0) ?? ""
+  const displayName = session?.user?.name ?? session?.user?.email ?? ""
+
+  const handleSignOut = async () => {
+    try {
+      // sign out from next-auth without forcing a redirect (we'll navigate manually)
+      await signOut({ redirect: false })
+    } catch (err) {
+      console.error("next-auth signOut error", err)
+    }
+
+    // Reset any UI state by navigating home
+    router.push("/")
   }
 
   return (
@@ -153,10 +178,10 @@ export default function Sidebar() {
             <CardContent className="p-3 space-y-2">
               <div className="flex items-center gap-2">
                 <div className="h-8 w-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                  {session.user?.name?.charAt(0) || session.user?.email?.charAt(0) || "U"}
+                  {userInitial}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">{session.user?.name || "User"}</p>
+                  <p className="text-xs font-medium truncate">{displayName}</p>
                   <p className="text-xs text-muted-foreground">Premium</p>
                 </div>
               </div>

@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import { useSession, signIn } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -18,6 +20,8 @@ interface Plan {
 }
 
 export default function SubscriptionPage() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly")
 
   const plans: Plan[] = [
@@ -163,6 +167,21 @@ export default function SubscriptionPage() {
                   className="w-full"
                   variant={plan.popular ? "default" : "outline"}
                   size="lg"
+                  onClick={async () => {
+                    if (plan.price === 0) {
+                      // Free plan: if user is authenticated, go to main page; otherwise trigger next-auth sign-in flow
+                      if (status === "authenticated" && session?.user) {
+                        // Optionally: call an API to ensure user subscription record exists (omitted)
+                        router.push("/")
+                      } else {
+                        // Redirect to next-auth sign-in and then back to home
+                        await signIn(undefined, { callbackUrl: "/" })
+                      }
+                    } else {
+                      // Paid plan - start subscription flow (placeholder)
+                      router.push(`/subscription/checkout?plan=${plan.id}&billing=${billingCycle}`)
+                    }
+                  }}
                 >
                   {plan.price === 0 ? "Get Started" : "Subscribe Now"}
                 </Button>

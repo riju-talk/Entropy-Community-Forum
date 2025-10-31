@@ -6,7 +6,6 @@ import { Loader2, Globe, Github } from "lucide-react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
-import { signInWithGoogle, signInWithGithub, getIdToken } from "@/lib/firebaseClient"
 import { signIn } from "next-auth/react"
 import Link from "next/link"
 
@@ -18,22 +17,9 @@ export default function SignInPage() {
   const handleSignIn = async (provider: "google" | "github") => {
     setIsLoading(provider)
     try {
-      if (provider === "google") {
-        await signInWithGoogle()
-      } else {
-        await signInWithGithub()
-      }
-
-      const token = await getIdToken(true)
-      if (!token) throw new Error("No ID token after sign-in")
-
-      const result = await signIn("credentials", {
-        idToken: token,
-        redirect: false,
-      })
-      if (result?.error) throw new Error(result.error)
-
-      router.push("/")
+      // Use next-auth OAuth providers directly. This will redirect the user
+      // to the provider's consent screen and then back to the app on success.
+      await signIn(provider, { callbackUrl: "/" })
     } catch (error) {
       console.error(`${provider} sign-in failed:`, error)
       toast({

@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useSession, signOut as nextAuthSignOut } from "next-auth/react"
+import type { Session } from "next-auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -15,13 +16,25 @@ import {
 import { Plus, Search, Bell, User, LogOut, Settings } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import AuthModal from "@/components/auth-modal"
-import { signOutClient } from "@/lib/firebaseClient"
 import { AlphaBadge } from "@/components/ui/alpha-badge"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 
-export default function Header() {
-  const { data: session, status } = useSession()
+export default function Header({ serverSession }: { serverSession?: Session | null }) {
+  const client = useSession()
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
+  const router = useRouter()
+  // Prefer serverSession when provided to avoid client-side flicker
+  const session = typeof serverSession !== "undefined" ? serverSession : client.data
+  const status = typeof serverSession !== "undefined" ? (serverSession ? "authenticated" : "unauthenticated") : client.status
+
+  // debug: print server vs client session in the browser console
+  // eslint-disable-next-line no-console
+  console.debug("[Header] serverSession present:", typeof serverSession !== "undefined" ? !!serverSession : "<no-prop>")
+  // eslint-disable-next-line no-console
+  console.debug("[Header] serverSession (user email):", serverSession?.user?.email ?? null)
+  // eslint-disable-next-line no-console
+  console.debug("[Header] client.useSession status:", client.status, "client.data email:", client.data?.user?.email ?? null)
 
   return (
     <>
@@ -115,8 +128,13 @@ export default function Header() {
                         className="cursor-pointer text-red-600 focus:text-red-600"
                         onSelect={async (event) => {
                           event.preventDefault()
-                          await nextAuthSignOut({ redirect: false })
-                          await signOutClient()
+                          try {
+                            await nextAuthSignOut({ redirect: false })
+                          } catch (err) {
+                            console.error("next-auth signOut error", err)
+                          }
+                          // Reset any UI state by navigating home
+                          router.push("/")
                         }}
                       >
                         <LogOut className="mr-2 h-4 w-4" />

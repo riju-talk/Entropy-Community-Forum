@@ -1,6 +1,5 @@
 "use client"
 import React from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -11,37 +10,36 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Globe, Github } from "lucide-react"
-import { signInWithGoogle, signInWithGithub, getIdToken, signOutClient } from "@/lib/firebaseClient"
+import { AiOutlineLoading3Quarters } from "react-icons/ai"
+import { FcGoogle } from "react-icons/fc"
+import { FaGithub } from "react-icons/fa"
 import { signIn } from "next-auth/react"
 
 export default function AuthModal({ children }: { children?: React.ReactNode }) {
   const [isOpen, setIsOpen] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState<string | null>(null)
   const { toast } = useToast()
-  const router = useRouter()
 
   const handleSignIn = async (provider: "google" | "github") => {
     setIsLoading(provider)
     try {
-      if (provider === "google") {
-        await signInWithGoogle()
-      } else {
-        await signInWithGithub()
+      // Debug logs to help trace where auth requests are coming from in the browser.
+      try {
+        // eslint-disable-next-line no-console
+        console.log("auth-modal: starting sign-in", {
+          provider,
+          href: typeof window !== "undefined" ? window.location.href : null,
+          NEXT_PUBLIC_ENABLE_FIREBASE: process.env.NEXT_PUBLIC_ENABLE_FIREBASE,
+          NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+        })
+      } catch (e) {
+        /* ignore */
       }
-
-      const token = await getIdToken(true)
-      if (!token) throw new Error("No ID token after sign-in")
-
-      // Create NextAuth session using Credentials provider
-      const result = await signIn("credentials", {
-        idToken: token,
-        redirect: false,
-      })
-      if (result?.error) throw new Error(result.error)
-
-      setIsOpen(false)
-      router.push("/subscription")
+      // Use next-auth OAuth providers directly. This will redirect the user
+      // to the provider's consent screen. After successful auth next-auth
+      // will redirect back to the app. We pass a callbackUrl to send users
+      // to the subscription page on success.
+      await signIn(provider, { callbackUrl: "/subscription" })
     } catch (error) {
       console.error(`${provider} sign-in failed:`, error)
       toast({
@@ -51,14 +49,6 @@ export default function AuthModal({ children }: { children?: React.ReactNode }) 
       })
     } finally {
       setIsLoading(null)
-    }
-  }
-
-  const handleSignOut = async () => {
-    try {
-      await signOutClient()
-    } catch (error) {
-      console.error("Sign-out failed:", error)
     }
   }
 
@@ -80,12 +70,12 @@ export default function AuthModal({ children }: { children?: React.ReactNode }) 
             >
               {isLoading === "google" ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <AiOutlineLoading3Quarters className="mr-2 h-4 w-4 animate-spin" />
                   Signing In...
                 </>
               ) : (
                 <>
-                  <Globe className="mr-2 h-4 w-4" />
+                  <FcGoogle className="mr-2 h-4 w-4" />
                   Continue with Google
                 </>
               )}
@@ -98,12 +88,12 @@ export default function AuthModal({ children }: { children?: React.ReactNode }) 
             >
               {isLoading === "github" ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <AiOutlineLoading3Quarters className="mr-2 h-4 w-4 animate-spin" />
                   Signing In...
                 </>
               ) : (
                 <>
-                  <Github className="mr-2 h-4 w-4" />
+                  <FaGithub className="mr-2 h-4 w-4" />
                   Continue with GitHub
                 </>
               )}

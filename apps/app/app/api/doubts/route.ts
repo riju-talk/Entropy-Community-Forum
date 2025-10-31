@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminFirestore } from "@/lib/firebaseAdmin";
 import { requireAuth } from "@/lib/apiAuth";
-import { Query, CollectionReference } from "firebase-admin/firestore";
+import type { Transaction } from 'firebase-admin/firestore';
 
 export async function GET(request: Request) {
   try {
@@ -13,22 +13,44 @@ export async function GET(request: Request) {
     const sortBy = searchParams.get("sortBy") || "createdAt";
     const order = (searchParams.get("order") as "asc" | "desc") || "desc";
 
-    // Build query
-    let query: Query | CollectionReference = adminFirestore.collection("doubts");
+    // Build query in a defensive way because in development adminFirestore may
+    // return a lightweight mock (when Firebase isn't configured). Support both
+    // real Firestore Query API and the mocked minimal API.
+    const col = adminFirestore.collection("doubts");
 
-    if (subject) {
-      query = (query as Query).where("subject", "==", subject);
+    // If the collection object supports chaining (where/orderBy/limit/get)
+    // we use the native Firestore query API. Otherwise, fall back to a safe
+    // default (empty list) to avoid server errors during local development.
+    let doubts: any[] = [];
+
+    try {
+      // If .where exists, assume full Firestore API
+      let q: any = col;
+      if (subject && typeof q.where === "function") q = q.where("subject", "==", subject);
+      if (typeof q.orderBy === "function") q = q.orderBy(sortBy, order as any);
+      if (typeof q.limit === "function") q = q.limit(limit);
+
+      if (typeof q.get === "function") {
+        const snapshot = await q.get();
+        // Map docs if snapshot has docs (Firestore) otherwise empty
+        const docs = Array.isArray(snapshot?.docs) ? snapshot.docs : [];
+        doubts = docs.map((doc: any) => ({
+          id: doc.id,
+          ...(typeof doc.data === "function" ? doc.data() : doc),
+          createdAt:
+            (doc.data && doc.data().createdAt && typeof doc.data().createdAt.toDate === "function"
+              ? doc.data().createdAt.toDate().toISOString()
+              : doc.data?.createdAt) || (doc.createdAt && doc.createdAt) || null,
+          updatedAt: null,
+        }));
+      } else {
+        // No .get available on this mock; return empty array
+        doubts = [];
+      }
+    } catch (err) {
+      console.error("Error querying doubts (fallback):", err);
+      doubts = [];
     }
-
-    query = (query as Query).orderBy(sortBy, order).limit(limit);
-
-    const snapshot = await query.get();
-    const doubts = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || doc.data().createdAt,
-      updatedAt: doc.data().updatedAt?.toDate?.()?.toISOString() || doc.data().updatedAt,
-    }));
 
     return NextResponse.json(doubts);
   } catch (error) {
@@ -69,8 +91,8 @@ export async function POST(request: Request) {
 
     // Award +1 credit for creating a doubt
     const userRef = adminFirestore.collection("users").doc(auth.uid);
-    await adminFirestore.runTransaction(async (transaction) => {
-      const userDoc = await transaction.get(userRef);
+    await adminFirestore.runTransaction(async (transaction: Transaction) => {
+      const userDoc: any = await transaction.get(userRef);
       const currentCredits = userDoc.exists ? (userDoc.data()?.credits || 0) : 0;
       transaction.set(userRef, {
         credits: currentCredits + 1,

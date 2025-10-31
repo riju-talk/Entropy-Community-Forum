@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Search, CheckCircle, Bookmark, ChevronUp, ChevronDown, Edit, Settings } from "lucide-react"
+import { Search, CheckCircle, Bookmark, ChevronUp, ChevronDown, Edit, Settings, Plus } from "lucide-react"
 import Link from "next/link"
 
 export default function ProfilePage() {

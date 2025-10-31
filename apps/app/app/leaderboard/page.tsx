@@ -97,7 +97,11 @@ export default function LeaderboardPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="relative">
+      <div className="absolute top-3 right-3 z-10">
+        <div className="bg-amber-500 text-white px-3 py-1 rounded-md text-sm font-semibold shadow">Coming soon</div>
+      </div>
+      <div className="space-y-8 filter blur-sm opacity-80 pointer-events-none">
       <div className="space-y-3">
         <h1 className="text-4xl font-bold">Leaderboard</h1>
         <p className="text-muted-foreground">Compete, learn, and climb the ranks in the STEM community</p>
@@ -298,6 +302,7 @@ export default function LeaderboardPage() {
           </div>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   )
 }

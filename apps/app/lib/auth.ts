@@ -1,10 +1,9 @@
 // lib/auth.ts
 import { NextAuthOptions } from "next-auth"
-import CredentialsProvider from "next-auth/providers/credentials"
 import GitHubProvider from "next-auth/providers/github"
+import GoogleProvider from "next-auth/providers/google"
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
-import { adminAuth } from "@/lib/firebaseAdmin"
 
 declare module "next-auth" {
   interface Session {
@@ -45,34 +44,11 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.GITHUB_ID!,
       clientSecret: process.env.GITHUB_SECRET!,
     }),
-    CredentialsProvider({
-      id: "firebase",
-      name: "Firebase",
-      credentials: {
-        idToken: { label: "Firebase ID Token", type: "text" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.idToken) return null
-        try {
-          const decoded = await adminAuth.verifyIdToken(credentials.idToken)
-          const uid = decoded.uid
-          const email = decoded.email || `${uid}@users.noreply.firebaseapp.com`
-          const emailVerified = !!decoded.email_verified
-          const name = (decoded as any).name ?? null
-          const picture = (decoded as any).picture ?? null
-
-          return {
-            id: uid,
-            name,
-            email,
-            image: picture,
-            emailVerified: emailVerified ? new Date() : null,
-          }
-        } catch (err) {
-          console.error("Firebase authorize error:", err)
-          return null
-        }
-      },
+    // Add Google OAuth provider (next-auth). Ensure GOOGLE_CLIENT_ID and
+    // GOOGLE_CLIENT_SECRET are set in your environment for this to work.
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
   ],
   callbacks: {
@@ -102,4 +78,20 @@ export const authOptions: NextAuthOptions = {
     error: "/auth/error",
   },
   debug: process.env.NODE_ENV === "development",
+}
+
+// Log presence of important env vars in development to aid debugging of OAuth
+if (process.env.NODE_ENV === "development") {
+  try {
+    // eslint-disable-next-line no-console
+    console.log("NextAuth config:", {
+      GITHUB_ID: !!process.env.GITHUB_ID,
+      GITHUB_SECRET: !!process.env.GITHUB_SECRET,
+      GOOGLE_CLIENT_ID: !!process.env.GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET: !!process.env.GOOGLE_CLIENT_SECRET,
+      NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
+    })
+  } catch (e) {
+    /* ignore */
+  }
 }
