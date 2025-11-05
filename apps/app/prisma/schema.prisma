@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Account {
@@ -45,10 +46,10 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   accounts              Account[]
-  sessions              Session[]
   doubts                Doubt[]
-  comments              Comment[]
-  votes                 Vote[]
+  answers               Answer[]
+  doubtVotes            DoubtVote[] @relation("DoubtVotes")
+  answerVotes           AnswerVote[] @relation("AnswerVotes")
   userStats             UserStat?
   pointsLedger          PointsLedger[]
   achievementUnlocks    AchievementUnlock[]
@@ -74,78 +75,85 @@ model VerificationToken {
 }
 
 model Doubt {
-  id          String      @id @default(cuid())
-  title       String
-  content     String      @db.Text
-  subject     Subject
-  tags        String[]
-  imageUrl    String?
-  isAnonymous Boolean     @default(false)
-  isResolved  Boolean     @default(false)
-  votes       Int         @default(0)
-  views       Int         @default(0)
-  authorId    String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  author            User?              @relation(fields: [authorId], references: [id], onDelete: SetNull)
-  comments          Comment[]
-  userVotes         Vote[]
-  aiRecommendations AIRecommendation[]
-  pointsLedger      PointsLedger[]     @relation("PointsLedgerDoubt")
-  communityDoubts   CommunityDoubt[]
-
-  @@map("doubts")
-  @@index([authorId, createdAt])
-  @@index([subject, createdAt])
-  @@index([isResolved, createdAt])
-  @@index([votes])
-}
-
-model Comment {
   id          String   @id @default(cuid())
+  title       String
   content     String   @db.Text
+  subject     String   @default("OTHER")
+  tags        String[]
   isAnonymous Boolean  @default(false)
-  isAccepted  Boolean  @default(false)
-  votes       Int      @default(0)
-  doubtId     String
-  authorId    String?
-  parentId    String?
+  upvotes     Int      @default(0)
+  downvotes   Int      @default(0)
+  
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  answers     Answer[]
+  votes       DoubtVote[]
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  doubt        Doubt          @relation(fields: [doubtId], references: [id], onDelete: Cascade)
-  author       User?          @relation(fields: [authorId], references: [id], onDelete: SetNull)
-  parent       Comment?       @relation("CommentReplies", fields: [parentId], references: [id])
-  replies      Comment[]      @relation("CommentReplies")
-  userVotes    Vote[]
-  pointsLedger PointsLedger[] @relation("PointsLedgerComment")
-
-  @@map("comments")
-  @@index([doubtId, createdAt])
-  @@index([authorId, createdAt])
-  @@index([isAccepted])
-  @@index([votes])
+  @@index([authorId])
+  @@index([subject])
+  @@index([createdAt])
+  @@map("doubts")
 }
 
-model Vote {
+model Answer {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  
+  doubtId   String
+  doubt     Doubt    @relation(fields: [doubtId], references: [id], onDelete: Cascade)
+  
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  votes     AnswerVote[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([doubtId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("answers")
+}
+
+model DoubtVote {
   id        String   @id @default(cuid())
   type      VoteType
+  
   userId    String
-  doubtId   String?
-  commentId String?
+  user      User     @relation("DoubtVotes", fields: [userId], references: [id], onDelete: Cascade)
+  
+  doubtId   String
+  doubt     Doubt    @relation(fields: [doubtId], references: [id], onDelete: Cascade)
+  
   createdAt DateTime @default(now())
 
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  doubt   Doubt?   @relation(fields: [doubtId], references: [id], onDelete: Cascade)
-  comment Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
-
   @@unique([userId, doubtId])
-  @@unique([userId, commentId])
-  @@map("votes")
-  @@index([userId, createdAt])
+  @@index([userId])
   @@index([doubtId])
-  @@index([commentId])
+  @@map("doubt_votes")
+}
+
+model AnswerVote {
+  id        String   @id @default(cuid())
+  type      VoteType
+  
+  userId    String
+  user      User     @relation("AnswerVotes", fields: [userId], references: [id], onDelete: Cascade)
+  
+  answerId  String
+  answer    Answer   @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+
+  @@unique([userId, answerId])
+  @@index([userId])
+  @@index([answerId])
+  @@map("answer_votes")
 }
 
 enum Role {
@@ -202,19 +210,13 @@ model PointsLedger {
   eventType   PointEventType
   points      Int
   description String?
-  doubtId     String?
-  commentId   String?
   createdAt   DateTime       @default(now())
 
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  doubt   Doubt?   @relation("PointsLedgerDoubt", fields: [doubtId], references: [id], onDelete: SetNull)
-  comment Comment? @relation("PointsLedgerComment", fields: [commentId], references: [id], onDelete: SetNull)
 
   @@map("points_ledger")
   @@index([userId, createdAt])
   @@index([eventType])
-  @@index([doubtId])
-  @@index([commentId])
 }
 
 enum PointEventType {
@@ -407,6 +409,20 @@ model Conversation {
   @@index([userId, createdAt])
 }
 
+model AIRecommendation {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  content   String   @db.Text
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("ai_recommendations")
+  @@index([userId])
+}
+
 model Message {
   id             String   @id @default(cuid())
   conversationId String
@@ -459,19 +475,15 @@ model CommunityMember {
 
 model CommunityDoubt {
   id          String   @id @default(cuid())
-  doubtId     String
   communityId String
   addedBy     String?
   addedAt     DateTime @default(now())
 
-  doubt     Doubt     @relation(fields: [doubtId], references: [id], onDelete: Cascade)
   community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
   adder     User?     @relation(fields: [addedBy], references: [id], onDelete: SetNull)
 
-  @@unique([doubtId, communityId])
   @@map("community_doubts")
   @@index([communityId])
-  @@index([doubtId])
 }
 
 enum CommunityRole {
