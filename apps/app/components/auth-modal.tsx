@@ -14,9 +14,14 @@ import { AiOutlineLoading3Quarters } from "react-icons/ai"
 import { FcGoogle } from "react-icons/fc"
 import { FaGithub } from "react-icons/fa"
 import { signIn } from "next-auth/react"
+import { Chrome, Github } from "lucide-react"
 
-export default function AuthModal({ children }: { children?: React.ReactNode }) {
-  const [isOpen, setIsOpen] = React.useState(false)
+interface AuthModalProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   const [isLoading, setIsLoading] = React.useState<string | null>(null)
   const { toast } = useToast()
 
@@ -52,55 +57,68 @@ export default function AuthModal({ children }: { children?: React.ReactNode }) 
     }
   }
 
+  const handleGoogleSignIn = () => {
+    // Force landing on home after login
+    signIn("google", { callbackUrl: "/" })
+  }
+
+  const handleGitHubSignIn = () => {
+    // Force landing on home after login
+    signIn("github", { callbackUrl: "/" })
+  }
+
   return (
-    <>
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogTrigger asChild>{children}</DialogTrigger>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Welcome to entropy</DialogTitle>
-            <DialogDescription>Sign in to access all features and join the community</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <Button
-              disabled={!!isLoading}
-              onClick={() => handleSignIn("google")}
-              className="w-full"
-              variant="outline"
-            >
-              {isLoading === "google" ? (
-                <>
-                  <AiOutlineLoading3Quarters className="mr-2 h-4 w-4 animate-spin" />
-                  Signing In...
-                </>
-              ) : (
-                <>
-                  <FcGoogle className="mr-2 h-4 w-4" />
-                  Continue with Google
-                </>
-              )}
-            </Button>
-            <Button
-              disabled={!!isLoading}
-              onClick={() => handleSignIn("github")}
-              className="w-full"
-              variant="outline"
-            >
-              {isLoading === "github" ? (
-                <>
-                  <AiOutlineLoading3Quarters className="mr-2 h-4 w-4 animate-spin" />
-                  Signing In...
-                </>
-              ) : (
-                <>
-                  <FaGithub className="mr-2 h-4 w-4" />
-                  Continue with GitHub
-                </>
-              )}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle className="text-2xl">Sign in required</DialogTitle>
+          <DialogDescription className="text-base">
+            You need to be signed in to perform this action.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <Button
+            disabled={!!isLoading}
+            onClick={handleGoogleSignIn}
+            className="w-full h-12 text-base"
+            size="lg"
+          >
+            {isLoading === "google" ? (
+              <>
+                <AiOutlineLoading3Quarters className="mr-2 h-4 w-4 animate-spin" />
+                Signing In...
+              </>
+            ) : (
+              <>
+                <FcGoogle className="mr-2 h-4 w-4" />
+                Continue with Google
+              </>
+            )}
+          </Button>
+          <Button
+            disabled={!!isLoading}
+            onClick={handleGitHubSignIn}
+            className="w-full h-12 text-base"
+            size="lg"
+            variant="outline"
+          >
+            {isLoading === "github" ? (
+              <>
+                <AiOutlineLoading3Quarters className="mr-2 h-4 w-4 animate-spin" />
+                Signing In...
+              </>
+            ) : (
+              <>
+                <FaGithub className="mr-2 h-4 w-4" />
+                Continue with GitHub
+              </>
+            )}
+          </Button>
+          <p className="text-xs text-center text-muted-foreground">
+            By continuing, you agree to our Terms of Service and Privacy Policy
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

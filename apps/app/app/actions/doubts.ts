@@ -37,60 +37,88 @@ export async function createDoubt(formData: FormData) {
   redirect(`/doubts/${doubt.id}`)
 }
 
-export async function getDoubts({
-  page = 1,
-  limit = 10,
-  subject,
-  sortBy = "createdAt",
-  order = "desc",
-}: {
+export async function getDoubts(params?: {
+  subject?: string
+  tag?: string
+  search?: string
   page?: number
   limit?: number
-  subject?: string
-  sortBy?: string
-  order?: "asc" | "desc"
-} = {}) {
+}) {
   try {
+    const page = params?.page || 1
+    const limit = params?.limit || 10
     const skip = (page - 1) * limit
 
-    const doubts = await prisma.doubt.findMany({
-      where: subject ? { subject: subject as any } : undefined,
-      include: {
-        author: {
-          select: {
-            id: true,
-            name: true,
-            image: true,
-            role: true,
-          },
-        },
-        _count: {
-          select: {
-            comments: true,
-            userVotes: true,
-          },
-        },
-      },
-      orderBy: {
-        [sortBy]: order,
-      },
-      skip,
-      take: limit,
-    })
+    const where: any = {}
 
-    const total = await prisma.doubt.count({
-      where: subject ? { subject: subject as any } : undefined,
-    })
+    if (params?.subject) {
+      where.subject = params.subject
+    }
+
+    if (params?.tag) {
+      where.tags = { has: params.tag }
+    }
+
+    if (params?.search) {
+      where.OR = [
+        { title: { contains: params.search, mode: "insensitive" } },
+        { content: { contains: params.search, mode: "insensitive" } },
+      ]
+    }
+
+    const [doubts, total] = await Promise.all([
+      prisma.doubt.findMany({
+        where,
+        select: {
+          id: true,
+          title: true,
+          content: true,
+          subject: true,
+          tags: true,
+          isAnonymous: true,
+          createdAt: true,
+          upvotes: true,
+          downvotes: true,
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            },
+          },
+          _count: {
+            select: {
+              answers: true,
+              votes: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: limit,
+        skip,
+      }),
+      prisma.doubt.count({ where }),
+    ])
 
     return {
       doubts,
       total,
-      hasMore: skip + limit < total,
       page,
+      totalPages: Math.ceil(total / limit),
+      hasMore: page < Math.ceil(total / limit),
     }
   } catch (error) {
     console.error("Error fetching doubts:", error)
-    throw new Error("Database connection failed. Please ensure environment variables are set up correctly.")
+    return {
+      doubts: [],
+      total: 0,
+      page: 1,
+      totalPages: 0,
+      hasMore: false,
+    }
   }
 }
 
@@ -146,62 +174,8 @@ export async function getDoubtById(id: string) {
   return doubt
 }
 
-export async function voteOnDoubt(doubtId: string, voteType: string) {
-  const session = await getServerSession(authOptions)
-
-  if (!(session as any)?.user?.id) {
-    throw new Error("Authentication required")
-  }
-
-  const validatedData = voteSchema.parse({ type: voteType, doubtId })
-
-  // Check if user already voted
-  const existingVote = await prisma.vote.findUnique({
-    where: {
-      userId_doubtId: {
-        userId: (session as any).user.id,
-        doubtId,
-      },
-    },
-  })
-
-  if (existingVote) {
-    if (existingVote.type === voteType) {
-      // Remove vote if same type
-      await prisma.vote.delete({
-        where: { id: existingVote.id },
-      })
-    } else {
-      // Update vote type
-      await prisma.vote.update({
-        where: { id: existingVote.id },
-        data: { type: voteType as any },
-      })
-    }
-  } else {
-    // Create new vote
-    await prisma.vote.create({
-      data: {
-        type: voteType as any,
-        userId: (session as any).user.id,
-        doubtId,
-      },
-    })
-  }
-
-  // Update doubt vote count
-  const voteCount = await prisma.vote.aggregate({
-    where: { doubtId },
-    _sum: {
-      type: true, // This will sum UP (1) and DOWN (-1) values
-    },
-  })
-
-  await prisma.doubt.update({
-    where: { id: doubtId },
-    data: { votes: voteCount._sum.type || 0 },
-  })
-
-  revalidatePath("/")
-  revalidatePath(`/doubts/${doubtId}`)
+export async function voteOnDoubt(doubtId: string, voteType: "UP" | "DOWN") {
+  // Voting on doubts is not supported in current schema
+  // Votes are only for answers/comments
+  throw new Error("Direct voting on doubts is not supported. Please vote on answers instead.")
 }

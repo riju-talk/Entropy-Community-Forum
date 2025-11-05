@@ -6,13 +6,10 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth-provider"
-import ErrorBoundary from "@/components/error-boundary"
 import { Toaster } from "@/components/ui/toaster"
-import Header from "@/components/header"
-import Sidebar from "@/components/sidebar"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
-import Footer from "@/components/footer"
+import { AuthModalProvider } from "@/components/auth-modal-provider"
+import { ClientLayout } from "@/components/client-layout"
+import { ErrorBoundary } from "@/components/error-boundary"
 
 const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" })
 const jetbrains = JetBrains_Mono({ subsets: ["latin"], display: "swap", variable: "--font-jetbrains" })
@@ -101,17 +98,6 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  // get server session once and pass into header/sidebar to avoid
-  // client-side flicker and ensure authenticated UI shows immediately.
-  const session = await getServerSession(authOptions)
-  // debug: log whether a server session was found (do not log tokens)
-  try {
-    // server-side log
-    // eslint-disable-next-line no-console
-    console.debug("[RootLayout] server session present:", !!session, session?.user?.email ?? null)
-  } catch (e) {
-    /* ignore logging errors */
-  }
   return (
     <html lang="en" className={`${inter.variable} ${jetbrains.variable}`} suppressHydrationWarning>
       <head>
@@ -130,26 +116,10 @@ export default async function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <AuthProvider>
             <ErrorBoundary>
-              <div className="min-h-screen bg-background flex flex-col">
-                <Header serverSession={session} />
-                <div className="flex-1">
-                  <div className="container mx-auto px-4 py-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                      {/* Left Sidebar */}
-                      <aside className="lg:col-span-3">
-                        <Sidebar serverSession={session} />
-                      </aside>
-
-                      {/* Main Content */}
-                      <main className="lg:col-span-9">{children}</main>
-                    </div>
-                  </div>
-                </div>
-                <Footer />
-              </div>
+              <ClientLayout>{children}</ClientLayout>
+              <Toaster />
+              <AuthModalProvider />
             </ErrorBoundary>
-            <Toaster />
-            <Analytics />
           </AuthProvider>
         </ThemeProvider>
       </body>

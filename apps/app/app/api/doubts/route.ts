@@ -1,127 +1,180 @@
-import { NextResponse } from "next/server";
-import { adminFirestore } from "@/lib/firebaseAdmin";
-import { requireAuth } from "@/lib/apiAuth";
-import type { Transaction } from 'firebase-admin/firestore';
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
-export async function GET(request: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const url = new URL(request.url);
-    const searchParams = url.searchParams;
-    const page = Number.parseInt(searchParams.get("page") || "1");
-    const limit = Number.parseInt(searchParams.get("limit") || "10");
-    const subject = searchParams.get("subject");
-    const sortBy = searchParams.get("sortBy") || "createdAt";
-    const order = (searchParams.get("order") as "asc" | "desc") || "desc";
+    console.log("=== POST /api/doubts called ===");
 
-    // Build query in a defensive way because in development adminFirestore may
-    // return a lightweight mock (when Firebase isn't configured). Support both
-    // real Firestore Query API and the mocked minimal API.
-    const col = adminFirestore.collection("doubts");
+    const session = await getServerSession(authOptions);
+    console.log("Session user:", session?.user);
 
-    // If the collection object supports chaining (where/orderBy/limit/get)
-    // we use the native Firestore query API. Otherwise, fall back to a safe
-    // default (empty list) to avoid server errors during local development.
-    let doubts: any[] = [];
-
-    try {
-      // If .where exists, assume full Firestore API
-      let q: any = col;
-      if (subject && typeof q.where === "function") q = q.where("subject", "==", subject);
-      if (typeof q.orderBy === "function") q = q.orderBy(sortBy, order as any);
-      if (typeof q.limit === "function") q = q.limit(limit);
-
-      if (typeof q.get === "function") {
-        const snapshot = await q.get();
-        // Map docs if snapshot has docs (Firestore) otherwise empty
-        const docs = Array.isArray(snapshot?.docs) ? snapshot.docs : [];
-        doubts = docs.map((doc: any) => ({
-          id: doc.id,
-          ...(typeof doc.data === "function" ? doc.data() : doc),
-          createdAt:
-            (doc.data && doc.data().createdAt && typeof doc.data().createdAt.toDate === "function"
-              ? doc.data().createdAt.toDate().toISOString()
-              : doc.data?.createdAt) || (doc.createdAt && doc.createdAt) || null,
-          updatedAt: null,
-        }));
-      } else {
-        // No .get available on this mock; return empty array
-        doubts = [];
-      }
-    } catch (err) {
-      console.error("Error querying doubts (fallback):", err);
-      doubts = [];
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
     }
 
-    return NextResponse.json(doubts);
+    // Get the actual user from database using email
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true },
+    });
+
+    if (!user) {
+      console.error("User not found in database:", session.user.email);
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    console.log("User ID from DB:", user.id);
+
+    const body = await req.json();
+    console.log("Request body:", {
+      title: body.title,
+      subject: body.subject,
+      tagsCount: body.tags?.length,
+    });
+
+    const { title, content, subject, tags, isAnonymous, id } = body;
+
+    // Validation
+    if (!title?.trim() || !content?.trim()) {
+      console.log("Validation failed");
+      return NextResponse.json(
+        { error: "Title and content are required" },
+        { status: 400 }
+      );
+    }
+
+    console.log("Creating doubt with authorId:", user.id);
+
+    // Upsert doubt
+    const doubt = await prisma.doubt.upsert({
+      where: {
+        id: id || "new-doubt-placeholder",
+      },
+      update: {
+        title: title.trim(),
+        content: content.trim(),
+        subject: subject || "OTHER",
+        tags: Array.isArray(tags) ? tags : [],
+        isAnonymous: Boolean(isAnonymous),
+      },
+      create: {
+        title: title.trim(),
+        content: content.trim(),
+        subject: subject || "OTHER",
+        tags: Array.isArray(tags) ? tags : [],
+        isAnonymous: Boolean(isAnonymous),
+        authorId: user.id, // Use the actual DB user ID
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
+      },
+    });
+
+    console.log("Doubt created successfully:", doubt.id);
+
+    return NextResponse.json(doubt, { status: id ? 200 : 201 });
   } catch (error) {
-    console.error("Error fetching doubts:", error);
-    return NextResponse.json({ error: "Failed to fetch doubts" }, { status: 500 });
+    console.error("=== Error in POST /api/doubts ===");
+    console.error("Error details:", error);
+
+    return NextResponse.json(
+      {
+        error: "Failed to save doubt",
+        details: error instanceof Error ? error.message : "Unknown error",
+        stack:
+          process.env.NODE_ENV === "development" && error instanceof Error
+            ? error.stack
+            : undefined,
+      },
+      { status: 500 }
+    );
   }
 }
 
-export async function POST(request: Request) {
+export async function GET(req: NextRequest) {
   try {
-    const auth = await requireAuth(request);
-    const body = await request.json();
-    const { title, content, subject, anonymous, tags, imageUrl } = body;
+    const { searchParams } = new URL(req.url);
+    const subject = searchParams.get("subject");
+    const tag = searchParams.get("tag");
+    const search = searchParams.get("search");
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const skip = (page - 1) * limit;
 
-    if (!title || !content) {
-      return NextResponse.json({ error: "Title and content are required" }, { status: 400 });
+    const where: any = {};
+
+    if (subject) {
+      where.subject = subject;
     }
 
-    const newDoubt = {
-      title,
-      content,
-      subject: subject || "OTHER",
-      tags: tags || [],
-      imageUrl: imageUrl || null,
-      isAnonymous: anonymous || false,
-      isResolved: false,
-      authorUid: anonymous ? null : auth.uid,
-      authorName: anonymous ? "Anonymous" : auth.name || auth.email,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      upvotes: 0,
-      downvotes: 0,
-      views: 0,
-      answersCount: 0,
-    };
+    if (tag) {
+      where.tags = { has: tag };
+    }
 
-    const docRef = await adminFirestore.collection("doubts").add(newDoubt);
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { content: { contains: search, mode: "insensitive" } },
+      ];
+    }
 
-    // Award +1 credit for creating a doubt
-    const userRef = adminFirestore.collection("users").doc(auth.uid);
-    await adminFirestore.runTransaction(async (transaction: Transaction) => {
-      const userDoc: any = await transaction.get(userRef);
-      const currentCredits = userDoc.exists ? (userDoc.data()?.credits || 0) : 0;
-      transaction.set(userRef, {
-        credits: currentCredits + 1,
-        uid: auth.uid,
-        email: auth.email,
-        name: auth.name,
-        updatedAt: new Date(),
-      }, { merge: true });
+    const [doubts, total] = await Promise.all([
+      prisma.doubt.findMany({
+        where,
+        include: {
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            },
+          },
+          _count: {
+            select: {
+              answers: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        take: limit,
+        skip,
+      }),
+      prisma.doubt.count({ where }),
+    ]);
 
-      // Add points ledger entry
-      const ledgerRef = adminFirestore.collection("points_ledger").doc();
-      transaction.set(ledgerRef, {
-        userId: auth.uid,
-        eventType: "DOUBT_CREATED",
-        points: 1,
-        description: `Created doubt: ${title}`,
-        doubtId: docRef.id,
-        createdAt: new Date(),
-      });
-    });
+    const totalPages = Math.ceil(total / limit);
+    const hasMore = page < totalPages;
 
     return NextResponse.json({
-      id: docRef.id,
-      ...newDoubt,
-      createdAt: newDoubt.createdAt.toISOString(),
-      updatedAt: newDoubt.updatedAt.toISOString(),
+      doubts,
+      total,
+      page,
+      totalPages,
+      hasMore,
     });
   } catch (error) {
-    console.error("Error creating doubt:", error);
-    return NextResponse.json({ error: "Failed to create doubt" }, { status: 500 });
+    console.error("Error fetching doubts:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to fetch doubts",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
   }
 }

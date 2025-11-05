@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { getToken } from "next-auth/jwt"
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -8,9 +9,17 @@ export async function middleware(request: NextRequest) {
   const protectedRoutes = ['/create-community', '/profile']
   
   if (protectedRoutes.some(route => pathname.startsWith(route))) {
-    const token = request.cookies.get('next-auth.session-token')
+    // Check for NextAuth JWT token
+    const token = await getToken({ 
+      req: request as any, 
+      secret: process.env.NEXTAUTH_SECRET 
+    })
+    
     if (!token) {
-      return NextResponse.redirect(new URL('/auth/signin', request.url))
+      // Store the attempted URL to redirect back after login
+      const signInUrl = new URL('/auth/signin', request.url)
+      signInUrl.searchParams.set('callbackUrl', pathname)
+      return NextResponse.redirect(signInUrl)
     }
   }
 

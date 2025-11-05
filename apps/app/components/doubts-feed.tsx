@@ -1,12 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useInView } from "react-intersection-observer"
-import DoubtCard from "./doubt-card"
-import { Card, CardContent } from "./ui/card"
-import { Skeleton } from "./ui/skeleton"
-import { Button } from "./ui/button"
-import { RefreshCw } from "lucide-react"
+import { useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { DoubtCard } from "@/components/doubt-card"
+import { Button } from "@/components/ui/button"
+import { Loader2 } from "lucide-react"
 
 interface Doubt {
   id: string
@@ -14,183 +12,142 @@ interface Doubt {
   content: string
   subject: string
   tags: string[]
-  imageUrl?: string
   isAnonymous: boolean
-  isResolved: boolean
-  votes: number
-  views: number
-  createdAt: string
+  createdAt: Date
   author?: {
     id: string
-    name: string
-    image?: string
-    role: string
+    name: string | null
+    email: string
+    image: string | null
   }
-  _count: {
-    comments: number
-    userVotes: number
+  _count?: {
+    answers: number
   }
 }
 
-interface DoubtsResponse {
-  doubts: Doubt[]
-  total: number
+interface DoubtsFeedProps {
+  initialDoubts: Doubt[]
+  currentPage: number
+  totalPages: number
   hasMore: boolean
-  page: number
 }
 
-export default function DoubtsFeed() {
-  const [doubts, setDoubts] = useState<Doubt[]>([])
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [hasMore, setHasMore] = useState(true)
-  const [page, setPage] = useState(1)
-  const [error, setError] = useState<string | null>(null)
+export function DoubtsFeed({ initialDoubts, currentPage, totalPages, hasMore }: DoubtsFeedProps) {
+  const [doubts, setDoubts] = useState(initialDoubts)
+  const [page, setPage] = useState(currentPage)
+  const [loading, setLoading] = useState(false)
+  const [filter, setFilter] = useState<"all" | "trending" | "unanswered">("all")
+  const router = useRouter()
+  const searchParams = useSearchParams()
 
-  const { ref, inView } = useInView({
-    threshold: 0,
-    rootMargin: "100px",
-  })
+  const loadMore = async () => {
+    if (!hasMore || loading) return
 
-  const fetchDoubts = async (pageNum: number, reset = false) => {
+    setLoading(true)
     try {
-      if (pageNum === 1) setLoading(true)
-      else setLoadingMore(true)
+      const params = new URLSearchParams(searchParams.toString())
+      params.set("page", (page + 1).toString())
 
-      const response = await fetch(`/api/doubts?page=${pageNum}&limit=10`)
-      if (!response.ok) throw new Error("Failed to fetch doubts")
+      const response = await fetch(`/api/doubts?${params.toString()}`)
+      const data = await response.json()
 
-      const data: DoubtsResponse = await response.json()
-
-      if (reset) {
-        setDoubts(data.doubts)
-      } else {
-        setDoubts((prev) => [...prev, ...data.doubts])
-      }
-
-      setHasMore(data.hasMore)
-      setPage(pageNum)
-      setError(null)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred")
+      setDoubts([...doubts, ...data.doubts])
+      setPage(page + 1)
+    } catch (error) {
+      console.error("Error loading more doubts:", error)
     } finally {
       setLoading(false)
-      setLoadingMore(false)
     }
   }
 
-  useEffect(() => {
-    fetchDoubts(1, true)
-  }, [])
-
-  useEffect(() => {
-    if (inView && hasMore && !loadingMore && !loading) {
-      fetchDoubts(page + 1)
+  const getFilteredDoubts = () => {
+    switch (filter) {
+      case "trending":
+        return [...doubts].sort((a, b) => (b._count?.answers || 0) - (a._count?.answers || 0))
+      case "unanswered":
+        return doubts.filter((d) => (d._count?.answers || 0) === 0)
+      default:
+        return doubts
     }
-  }, [inView, hasMore, loadingMore, loading, page])
-
-  const handleRefresh = () => {
-    setPage(1)
-    fetchDoubts(1, true)
   }
 
-  if (loading) {
+  const filteredDoubts = getFilteredDoubts()
+
+  if (doubts.length === 0) {
     return (
-      <div className="space-y-4">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Card key={i}>
-            <CardContent className="p-6">
-              <div className="flex gap-4">
-                <div className="flex flex-col items-center gap-2">
-                  <Skeleton className="h-8 w-8" />
-                  <Skeleton className="h-4 w-8" />
-                  <Skeleton className="h-8 w-8" />
-                </div>
-                <div className="flex-1 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="h-5 w-20" />
-                    <Skeleton className="h-4 w-32" />
-                  </div>
-                  <Skeleton className="h-6 w-3/4" />
-                  <Skeleton className="h-16 w-full" />
-                  <div className="flex gap-2">
-                    <Skeleton className="h-5 w-16" />
-                    <Skeleton className="h-5 w-16" />
-                    <Skeleton className="h-5 w-16" />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="text-center py-16 border rounded-lg bg-card">
+        <div className="text-5xl mb-4">💭</div>
+        <h3 className="text-lg font-semibold mb-2">No questions yet</h3>
+        <p className="text-sm text-muted-foreground">Be the first to ask a question!</p>
       </div>
     )
   }
 
-  if (error) {
-    return (
-      <Card>
-        <CardContent className="p-6 text-center">
-          <p className="text-muted-foreground mb-4">Failed to load doubts: {error}</p>
-          <Button onClick={handleRefresh} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Try Again
-          </Button>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  // Ensure doubts is initialized and an array before checking length
-  if (!doubts || !Array.isArray(doubts) || doubts.length === 0) {
-    return (
-      <Card>
-        <CardContent className="p-6 text-center">
-          <p className="text-muted-foreground">No doubts found. Be the first to ask a question!</p>
-        </CardContent>
-      </Card>
-    )
-  }
-
   return (
-    <div className="space-y-4">
-      {doubts.map((doubt) => (
-        <DoubtCard key={doubt.id} doubt={doubt} />
-      ))}
+    <div className="space-y-0">
+      {/* Filter Tabs */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold">
+          {filter === "all" && `${doubts.length.toLocaleString()} questions`}
+          {filter === "trending" && "Trending questions"}
+          {filter === "unanswered" && `${doubts.filter((d) => (d._count?.answers || 0) === 0).length} unanswered questions`}
+        </h2>
+        
+        <div className="flex gap-1 border rounded-lg p-1">
+          <Button
+            variant={filter === "all" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setFilter("all")}
+            className="text-xs"
+          >
+            Newest
+          </Button>
+          <Button
+            variant={filter === "trending" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setFilter("trending")}
+            className="text-xs"
+          >
+            Active
+          </Button>
+          <Button
+            variant={filter === "unanswered" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setFilter("unanswered")}
+            className="text-xs"
+          >
+            Unanswered
+          </Button>
+        </div>
+      </div>
 
-      {/* Loading more indicator */}
-      {loadingMore && (
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex gap-4">
-              <div className="flex flex-col items-center gap-2">
-                <Skeleton className="h-8 w-8" />
-                <Skeleton className="h-4 w-8" />
-                <Skeleton className="h-8 w-8" />
-              </div>
-              <div className="flex-1 space-y-3">
-                <div className="flex items-center gap-2">
-                  <Skeleton className="h-5 w-20" />
-                  <Skeleton className="h-4 w-32" />
-                </div>
-                <Skeleton className="h-6 w-3/4" />
-                <Skeleton className="h-16 w-full" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Questions List */}
+      <div className="border rounded-lg bg-card overflow-hidden">
+        {filteredDoubts.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            No questions found
+          </div>
+        ) : (
+          filteredDoubts.map((doubt) => (
+            <DoubtCard key={doubt.id} doubt={doubt} />
+          ))
+        )}
+      </div>
 
-      {/* Intersection observer target */}
-      {hasMore && <div ref={ref} className="h-10" />}
-
-      {/* End of results */}
-      {!hasMore && doubts.length > 0 && (
-        <Card>
-          <CardContent className="p-6 text-center">
-            <p className="text-muted-foreground">You've reached the end of the feed!</p>
-          </CardContent>
-        </Card>
+      {/* Load More */}
+      {hasMore && filter === "all" && (
+        <div className="flex justify-center pt-6">
+          <Button onClick={loadMore} disabled={loading} variant="outline">
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              "Load more questions"
+            )}
+          </Button>
+        </div>
       )}
     </div>
   )

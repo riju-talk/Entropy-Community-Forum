@@ -1,31 +1,23 @@
 "use client"
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { Home, HelpCircle, Users, Trophy, Calendar, LogOut, Plus, User, Sparkles } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import { useSession, signOut } from "next-auth/react"
-import type { Session } from "next-auth"
-import { useEffect, useState } from "react"
-import AuthModal from "@/components/auth-modal"
+import { useAuthModal } from "@/hooks/use-auth-modal"
+import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { Home, HelpCircle, Users, Trophy, Calendar, LogOut, Plus, User, Sparkles } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { useRouter } from "next/navigation"
+import { cn } from "@/lib/utils"
 
-export default function Sidebar({ serverSession }: { serverSession?: Session | null }) {
-  const pathname = usePathname() || "/"
-  const { data: clientSession, status } = useSession()
-  const session = serverSession ?? clientSession
-  const isAuthenticated = !!serverSession ? true : status === "authenticated"
+export function Sidebar() {
+  const { data: session, status } = useSession()
+  const { open: openAuthModal } = useAuthModal()
+  const pathname = usePathname()
+  const router = useRouter()
 
-  // debug: print server vs client session in the browser console
-  // eslint-disable-next-line no-console
-  console.debug("[Sidebar] serverSession present:", typeof serverSession !== "undefined" ? !!serverSession : "<no-prop>")
-  // eslint-disable-next-line no-console
-  console.debug("[Sidebar] serverSession (user email):", serverSession?.user?.email ?? null)
-  // eslint-disable-next-line no-console
-  console.debug("[Sidebar] client.useSession status:", status, "client.data email:", clientSession?.user?.email ?? null)
+  const isAuthenticated = status === "authenticated"
 
   const [communities, setCommunities] = useState<any[]>([])
   const [credits, setCredits] = useState<number>(0)
@@ -52,7 +44,7 @@ export default function Sidebar({ serverSession }: { serverSession?: Session | n
     }
 
     return () => ac.abort()
-  }, [status, clientSession, serverSession])
+  }, [isAuthenticated, session?.user?.email])
 
   const navItems = [
     {
@@ -64,6 +56,7 @@ export default function Sidebar({ serverSession }: { serverSession?: Session | n
       href: "/ask",
       label: "Ask question",
       icon: HelpCircle,
+      protected: true,
     },
     {
       href: "/ai-agent",
@@ -90,77 +83,81 @@ export default function Sidebar({ serverSession }: { serverSession?: Session | n
     },
   ]
 
-  const router = useRouter()
+  const handleProtectedClick = (e: React.MouseEvent, href: string, isProtected?: boolean) => {
+    if (isProtected && !isAuthenticated) {
+      e.preventDefault()
+      openAuthModal()
+    }
+  }
+
+  const handleSignOut = async () => {
+    try {
+      await signOut({ redirect: false })
+      router.push("/")
+    } catch (err) {
+      console.error("Sign out error", err)
+    }
+  }
 
   const userInitial = session?.user?.name?.charAt(0) ?? session?.user?.email?.charAt(0) ?? ""
   const displayName = session?.user?.name ?? session?.user?.email ?? ""
 
-  const handleSignOut = async () => {
-    try {
-      // sign out from next-auth without forcing a redirect (we'll navigate manually)
-      await signOut({ redirect: false })
-    } catch (err) {
-      console.error("next-auth signOut error", err)
-    }
-
-    // Reset any UI state by navigating home
-    router.push("/")
-  }
-
   return (
-    <div className="space-y-4 py-4">
+    <aside className="w-64 border-r bg-card flex flex-col h-full px-6 py-8">
       {/* Main Navigation */}
-      <div className="px-3 py-2">
-        <h2 className="mb-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Explore</h2>
-        <div className="mt-2 space-y-1">
+      <div className="space-y-6">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          Explore
+        </h2>
+        <div className="space-y-3">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = item.href === "/" ? pathname === "/" : pathname?.startsWith(item.href)
             return (
-              <Button
+              <Link
                 key={item.href}
-                variant="ghost"
-                className={cn(
-                  "w-full justify-start px-4 gap-2",
-                  isActive
-                    ? "bg-primary/10 text-primary font-medium"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                )}
-                asChild
+                href={item.href}
+                onClick={(e) => handleProtectedClick(e, item.href, item.protected)}
               >
-                <Link href={item.href}>
-                  <Icon className="h-4 w-4" />
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start px-4 gap-3 rounded-md",
+                    isActive
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
                   <span className="text-sm">{item.label}</span>
-                </Link>
-              </Button>
+                  {item.comingSoon && (
+                    <Badge variant="secondary" className="ml-auto text-xs">
+                      Soon
+                    </Badge>
+                  )}
+                </Button>
+              </Link>
             )
           })}
         </div>
       </div>
 
       {/* Communities Section */}
-      <div className="px-3 py-2">
-        <div className="flex items-center justify-between px-4 mb-3">
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Communities</h2>
-          {isAuthenticated && (
-            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" asChild title="Create community">
-              <Link href="/create-community">
-                <Plus className="h-4 w-4" />
-              </Link>
-            </Button>
-          )}
-        </div>
-        <div className="mt-2 space-y-1">
+      <div className="mt-8">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          Communities
+        </h2>
+        <div className="space-y-3 mt-4">
           {communities.length > 0 ? (
-            communities.map((community: any) => (
+            communities.slice(0, 5).map((community: any) => (
               <Button
                 key={community.id}
                 variant="ghost"
-                className="w-full justify-start px-4 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                className="w-full justify-start px-4 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md"
                 asChild
               >
-                <Link href={`/communities/${community.id}`} className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
+                <Link href={`/communities/${community.id}`} className="flex items-center gap-3">
+                  <Users className="h-5 w-5" />
                   <span className="text-sm truncate">{community.name}</span>
                 </Link>
               </Button>
@@ -172,40 +169,46 @@ export default function Sidebar({ serverSession }: { serverSession?: Session | n
       </div>
 
       {/* User Section */}
-      {isAuthenticated ? (
-        <div className="px-3 py-2 mt-auto border-t pt-4">
+      <div className="mt-auto border-t pt-6">
+        {isAuthenticated ? (
           <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border-primary/20">
-            <CardContent className="p-3 space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+            <CardContent className="p-4 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
                   {userInitial}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium truncate">{displayName}</p>
-                  <p className="text-xs text-muted-foreground">Premium</p>
+                  <p className="text-sm font-medium truncate">{displayName}</p>
+                  <Badge variant="secondary" className="text-xs">Premium</Badge>
                 </div>
               </div>
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Credits:</span>
                 <Badge variant="secondary">{credits}</Badge>
               </div>
-              <Button variant="outline" size="sm" className="w-full h-7 text-xs bg-transparent" onClick={handleSignOut}>
-                <LogOut className="h-3 w-3 mr-1" />
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full h-8 text-sm"
+                onClick={handleSignOut}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
                 Sign out
               </Button>
             </CardContent>
           </Card>
-        </div>
-      ) : (
-        <div className="px-3 py-2 mt-auto border-t pt-4">
-          <AuthModal>
-            <Button variant="default" size="sm" className="w-full">
-              <User className="h-4 w-4 mr-2" />
-              Sign in
-            </Button>
-          </AuthModal>
-        </div>
-      )}
-    </div>
+        ) : (
+          <Button
+            variant="default"
+            size="sm"
+            className="w-full"
+            onClick={openAuthModal}
+          >
+            <User className="h-5 w-5 mr-2" />
+            Sign in
+          </Button>
+        )}
+      </div>
+    </aside>
   )
 }

@@ -11,40 +11,28 @@ Required (Auth + Database)
   - Description: Postgres connection URL used by Prisma
   - Note: If your Prisma schema references POSTGRES_PRISMA_URL instead, set that instead of DATABASE_URL to avoid redundancy. Use only one primary database URL.
 
-NextAuth (Credentials)
+NextAuth (OAuth Providers)
 - NEXTAUTH_SECRET
   - Description: Cryptographic secret used to sign NextAuth JWTs and cookies
   - Example: generate via `openssl rand -base64 32`
-- NEXTAUTH_URL (optional in local dev)
+  - Required: YES
+- NEXTAUTH_URL (optional in local dev, auto-detected on Vercel)
   - Description: Public base URL used for callbacks in some deployments
   - Example: https://your-app.vercel.app
-Note: Google/GitHub OAuth client secrets are NOT required, since we use a Credentials provider with Firebase ID tokens.
+- GITHUB_ID
+  - Description: GitHub OAuth App Client ID
+  - Required: YES
+- GITHUB_SECRET
+  - Description: GitHub OAuth App Client Secret
+  - Required: YES
+- GOOGLE_CLIENT_ID
+  - Description: Google OAuth 2.0 Client ID
+  - Required: YES
+- GOOGLE_CLIENT_SECRET
+  - Description: Google OAuth 2.0 Client Secret
+  - Required: YES
 
-Firebase Authentication (Google + GitHub)
-- NEXT_PUBLIC_FIREBASE_API_KEY
-  - Description: Public web API key for Firebase client SDK
-- NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
-  - Description: Firebase Auth domain (e.g., your-project.firebaseapp.com)
-- NEXT_PUBLIC_FIREBASE_PROJECT_ID
-  - Description: Firebase project ID
-- NEXT_PUBLIC_FIREBASE_APP_ID
-  - Description: Web app ID from Firebase settings
-- NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
-  - Description: Optional; required if using messaging
-- NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
-  - Description: Optional; required if using Analytics
-
-Firebase Admin (Server-side)
-- FIREBASE_ADMIN_PROJECT_ID
-  - Description: Project ID used by firebase-admin
-- FIREBASE_ADMIN_CLIENT_EMAIL
-  - Description: Service account client email (from the JSON key)
-- FIREBASE_ADMIN_PRIVATE_KEY
-  - Description: Service account private key. Keep quoted and escape newlines as \n
-Example:
-\`\`\`
-FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEv...\n-----END PRIVATE KEY-----\n"
-\`\`\`
+Note: The app uses NextAuth with GitHub and Google OAuth providers. Firebase has been completely removed.
 
 AI Backend (Required for Athena agent)
 - AI_BACKEND_URL

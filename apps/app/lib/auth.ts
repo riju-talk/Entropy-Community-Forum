@@ -1,97 +1,124 @@
 // lib/auth.ts
 import { NextAuthOptions } from "next-auth"
-import GitHubProvider from "next-auth/providers/github"
 import GoogleProvider from "next-auth/providers/google"
-import { PrismaAdapter } from "@next-auth/prisma-adapter"
+import GitHubProvider from "next-auth/providers/github"
+import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string
-      name?: string | null
-      email?: string | null
-      image?: string | null
-    }
-  }
-
-  interface User {
-    id: string
-    name?: string | null
-    email?: string | null
-    image?: string | null
-    emailVerified?: Date | null
-  }
-}
-
-declare module "next-auth/jwt" {
-  interface JWT {
-    id?: string
-    name?: string
-    email?: string
-    picture?: string
-    uid?: string
-  }
-}
+// Prefer GITHUB_ID/SECRET but also support *_CLIENT_* fallbacks
+const githubId = process.env.GITHUB_ID || process.env.GITHUB_CLIENT_ID
+const githubSecret = process.env.GITHUB_SECRET || process.env.GITHUB_CLIENT_SECRET
 
 export const authOptions: NextAuthOptions = {
-  // Using JWT strategy for Firebase integration instead of database adapter
-  session: {
-    strategy: "jwt",
-  },
+  adapter: PrismaAdapter(prisma) as any,
   providers: [
-    GitHubProvider({
-      clientId: process.env.GITHUB_ID!,
-      clientSecret: process.env.GITHUB_SECRET!,
-    }),
-    // Add Google OAuth provider (next-auth). Ensure GOOGLE_CLIENT_ID and
-    // GOOGLE_CLIENT_SECRET are set in your environment for this to work.
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
+    ...(githubId && githubSecret
+      ? [
+          GitHubProvider({
+            clientId: githubId,
+            clientSecret: githubSecret,
+          }),
+        ]
+      : []),
   ],
-  callbacks: {
-    async jwt({ token, user, account }) {
-      if (user) {
-        token.id = user.id
-        token.name = user.name ?? undefined
-        token.email = user.email ?? undefined
-        token.picture = user.image ?? undefined
-        token.uid = (user as any).id
-      }
-      return token
-    },
-    async session({ session, token }) {
-      if (session.user && token) {
-        session.user.id = token.id as string
-        session.user.name = token.name ?? session.user.name
-        session.user.email = token.email ?? session.user.email
-        session.user.image = token.picture ?? session.user.image
-        ;(session as any).uid = token.uid
-      }
-      return session
-    },
-  },
   pages: {
     signIn: "/auth/signin",
     error: "/auth/error",
+    newUser: "/", // new accounts land on home
+  },
+  session: {
+    strategy: "jwt",
+  },
+  callbacks: {
+    // persist user id/role into the token
+    async jwt({ token, user }) {
+      if (user) {
+        ;(token as any).id = (user as any).id
+        ;(token as any).role = (user as any).role ?? "STUDENT"
+      }
+      return token
+    },
+
+    // expose token props on session.user
+    async session({ session, token }) {
+      if (session.user) {
+        ;(session.user as any).id = (token as any).id
+        ;(session.user as any).role = (token as any).role ?? "STUDENT"
+      }
+      return session
+    },
+
+    // attempt to link OAuth account to existing user by email when appropriate
+    async signIn({ user, account, profile }) {
+      try {
+        // Only proceed for OAuth providers
+        if (!account || account.type !== "oauth") return true
+
+        // If account already exists, allow sign in
+        const existingAccount = await prisma.account.findUnique({
+          where: {
+            provider_providerAccountId: {
+              provider: account.provider,
+              providerAccountId: String(account.providerAccountId),
+            },
+          },
+        })
+        if (existingAccount) return true
+
+        // If user email present, try to find user by email
+        const email = (profile as any)?.email || user?.email
+        if (!email) return true // no email to match — proceed (NextAuth will create user)
+
+        const existingUser = await prisma.user.findUnique({ where: { email } })
+        if (existingUser) {
+          // Link the new provider account to the existing user
+          await prisma.account.create({
+            data: {
+              userId: existingUser.id,
+              type: account.type,
+              provider: account.provider,
+              providerAccountId: String(account.providerAccountId),
+              refresh_token: account.refresh_token as string | null,
+              access_token: account.access_token as string | null,
+              expires_at: account.expires_at ? Number(account.expires_at) : null,
+              token_type: account.token_type as string | null,
+              scope: account.scope as string | null,
+              id_token: account.id_token as string | null,
+              session_state: null,
+            },
+          })
+          return true
+        }
+
+        // No existing user — let adapter/createUser handle a new user
+        return true
+      } catch (err) {
+        console.error("signIn callback error:", err)
+        return false
+      }
+    },
+
+    // always redirect to home after login
+    async redirect({ baseUrl }) {
+      return baseUrl
+    },
   },
   debug: process.env.NODE_ENV === "development",
 }
 
-// Log presence of important env vars in development to aid debugging of OAuth
+// Helpful diagnostics in dev
 if (process.env.NODE_ENV === "development") {
-  try {
-    // eslint-disable-next-line no-console
-    console.log("NextAuth config:", {
-      GITHUB_ID: !!process.env.GITHUB_ID,
-      GITHUB_SECRET: !!process.env.GITHUB_SECRET,
-      GOOGLE_CLIENT_ID: !!process.env.GOOGLE_CLIENT_ID,
-      GOOGLE_CLIENT_SECRET: !!process.env.GOOGLE_CLIENT_SECRET,
-      NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
-    })
-  } catch (e) {
-    /* ignore */
-  }
+  console.log("NextAuth config:", {
+    GITHUB_ID: !!githubId,
+    GITHUB_SECRET: !!githubSecret,
+    GOOGLE_CLIENT_ID: !!process.env.GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET: !!process.env.GOOGLE_CLIENT_SECRET,
+    NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
+  })
 }
+
+export { prisma }

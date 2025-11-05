@@ -1,124 +1,253 @@
+"use client"
+
 import Image from "next/image"
 import Link from "next/link"
 import { Card, CardContent } from "./ui/card"
 import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
-import { ArrowLeft, Share, Bookmark, Eye, CheckCircle } from "lucide-react"
+import { ArrowLeft, Share, Bookmark, Eye, CheckCircle, Clock, User, Share2, Flag, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown } from "lucide-react"
+import { formatDistanceToNow } from "date-fns"
 import { formatTimeAgo, getSubjectColor } from "@/lib/utils"
 import VoteButtons from "./VoteButtons"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
+import { useState, useEffect } from "react"
+import { useToast } from "@/hooks/use-toast"
+import { useSession } from "next-auth/react"
+import { AuthModal } from "@/components/auth-modal"
 
 interface DoubtDetailProps {
-  doubt: any
-  currentUser?: any
+  doubt: {
+    id: string
+    title: string
+    content: string
+    subject: string
+    tags: string[]
+    isAnonymous: boolean
+    createdAt: Date
+    upvotes: number
+    downvotes: number
+    author?: {
+      id: string
+      name: string | null
+      email: string
+      image: string | null
+    }
+    _count: {
+      answers: number
+      votes: number
+    }
+  }
 }
 
-export default function DoubtDetail({ doubt, currentUser }: DoubtDetailProps) {
+export function DoubtDetail({ doubt }: DoubtDetailProps) {
+  const { data: session, status } = useSession()
+  const [upvotes, setUpvotes] = useState(doubt.upvotes)
+  const [downvotes, setDownvotes] = useState(doubt.downvotes)
+  const [userVote, setUserVote] = useState<"UP" | "DOWN" | null>(null)
+  const [loadingVote, setLoadingVote] = useState(true)
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const { toast } = useToast()
+
+  const netVotes = upvotes - downvotes
+  const isAuthenticated = status === "authenticated"
+
+  // Fetch user's existing vote on mount
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setLoadingVote(false)
+      return
+    }
+
+    const fetchUserVote = async () => {
+      try {
+        const response = await fetch(`/api/doubts/${doubt.id}/vote`)
+        const data = await response.json()
+        setUserVote(data.userVote)
+      } catch (error) {
+        console.error("Error fetching user vote:", error)
+      } finally {
+        setLoadingVote(false)
+      }
+    }
+
+    fetchUserVote()
+  }, [doubt.id, isAuthenticated])
+
+  const handleVote = async (type: "UP" | "DOWN") => {
+    // Check authentication
+    if (!isAuthenticated) {
+      setShowAuthModal(true)
+      return
+    }
+
+    if (loadingVote) return
+
+    const previousUpvotes = upvotes
+    const previousDownvotes = downvotes
+    const previousUserVote = userVote
+    
+    // Optimistic update
+    if (userVote === type) {
+      if (type === "UP") {
+        setUpvotes(upvotes - 1)
+      } else {
+        setDownvotes(downvotes - 1)
+      }
+      setUserVote(null)
+    } else {
+      if (userVote === "UP") {
+        setUpvotes(upvotes - 1)
+        setDownvotes(downvotes + 1)
+      } else if (userVote === "DOWN") {
+        setDownvotes(downvotes - 1)
+        setUpvotes(upvotes + 1)
+      } else {
+        if (type === "UP") {
+          setUpvotes(upvotes + 1)
+        } else {
+          setDownvotes(downvotes + 1)
+        }
+      }
+      setUserVote(type)
+    }
+
+    try {
+      const response = await fetch(`/api/doubts/${doubt.id}/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type }),
+      })
+
+      if (!response.ok) throw new Error("Failed to vote")
+
+      const data = await response.json()
+      setUpvotes(data.upvotes)
+      setDownvotes(data.downvotes)
+    } catch (error) {
+      setUpvotes(previousUpvotes)
+      setDownvotes(previousDownvotes)
+      setUserVote(previousUserVote)
+      toast({
+        title: "Error",
+        description: "Failed to vote",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const getSubjectColor = (subject: string) => {
+    const colors: Record<string, string> = {
+      COMPUTER_SCIENCE: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+      MATHEMATICS: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+      PHYSICS: "bg-green-500/10 text-green-500 border-green-500/20",
+      CHEMISTRY: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+      OTHER: "bg-gray-500/10 text-gray-500 border-gray-500/20",
+    }
+    return colors[subject] || colors.OTHER
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Back button */}
-      <Button variant="ghost" asChild>
-        <Link href="/">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Feed
-        </Link>
-      </Button>
+    <>
+      <div className="bg-card rounded-lg border">
+        <div className="flex gap-6 p-8">
+          {/* Vote Column */}
+          <div className="flex flex-col items-center gap-2">
+            <Button
+              variant={userVote === "UP" ? "default" : "ghost"}
+              size="sm"
+              className={`h-10 w-10 p-0 ${userVote === "UP" ? "bg-orange-500 hover:bg-orange-600" : ""}`}
+              onClick={() => handleVote("UP")}
+              disabled={loadingVote}
+            >
+              <ArrowUp className={`h-5 w-5 ${userVote === "UP" ? "fill-current" : ""}`} />
+            </Button>
+            <span className={`text-2xl font-bold ${
+              netVotes > 0 ? "text-orange-500" : netVotes < 0 ? "text-blue-500" : ""
+            }`}>
+              {netVotes}
+            </span>
+            <Button
+              variant={userVote === "DOWN" ? "default" : "ghost"}
+              size="sm"
+              className={`h-10 w-10 p-0 ${userVote === "DOWN" ? "bg-blue-500 hover:bg-blue-600" : ""}`}
+              onClick={() => handleVote("DOWN")}
+              disabled={loadingVote}
+            >
+              <ArrowDown className={`h-5 w-5 ${userVote === "DOWN" ? "fill-current" : ""}`} />
+            </Button>
+          </div>
 
-      {/* Main doubt */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex gap-4">
-            {/* Vote buttons */}
-            <VoteButtons itemId={doubt.id} itemType="doubt" votes={doubt.votes} className="flex-shrink-0" />
-
-            {/* Content */}
-            <div className="flex-1 min-w-0">
-              {/* Header */}
-              <div className="flex items-center gap-2 mb-3 flex-wrap">
-                <Badge className={getSubjectColor(doubt.subject)}>{doubt.subject.replace("_", " ")}</Badge>
-
-                {doubt.isResolved && (
-                  <Badge variant="outline" className="text-green-600 border-green-600">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Resolved
+          {/* Content */}
+          <div className="flex-1">
+            {/* Header */}
+            <div className="space-y-4 mb-6">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge className={getSubjectColor(doubt.subject)}>
+                  {doubt.subject?.replace(/_/g, " ") || "Other"}
+                </Badge>
+                {doubt.tags.map((tag) => (
+                  <Badge key={tag} variant="secondary">
+                    {tag}
                   </Badge>
-                )}
+                ))}
+              </div>
 
-                <div className="flex items-center gap-2 text-sm text-muted-foreground ml-auto">
-                  {doubt.author ? (
+              <h1 className="text-3xl font-bold">{doubt.title}</h1>
+
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <div className="flex items-center gap-4">
+                  {doubt.isAnonymous ? (
                     <div className="flex items-center gap-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={doubt.author.image || ""} />
-                        <AvatarFallback className="text-xs">{doubt.author.name?.charAt(0) || "U"}</AvatarFallback>
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback>
+                          <User className="h-4 w-4" />
+                        </AvatarFallback>
                       </Avatar>
-                      <span>{doubt.author.name}</span>
-                      {doubt.author.role === "TEACHER" && (
-                        <Badge variant="outline" className="text-xs">
-                          Teacher
-                        </Badge>
-                      )}
+                      <span>Anonymous</span>
                     </div>
                   ) : (
-                    <span>Anonymous</span>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={doubt.author?.image || undefined} />
+                        <AvatarFallback>
+                          {doubt.author?.name?.charAt(0) || doubt.author?.email?.charAt(0) || "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span>{doubt.author?.name || doubt.author?.email}</span>
+                    </div>
                   )}
-                  <span>•</span>
-                  <span>{formatTimeAgo(new Date(doubt.createdAt))}</span>
+
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    <span>Asked {formatDistanceToNow(new Date(doubt.createdAt), { addSuffix: true })}</span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Title */}
-              <h1 className="text-2xl font-bold mb-4">{doubt.title}</h1>
-
-              {/* Content */}
-              <div className="prose prose-sm max-w-none mb-4">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{doubt.content}</ReactMarkdown>
-              </div>
-
-              {/* Image */}
-              {doubt.imageUrl && (
-                <div className="mb-4">
-                  <Image
-                    src={doubt.imageUrl || "/placeholder.svg"}
-                    alt="Doubt attachment"
-                    width={600}
-                    height={400}
-                    className="rounded-md border max-w-full h-auto"
-                  />
-                </div>
-              )}
-
-              {/* Tags */}
-              {doubt.tags && doubt.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {doubt.tags.map((tag: string) => (
-                    <Badge key={tag} variant="secondary">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm">
-                  <Share className="h-4 w-4 mr-1" />
-                  Share
-                </Button>
-                <Button variant="ghost" size="sm">
-                  <Bookmark className="h-4 w-4 mr-1" />
-                  Save
-                </Button>
-                <div className="flex items-center gap-1 text-sm text-muted-foreground ml-auto">
-                  <Eye className="h-4 w-4" />
-                  <span>{doubt.views} views</span>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm">
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <Bookmark className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <Flag className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             </div>
+
+            {/* Content */}
+            <div className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap">
+              {doubt.content}
+            </div>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </div>
+
+      <AuthModal open={showAuthModal} onOpenChange={setShowAuthModal} />
+    </>
   )
 }

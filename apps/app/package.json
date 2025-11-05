@@ -13,6 +13,7 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@auth/prisma-adapter": "^2.11.1",
     "@prisma/client": "latest",
     "@radix-ui/react-accordion": "latest",
     "@radix-ui/react-alert-dialog": "latest",
@@ -29,7 +30,7 @@
     "@radix-ui/react-menubar": "latest",
     "@radix-ui/react-navigation-menu": "latest",
     "@radix-ui/react-popover": "latest",
-    "@radix-ui/react-progress": "latest",
+    "@radix-ui/react-progress": "^1.1.8",
     "@radix-ui/react-radio-group": "latest",
     "@radix-ui/react-scroll-area": "latest",
     "@radix-ui/react-select": "latest",
@@ -37,7 +38,7 @@
     "@radix-ui/react-slider": "latest",
     "@radix-ui/react-slot": "latest",
     "@radix-ui/react-switch": "latest",
-    "@radix-ui/react-tabs": "latest",
+    "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-toast": "latest",
     "@radix-ui/react-toggle": "latest",
     "@radix-ui/react-toggle-group": "latest",
@@ -45,6 +46,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "latest",
+    "date-fns": "^4.1.0",
     "embla-carousel-react": "latest",
     "firebase": "^12.4.0",
     "firebase-admin": "latest",
@@ -59,7 +61,7 @@
     "react-hook-form": "latest",
     "react-icons": "^5.5.0",
     "react-intersection-observer": "latest",
-    "react-markdown": "latest",
+    "react-markdown": "^10.1.0",
     "react-resizable-panels": "latest",
     "recharts": "latest",
     "remark-gfm": "latest",
@@ -67,9 +69,11 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "latest",
-    "zod": "^4.1.12"
+    "zod": "^4.1.12",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.16",
     "@types/node": "^22",
     "@types/react": "^18",
     "@types/react-dom": "^18",

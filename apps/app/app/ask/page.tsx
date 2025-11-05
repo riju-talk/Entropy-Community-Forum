@@ -88,32 +88,67 @@ export default function AskPage() {
   }
 
   const handleSubmit = async () => {
-    if (!title.trim() || !description.trim() || !subject) {
-      alert("Please fill in all required fields")
+    // Improved validation - only title and description are mandatory
+    const errors: string[] = []
+    
+    if (!title.trim()) {
+      errors.push("Question title is required")
+    }
+    
+    if (!description.trim()) {
+      errors.push("Question details are required")
+    }
+
+    if (errors.length > 0) {
+      alert(errors.join("\n"))
       return
     }
 
     setIsSubmitting(true)
     try {
-      const formData = new FormData()
-      formData.append("title", title)
-      formData.append("content", description)
-      formData.append("subject", subject)
-      formData.append("tags", JSON.stringify(tags))
-      formData.append("isAnonymous", isAnonymous.toString())
+      // Prepare content with attachments
+      let fullContent = description
 
+      // Add attachments to content
       if (attachments.length > 0) {
-        const attachmentText = attachments
-          .map((att) => `[${att.type.toUpperCase()}: ${att.name || "attachment"}]`)
-          .join("\n")
-        formData.append("content", `${description}\n\n${attachmentText}`)
+        fullContent += "\n\n---\n\n"
+        attachments.forEach((att) => {
+          if (att.type === "code") {
+            fullContent += `\n\`\`\`${att.language || "text"}\n${att.content}\n\`\`\`\n`
+          } else if (att.type === "image") {
+            fullContent += `\n![${att.name || "Image"}](${att.content})\n`
+          } else if (att.type === "document") {
+            fullContent += `\n**${att.name || "Document"}**: ${att.content}\n`
+          }
+        })
       }
 
-      await createDoubt(formData)
-      router.push("/community")
+      // Send to API - subject, tags, and isAnonymous are optional
+      const response = await fetch("/api/doubts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: title.trim(),
+          content: fullContent,
+          subject: subject || "OTHER", // Default to OTHER if not selected
+          tags: tags.length > 0 ? tags : [],
+          isAnonymous: isAnonymous,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to post question")
+      }
+
+      // Redirect to the newly created doubt or community page
+      router.push(`/community`)
     } catch (error) {
       console.error("Error creating doubt:", error)
-      alert("Failed to post question. Please try again.")
+      alert(error instanceof Error ? error.message : "Failed to post question. Please try again.")
     } finally {
       setIsSubmitting(false)
     }
@@ -154,7 +189,7 @@ export default function AskPage() {
             {/* Title */}
             <div className="space-y-2">
               <Label htmlFor="title" className="text-base font-medium">
-                Question title
+                Question title <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="title"
@@ -166,14 +201,14 @@ export default function AskPage() {
               <p className="text-xs text-muted-foreground">Be specific and clear about what you're asking</p>
             </div>
 
-            {/* Subject */}
+            {/* Subject - Now optional with better label */}
             <div className="space-y-2">
               <Label htmlFor="subject" className="text-base font-medium">
-                Subject
+                Subject <span className="text-muted-foreground font-normal">(Optional)</span>
               </Label>
               <Select value={subject} onValueChange={setSubject}>
                 <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Select a subject" />
+                  <SelectValue placeholder="Select a subject (optional)" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="COMPUTER_SCIENCE">Computer science</SelectItem>
@@ -185,11 +220,14 @@ export default function AskPage() {
                   <SelectItem value="OTHER">Other</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">Help others find your question by selecting a subject</p>
             </div>
 
             {/* Multi-modal Input */}
             <div className="space-y-4">
-              <Label className="text-base font-medium">Question details</Label>
+              <Label className="text-base font-medium">
+                Question details <span className="text-destructive">*</span>
+              </Label>
 
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-4 bg-muted p-1">

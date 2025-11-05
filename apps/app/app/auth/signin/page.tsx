@@ -3,23 +3,45 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Loader2, Globe, Github } from "lucide-react"
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
-import { signIn } from "next-auth/react"
+import { signIn, useSession } from "next-auth/react"
 import Link from "next/link"
 
 export default function SignInPage() {
   const [isLoading, setIsLoading] = useState<string | null>(null)
   const { toast } = useToast()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { data: session, status } = useSession()
+  
+  const callbackUrl = searchParams.get('callbackUrl') || '/'
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.push(callbackUrl)
+    }
+  }, [status, router, callbackUrl])
 
   const handleSignIn = async (provider: "google" | "github") => {
     setIsLoading(provider)
     try {
       // Use next-auth OAuth providers directly. This will redirect the user
       // to the provider's consent screen and then back to the app on success.
-      await signIn(provider, { callbackUrl: "/" })
+      const result = await signIn(provider, { 
+        callbackUrl,
+        redirect: true 
+      })
+      
+      if (result?.error) {
+        toast({
+          title: "Sign-in failed",
+          description: `There was an issue signing in with ${provider}. Please try again.`,
+          variant: "destructive",
+        })
+      }
     } catch (error) {
       console.error(`${provider} sign-in failed:`, error)
       toast({
@@ -30,6 +52,18 @@ export default function SignInPage() {
     } finally {
       setIsLoading(null)
     }
+  }
+  
+  // Show loading while checking auth status
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading...</span>
+        </div>
+      </div>
+    )
   }
 
   return (
