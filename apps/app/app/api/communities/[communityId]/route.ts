@@ -1,28 +1,27 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
-import { db } from "@/lib/db"
+import { prisma } from "@/lib/prisma"
 
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: { communityId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
-    const communityId = params.communityId
-
-    const community = await db.community.findUnique({
-      where: { id: communityId },
-      include: {
+    const community = await prisma.community.findUnique({
+      where: { id: params.communityId },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        subject: true,
+        isPublic: true,
+        createdAt: true,
+        createdBy: true,
         _count: {
-          select: { members: true }
-        },
-        members: session?.user?.id
-          ? {
-              where: { userId: session.user.id },
-              select: { id: true }
-            }
-          : false
+          select: {
+            members: true,
+            communityDoubts: true
+          }
+        }
       }
     })
 
@@ -30,13 +29,7 @@ export async function GET(
       return NextResponse.json({ error: "Community not found" }, { status: 404 })
     }
 
-    return NextResponse.json({
-      id: community.id,
-      name: community.name,
-      description: community.description,
-      memberCount: community._count.members,
-      isMember: session?.user?.id ? community.members.length > 0 : false
-    })
+    return NextResponse.json(community)
   } catch (error) {
     console.error("Error fetching community:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

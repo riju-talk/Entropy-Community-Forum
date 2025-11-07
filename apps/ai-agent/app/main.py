@@ -1,133 +1,199 @@
 """
-Spark AI Agent - Main FastAPI Application
-Provides 4 core functions:
-1. Conversational AI (Chat with context)
-2. Flashcard Generation
-3. Quiz Generation
-4. Mind Map Generation
+Main FastAPI application for AI Agent
 """
-
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-import uvicorn
-import time
-from datetime import datetime
 import os
+import sys
+from fastapi import FastAPI, APIRouter
+from fastapi.middleware.cors import CORSMiddleware
+import logging
+import traceback
 
-# Import with error handling
+# Print startup information
+print("=" * 80)
+print("🚀 ENTROPY AI AGENT STARTING...")
+print("=" * 80)
+print(f"🔍 Python Version: {sys.version}")
+print(f"🔍 Python Executable: {sys.executable}")
+print(f"🔍 Current Working Directory: {os.getcwd()}")
+print(f"🔍 Main module location: {__file__}")
+print("=" * 80)
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 try:
-    from app.config import settings
-    from app.api.routes import router
-    from app.core.vector_store import init_vector_store
-    from app.utils.logger import setup_logger
+    from app.core.config import settings, validate_settings
     
-    logger = setup_logger(__name__)
+    # Validate configuration
+    validate_settings()
+    logger.info("✅ Configuration loaded and validated successfully")
+    
+    # Note: Database is deprecated - using LangChain services
+    logger.info("ℹ️  Using LangChain for all storage (vector stores + file-based history)")
+    
 except Exception as e:
-    print(f"❌ Configuration Error: {e}")
-    print("\nPlease check your .env file and ensure all required settings are correct.")
-    print("Copy .env.example to .env and configure it properly.")
-    import sys
-    sys.exit(1)
+    logger.error(f"❌ Startup Error: {e}")
+    traceback.print_exc()
+    raise
 
 # Create FastAPI app
 app = FastAPI(
-    title=settings.APP_NAME,
-    description="Intelligent study assistant for Entropy platform",
-    version=settings.APP_VERSION,
-    debug=settings.DEBUG,
-    docs_url="/docs",
-    redoc_url="/redoc"
+    title="Entropy AI Agent",
+    description="AI-powered learning assistant with RAG",
+    version="1.0.0"
 )
 
-# CORS Configuration
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS if isinstance(settings.ALLOWED_ORIGINS, list) else [settings.ALLOWED_ORIGINS],
+    allow_origins=settings.get_allowed_origins_list(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Request timing middleware
-@app.middleware("http")
-async def add_process_time_header(request: Request, call_next):
-    start_time = time.time()
-    response = await call_next(request)
-    process_time = time.time() - start_time
-    response.headers["X-Process-Time"] = str(process_time)
-    return response
+# Import and include individual route modules
+logger.info("📦 Loading API routes...")
 
-# Global exception handler
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Global exception: {str(exc)}", exc_info=True)
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error occurred"}
-    )
+# Create API router
+api_router = APIRouter()
 
-# Startup event
-@app.on_event("startup")
-async def startup_event():
-    logger.info(f"🚀 Starting {settings.APP_NAME} v{settings.APP_VERSION}")
-    logger.info(f"📊 Groq API configured: {bool(settings.GROQ_API_KEY or os.getenv('GROQ_API_KEY'))}")
+# QA routes (PRIMARY - replaces chat)
+try:
+    from app.api.routes.qa import router as qa_router
+    api_router.include_router(qa_router, prefix="/qa", tags=["qa"])
+    logger.info("✅ Q&A routes loaded at /api/qa (PRIMARY endpoint)")
+except Exception as e:
+    logger.error(f"❌ Failed to load Q&A routes: {e}")
+    traceback.print_exc()
 
-    # Initialize vector store
-    try:
-        init_vector_store()
-        logger.info("✅ Vector store initialized")
-    except Exception as e:
-        logger.error(f"❌ Vector store initialization failed: {e}")
+# Document routes
+try:
+    from app.api.routes.documents import router as documents_router
+    api_router.include_router(documents_router, prefix="/documents", tags=["documents"])
+    logger.info("✅ Document routes loaded at /api/documents")
+except Exception as e:
+    logger.error(f"❌ Failed to load document routes: {e}")
+    traceback.print_exc()
 
-    logger.info("✅ Server ready!")
+# Quiz routes
+try:
+    from app.api.routes.quiz import router as quiz_router
+    api_router.include_router(quiz_router, prefix="/quiz", tags=["quiz"])
+    logger.info("✅ Quiz routes loaded at /api/quiz")
+except Exception as e:
+    logger.error(f"❌ Failed to load quiz routes: {e}")
+    traceback.print_exc()
 
-# Shutdown event
-@app.on_event("shutdown")
-async def shutdown_event():
-    logger.info("👋 Shutting down...")
+# Flashcards routes
+try:
+    from app.api.routes.flashcards import router as flashcards_router
+    api_router.include_router(flashcards_router, prefix="/flashcards", tags=["flashcards"])
+    logger.info("✅ Flashcards routes loaded at /api/flashcards")
+except Exception as e:
+    logger.error(f"❌ Failed to load flashcards routes: {e}")
+    traceback.print_exc()
 
-# Include API routes
-app.include_router(router, prefix="/api")
+# Mindmap routes
+try:
+    from app.api.routes.mindmap import router as mindmap_router
+    api_router.include_router(mindmap_router, prefix="/mindmap", tags=["mindmap"])
+    logger.info("✅ Mindmap routes loaded at /api/mindmap")
+except Exception as e:
+    logger.error(f"❌ Failed to load mindmap routes: {e}")
+    traceback.print_exc()
 
-# Root endpoint
+# Chat routes (DEPRECATED - kept for compatibility)
+try:
+    from app.api.routes.chat import router as chat_router
+    api_router.include_router(chat_router, prefix="/chat", tags=["chat (deprecated)"])
+    logger.info("⚠️  Chat routes loaded (DEPRECATED - use /api/qa)")
+except Exception as e:
+    logger.error(f"❌ Failed to load chat routes: {e}")
+
+# Include the API router with /api prefix
+app.include_router(api_router, prefix="/api")
+logger.info("✅ All routes mounted under /api prefix")
+
+
 @app.get("/")
 async def root():
+    """Root endpoint"""
     return {
-        "service": settings.APP_NAME,
-        "version": settings.APP_VERSION,
-        "status": "running",
-        "functions": [
-            "qa",
-            "chat",
-            "flashcards",
-            "quiz",
-            "mindmap"
-        ]
+        "message": "Entropy AI Agent is running",
+        "version": "1.0.0",
+        "status": "healthy",
+        "cwd": os.getcwd(),
+        "config_loaded": True,
+        "endpoints": {
+            "docs": "/docs",
+            "health": "/health",
+            "qa": "/api/qa",
+            "qa_greeting": "/api/qa/greeting",
+            "documents": "/api/documents",
+            "quiz": "/api/quiz",
+            "flashcards": "/api/flashcards",
+            "mindmap": "/api/mindmap",
+            "chat_deprecated": "/api/chat"
+        }
     }
 
-# Health check
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    groq_key = settings.GROQ_API_KEY or os.getenv("GROQ_API_KEY")
-    
     return {
-        "status": "healthy" if groq_key else "degraded",
-        "version": settings.APP_VERSION,
-        "timestamp": datetime.utcnow().isoformat(),
-        "services": {
-            "groq": bool(groq_key),
-            "embeddings": settings.EMBEDDING_MODEL,
-            "vector_store": "chromadb"
-        },
-        "message": "AI Agent operational" if groq_key else "GROQ_API_KEY not configured"
+        "status": "healthy",
+        "groq_configured": bool(settings.groq_api_key and settings.groq_api_key != "your_groq_api_key_here"),
+        "cwd": os.getcwd(),
+        "python_version": sys.version,
+        "groq_model": settings.groq_model,
+        "embeddings": "GPT4All (local)",
+        "vector_store": "Chroma"
     }
 
+
+@app.on_event("startup")
+async def startup_event():
+    """Log startup information and registered routes"""
+    logger.info("=" * 80)
+    logger.info("🎉 ENTROPY AI AGENT STARTED SUCCESSFULLY!")
+    logger.info("=" * 80)
+    logger.info(f"📍 Server: http://{settings.host}:{settings.port}")
+    logger.info(f"📚 API Docs: http://{settings.host}:{settings.port}/docs")
+    logger.info(f"📚 Registered Routes:")
+    
+    # Log all routes
+    for route in app.routes:
+        if hasattr(route, 'path') and hasattr(route, 'methods'):
+            methods = ','.join(sorted(route.methods)) if route.methods else 'ANY'
+            logger.info(f"   {methods:8} {route.path}")
+    
+    logger.info(f"")
+    logger.info(f"🎯 Primary Endpoints:")
+    logger.info(f"   GET  /api/qa/greeting - Get Spark greeting")
+    logger.info(f"   POST /api/qa - Ask questions (RAG + fallback)")
+    logger.info(f"   POST /api/documents/upload - Upload docs for RAG")
+    logger.info(f"   POST /api/quiz - Generate quiz")
+    logger.info(f"   POST /api/mindmap - Generate diagrams")
+    logger.info(f"   POST /api/flashcards - Generate flashcards")
+    logger.info(f"")
+    logger.info(f"🔧 Configuration:")
+    logger.info(f"   Groq Model: {settings.groq_model}")
+    logger.info(f"   Embeddings: GPT4All (local & free)")
+    logger.info(f"   Storage: LangChain Chroma + file-based Q&A history")
+    logger.info("=" * 80)
+
+
 if __name__ == "__main__":
+    import uvicorn
     uvicorn.run(
         "app.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=settings.DEBUG
+        host=settings.host,
+        port=settings.port,
+        reload=True
     )

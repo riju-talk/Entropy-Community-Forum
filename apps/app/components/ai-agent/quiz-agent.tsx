@@ -27,6 +27,8 @@ export function QuizAgent() {
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({})
   const [showResults, setShowResults] = useState(false)
+  const [customPrompt, setCustomPrompt] = useState("")
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const { toast } = useToast()
 
   const handleGenerate = async () => {
@@ -48,14 +50,20 @@ export function QuizAgent() {
       const response = await fetch("/api/ai-agent/quiz", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, numQuestions, difficulty }),
+        body: JSON.stringify({ 
+          topic, 
+          numQuestions, 
+          difficulty,
+          customPrompt: customPrompt.trim() || undefined
+        }),
       })
 
       if (!response.ok) throw new Error("Failed to generate quiz")
 
-      const data = await response.json()
+      const data = await response.json() as { questions: QuizQuestion[] }
       setQuestions(data.questions)
     } catch (error) {
+      console.error("Quiz generation error:", error)
       toast({
         title: "Error",
         description: "Failed to generate quiz",
@@ -72,7 +80,8 @@ export function QuizAgent() {
 
   const score = Object.entries(selectedAnswers).reduce(
     (acc, [idx, answer]) => {
-      if (questions[Number(idx)]?.correctAnswer === answer) {
+      const question = questions[Number(idx)]
+      if (question && question.correctAnswer === answer) {
         return acc + 1
       }
       return acc
@@ -80,14 +89,17 @@ export function QuizAgent() {
     0
   )
 
+  const currentQuestionData = questions[currentQuestion]
+
   return (
     <div className="space-y-4">
       {questions.length === 0 ? (
         <Card>
           <CardContent className="pt-6 space-y-4">
             <div className="space-y-2">
-              <Label>Topic</Label>
+              <Label htmlFor="quiz-topic">Topic</Label>
               <Textarea
+                id="quiz-topic"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 placeholder="Enter topic for quiz..."
@@ -97,8 +109,9 @@ export function QuizAgent() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Number of Questions</Label>
+                <Label htmlFor="num-questions">Number of Questions</Label>
                 <Input
+                  id="num-questions"
                   type="number"
                   min={1}
                   max={20}
@@ -126,6 +139,37 @@ export function QuizAgent() {
                   </div>
                 </RadioGroup>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className="w-full text-sm"
+              >
+                {showAdvanced ? "▼" : "▶"} Advanced Options (Custom AI Prompt)
+              </Button>
+              
+              {showAdvanced && (
+                <div className="space-y-2 p-4 border rounded-lg bg-muted/50">
+                  <Label htmlFor="custom-prompt" className="text-sm font-medium">
+                    Custom System Prompt (Optional)
+                  </Label>
+                  <Textarea
+                    id="custom-prompt"
+                    value={customPrompt}
+                    onChange={(e) => setCustomPrompt(e.target.value)}
+                    placeholder="Example: 'Focus on practical coding examples' or 'Use simple language for beginners' or 'Include real-world scenarios'..."
+                    rows={4}
+                    className="text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    💡 Tip: Customize how the AI generates questions. Leave empty to use the default prompt optimized for educational content.
+                  </p>
+                </div>
+              )}
             </div>
 
             <Button onClick={handleGenerate} className="w-full" disabled={loading}>
@@ -161,69 +205,71 @@ export function QuizAgent() {
             </Button>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{questions[currentQuestion].question}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <RadioGroup
-                value={String(selectedAnswers[currentQuestion] ?? "")}
-                onValueChange={(value) =>
-                  setSelectedAnswers({ ...selectedAnswers, [currentQuestion]: Number(value) })
-                }
-              >
-                {questions[currentQuestion].options.map((option, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex items-center space-x-2 p-3 rounded-lg border ${
-                      showResults
-                        ? idx === questions[currentQuestion].correctAnswer
-                          ? "bg-green-500/10 border-green-500"
-                          : selectedAnswers[currentQuestion] === idx
-                          ? "bg-red-500/10 border-red-500"
-                          : ""
-                        : ""
-                    }`}
-                  >
-                    <RadioGroupItem value={String(idx)} id={`option-${idx}`} disabled={showResults} />
-                    <Label htmlFor={`option-${idx}`} className="flex-1 cursor-pointer">
-                      {option}
-                    </Label>
-                    {showResults && idx === questions[currentQuestion].correctAnswer && (
-                      <CheckCircle className="h-5 w-5 text-green-500" />
-                    )}
-                    {showResults &&
-                      selectedAnswers[currentQuestion] === idx &&
-                      idx !== questions[currentQuestion].correctAnswer && (
-                        <XCircle className="h-5 w-5 text-red-500" />
-                      )}
-                  </div>
-                ))}
-              </RadioGroup>
-
-              {showResults && (
-                <div className="bg-muted p-4 rounded-lg">
-                  <p className="text-sm font-semibold mb-2">Explanation:</p>
-                  <p className="text-sm">{questions[currentQuestion].explanation}</p>
-                </div>
-              )}
-
-              <div className="flex justify-between">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentQuestion(currentQuestion - 1)}
-                  disabled={currentQuestion === 0}
+          {currentQuestionData && (
+            <Card>
+              <CardHeader>
+                <CardTitle>{currentQuestionData.question}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <RadioGroup
+                  value={String(selectedAnswers[currentQuestion] ?? "")}
+                  onValueChange={(value) =>
+                    setSelectedAnswers({ ...selectedAnswers, [currentQuestion]: Number(value) })
+                  }
                 >
-                  Previous
-                </Button>
-                {currentQuestion < questions.length - 1 ? (
-                  <Button onClick={() => setCurrentQuestion(currentQuestion + 1)}>Next</Button>
-                ) : !showResults ? (
-                  <Button onClick={handleSubmit}>Submit Quiz</Button>
-                ) : null}
-              </div>
-            </CardContent>
-          </Card>
+                  {currentQuestionData.options.map((option, idx) => (
+                    <div
+                      key={idx}
+                      className={`flex items-center space-x-2 p-3 rounded-lg border ${
+                        showResults
+                          ? idx === currentQuestionData.correctAnswer
+                            ? "bg-green-500/10 border-green-500"
+                            : selectedAnswers[currentQuestion] === idx
+                            ? "bg-red-500/10 border-red-500"
+                            : ""
+                          : ""
+                      }`}
+                    >
+                      <RadioGroupItem value={String(idx)} id={`option-${idx}`} disabled={showResults} />
+                      <Label htmlFor={`option-${idx}`} className="flex-1 cursor-pointer">
+                        {option}
+                      </Label>
+                      {showResults && idx === currentQuestionData.correctAnswer && (
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                      )}
+                      {showResults &&
+                        selectedAnswers[currentQuestion] === idx &&
+                        idx !== currentQuestionData.correctAnswer && (
+                          <XCircle className="h-5 w-5 text-red-500" />
+                        )}
+                    </div>
+                  ))}
+                </RadioGroup>
+
+                {showResults && (
+                  <div className="bg-muted p-4 rounded-lg">
+                    <p className="text-sm font-semibold mb-2">Explanation:</p>
+                    <p className="text-sm">{currentQuestionData.explanation}</p>
+                  </div>
+                )}
+
+                <div className="flex justify-between">
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentQuestion(currentQuestion - 1)}
+                    disabled={currentQuestion === 0}
+                  >
+                    Previous
+                  </Button>
+                  {currentQuestion < questions.length - 1 ? (
+                    <Button onClick={() => setCurrentQuestion(currentQuestion + 1)}>Next</Button>
+                  ) : !showResults ? (
+                    <Button onClick={handleSubmit}>Submit Quiz</Button>
+                  ) : null}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
     </div>

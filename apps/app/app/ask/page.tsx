@@ -14,7 +14,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { MessageSquare, Code, ImageIcon, FileText, X, Plus, Upload, Send } from "lucide-react"
-import { createDoubt } from "@/app/actions/doubts"
 
 interface Attachment {
   id: string
@@ -74,7 +73,10 @@ export default function AskPage() {
     if (file) {
       const reader = new FileReader()
       reader.onload = (e) => {
-        addAttachment("image", e.target?.result as string, file.name)
+        const result = e.target?.result
+        if (result && typeof result === 'string') {
+          addAttachment("image", result, file.name)
+        }
       }
       reader.readAsDataURL(file)
     }
@@ -132,7 +134,7 @@ export default function AskPage() {
         body: JSON.stringify({
           title: title.trim(),
           content: fullContent,
-          subject: subject || "OTHER", // Default to OTHER if not selected
+          subject: subject || "OTHER",
           tags: tags.length > 0 ? tags : [],
           isAnonymous: isAnonymous,
         }),
@@ -144,7 +146,6 @@ export default function AskPage() {
         throw new Error(data.error || "Failed to post question")
       }
 
-      // Redirect to the newly created doubt or community page
       router.push(`/community`)
     } catch (error) {
       console.error("Error creating doubt:", error)
@@ -198,7 +199,7 @@ export default function AskPage() {
                 onChange={(e) => setTitle(e.target.value)}
                 className="h-10"
               />
-              <p className="text-xs text-muted-foreground">Be specific and clear about what you're asking</p>
+              <p className="text-xs text-muted-foreground">Be specific and clear about what you&apos;re asking</p>
             </div>
 
             {/* Subject - Now optional with better label */}

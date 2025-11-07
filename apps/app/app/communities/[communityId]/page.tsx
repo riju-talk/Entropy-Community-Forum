@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { useAuthModal } from "@/hooks/use-auth-modal"
-import { MessageSquare, ThumbsUp, Send, Plus, Loader2 } from "lucide-react"
+import { MessageSquare, ThumbsUp, Send, Plus, Loader2, UserPlus, UserMinus, Crown } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 
 interface Post {
@@ -46,8 +46,11 @@ interface Community {
   id: string
   name: string
   description: string
-  memberCount: number
+}
+
+interface MembershipStatus {
   isMember: boolean
+  role: string | null
 }
 
 export default function CommunityPage({ params }: { params: { communityId: string } }) {
@@ -67,10 +70,14 @@ export default function CommunityPage({ params }: { params: { communityId: strin
   const [newPostContent, setNewPostContent] = useState("")
   const [newComment, setNewComment] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [membershipStatus, setMembershipStatus] = useState<MembershipStatus>({ isMember: false, role: null })
+  const [memberCount, setMemberCount] = useState(0)
+  const [joiningLoading, setJoiningLoading] = useState(false)
 
   useEffect(() => {
     fetchCommunity()
     fetchPosts()
+    fetchMembershipStatus()
   }, [params.communityId])
 
   const fetchCommunity = async () => {
@@ -79,6 +86,7 @@ export default function CommunityPage({ params }: { params: { communityId: strin
       if (response.ok) {
         const data = await response.json()
         setCommunity(data)
+        setMemberCount(data._count?.members || 0)
       }
     } catch (error) {
       toast({
@@ -124,6 +132,20 @@ export default function CommunityPage({ params }: { params: { communityId: strin
     }
   }
 
+  const fetchMembershipStatus = async () => {
+    if (!isAuthenticated) return
+    
+    try {
+      const response = await fetch(`/api/communities/${params.communityId}/membership`)
+      if (response.ok) {
+        const data = await response.json()
+        setMembershipStatus(data)
+      }
+    } catch (error) {
+      console.error("Failed to fetch membership status:", error)
+    }
+  }
+
   const handleCreatePost = async () => {
     if (!isAuthenticated) {
       openAuthModal()
@@ -144,20 +166,34 @@ export default function CommunityPage({ params }: { params: { communityId: strin
       const response = await fetch(`/api/communities/${params.communityId}/posts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newPostTitle, content: newPostContent }),
+        body: JSON.stringify({ 
+          title: newPostTitle, 
+          content: newPostContent,
+          subject: "OTHER" // Default subject
+        }),
       })
 
-      if (response.ok) {
-        toast({ title: "Success", description: "Post created successfully" })
-        setNewPostTitle("")
-        setNewPostContent("")
-        setShowNewPost(false)
-        fetchPosts()
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.details || "Failed to create post")
       }
+
+      const result = await response.json()
+      
+      toast({ 
+        title: "Success", 
+        description: "Post created! You earned 1 credit 🎉" 
+      })
+      
+      setNewPostTitle("")
+      setNewPostContent("")
+      setShowNewPost(false)
+      fetchPosts()
     } catch (error) {
+      console.error("Error creating post:", error)
       toast({
         title: "Error",
-        description: "Failed to create post",
+        description: error instanceof Error ? error.message : "Failed to create post",
         variant: "destructive",
       })
     } finally {
@@ -218,6 +254,69 @@ export default function CommunityPage({ params }: { params: { communityId: strin
     fetchComments(post.id)
   }
 
+  const handleJoinCommunity = async () => {
+    if (!isAuthenticated) {
+      openAuthModal()
+      return
+    }
+
+    setJoiningLoading(true)
+    try {
+      const response = await fetch(`/api/communities/${params.communityId}/membership`, {
+        method: "POST",
+      })
+
+      if (response.ok) {
+        toast({ 
+          title: "Success", 
+          description: "You've joined the community!" 
+        })
+        setMembershipStatus({ isMember: true, role: "MEMBER" })
+        setMemberCount(prev => prev + 1)
+      } else {
+        const error = await response.json()
+        throw new Error(error.error || "Failed to join")
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to join community",
+        variant: "destructive",
+      })
+    } finally {
+      setJoiningLoading(false)
+    }
+  }
+
+  const handleLeaveCommunity = async () => {
+    setJoiningLoading(true)
+    try {
+      const response = await fetch(`/api/communities/${params.communityId}/membership`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        toast({ 
+          title: "Success", 
+          description: "You've left the community" 
+        })
+        setMembershipStatus({ isMember: false, role: null })
+        setMemberCount(prev => prev - 1)
+      } else {
+        const error = await response.json()
+        throw new Error(error.error || "Failed to leave")
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to leave community",
+        variant: "destructive",
+      })
+    } finally {
+      setJoiningLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto flex items-center justify-center h-96">
@@ -233,17 +332,59 @@ export default function CommunityPage({ params }: { params: { communityId: strin
         <Card>
           <CardHeader>
             <div className="flex justify-between items-start">
-              <div>
-                <CardTitle className="text-3xl">{community.name}</CardTitle>
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <CardTitle className="text-3xl">{community.name}</CardTitle>
+                  {membershipStatus.role === "ADMIN" && (
+                    <Badge variant="default" className="flex items-center gap-1">
+                      <Crown className="h-3 w-3" />
+                      Admin
+                    </Badge>
+                  )}
+                </div>
                 <CardDescription className="mt-2">{community.description}</CardDescription>
-                <Badge variant="secondary" className="mt-2">
-                  {community.memberCount} members
-                </Badge>
+                <div className="flex items-center gap-4 mt-3">
+                  <Badge variant="secondary">
+                    {memberCount} {memberCount === 1 ? "member" : "members"}
+                  </Badge>
+                  {community.subject && (
+                    <Badge variant="outline">{community.subject}</Badge>
+                  )}
+                </div>
               </div>
-              <Button onClick={() => setShowNewPost(!showNewPost)}>
-                <Plus className="mr-2 h-4 w-4" />
-                New Post
-              </Button>
+              <div className="flex gap-2">
+                {membershipStatus.isMember ? (
+                  <>
+                    <Button onClick={() => setShowNewPost(!showNewPost)}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      New Post
+                    </Button>
+                    {membershipStatus.role !== "ADMIN" && (
+                      <Button 
+                        variant="outline" 
+                        onClick={handleLeaveCommunity}
+                        disabled={joiningLoading}
+                      >
+                        {joiningLoading ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <UserMinus className="mr-2 h-4 w-4" />
+                        )}
+                        Leave
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <Button onClick={handleJoinCommunity} disabled={joiningLoading}>
+                    {joiningLoading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <UserPlus className="mr-2 h-4 w-4" />
+                    )}
+                    Join Community
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
         </Card>

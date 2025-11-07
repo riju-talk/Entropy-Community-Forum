@@ -3,6 +3,13 @@
 import { getServerSession } from "next-auth"
 import { prisma } from "@/lib/prisma"
 import { authOptions } from "@/lib/auth"
+import { PointEventType } from "@prisma/client"
+
+const CREDIT_VALUES = {
+  DOUBT_CREATED: 1,      // 1 credit for asking
+  ANSWER_ACCEPTED: 2,    // 2 credits for solving
+  AI_CHAT_MESSAGE: -5,
+} as const
 
 export async function getUserCredits() {
   const session = await getServerSession(authOptions)
@@ -21,6 +28,51 @@ export async function getUserCredits() {
   })
 
   return user || { credits: 0, subscriptionTier: "FREE", documentCount: 0 }
+}
+
+export async function awardCredits(
+  userId: string,
+  eventType: PointEventType,
+  amount: number,
+  description?: string,
+  doubtId?: string
+) {
+  try {
+    // Create ledger entry
+    await prisma.pointsLedger.create({
+      data: {
+        userId,
+        eventType,
+        points: amount,
+        description,
+        doubtId,
+      },
+    })
+
+    // Update user credits
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        credits: {
+          increment: amount,
+        },
+      },
+    })
+
+    return { success: true, amount }
+  } catch (error) {
+    console.error("Error awarding credits:", error)
+    throw new Error("Failed to award credits")
+  }
+}
+
+export async function checkUserCredits(userId: string): Promise<number> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { credits: true },
+  })
+
+  return user?.credits ?? 0
 }
 
 export async function deductCredits(amount: number) {
@@ -213,4 +265,12 @@ export async function checkCreditsAndDeduct(operation: string) {
     cost,
     needsUpgrade: false 
   }
+}
+
+export async function getCreditHistory(userId: string, limit = 20) {
+  return await prisma.pointsLedger.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  })
 }

@@ -18,6 +18,7 @@ async function getDoubt(id: string) {
         upvotes: true,
         downvotes: true,
         authorId: true,
+        isInCommunity: true, // Add this
         author: {
           select: {
             id: true,

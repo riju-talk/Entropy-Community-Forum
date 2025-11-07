@@ -1,5 +1,6 @@
 import { DoubtsFeed } from "@/components/doubts-feed"
 import { getDoubts } from "@/app/actions/doubts"
+import { prisma } from "@/lib/prisma"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -8,22 +9,32 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Users, ArrowRight } from "lucide-react"
 import Link from "next/link"
 
-async function getCommunities() {
+async function getRecentCommunities() {
   try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL}/api/communities`,
-      {
-        cache: "no-store",
-      }
-    )
-    if (!response.ok) return { communities: [] }
-    const data = await response.json()
-    return data
+    const communities = await prisma.community.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        subject: true,
+        createdAt: true,
+        _count: {
+          select: {
+            members: true,
+            communityDoubts: true,
+          },
+        },
+      },
+    })
+
+    return { communities }
   } catch (error) {
+    console.error("[HomePage] Error fetching communities:", error)
     return { communities: [] }
   }
 }
@@ -34,7 +45,7 @@ export default async function HomePage() {
     limit: 15,
   })
 
-  const { communities } = await getCommunities()
+  const { communities } = await getRecentCommunities()
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
@@ -81,11 +92,11 @@ export default async function HomePage() {
                 New Communities
               </CardTitle>
               <CardDescription>
-                Join communities to connect with others
+                Recently created communities
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {communities.length > 0 ? (
+              {communities && communities.length > 0 ? (
                 <>
                   {communities.map((community: any) => (
                     <Link
@@ -93,17 +104,26 @@ export default async function HomePage() {
                       href={`/communities/${community.id}`}
                       className="block p-3 rounded-lg border hover:bg-accent transition-colors"
                     >
-                      <div className="flex justify-between items-start mb-1">
-                        <h3 className="font-semibold text-sm line-clamp-1">
-                          {community.name}
-                        </h3>
-                        <Badge variant="secondary" className="text-xs">
-                          {community.memberCount} members
-                        </Badge>
+                      <div className="flex items-start gap-2 mb-1">
+                        <div className="w-8 h-8 rounded bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                          {community.name?.[0]?.toUpperCase() || "?"}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-sm line-clamp-1">
+                            {community.name}
+                          </h3>
+                          {community.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                              {community.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                            <span>{community._count?.members || 0} members</span>
+                            <span>•</span>
+                            <span>{community._count?.communityDoubts || 0} posts</span>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {community.description}
-                      </p>
                     </Link>
                   ))}
                   <Button variant="outline" className="w-full" asChild>
@@ -114,9 +134,14 @@ export default async function HomePage() {
                   </Button>
                 </>
               ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  No communities yet
-                </p>
+                <div className="text-center py-8">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    No communities yet
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    (Found: {communities?.length || 0})
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>

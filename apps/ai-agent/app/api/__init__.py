@@ -1,6 +1,5 @@
 """
 API package initialization
+Routes are imported directly in main.py to avoid circular imports
 """
-from app.api.routes import router
-
-__all__ = ["router"]
+# No imports here to prevent circular dependencies

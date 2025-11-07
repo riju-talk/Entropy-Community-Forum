@@ -14,6 +14,8 @@ export function MindMapAgent() {
   const [diagramType, setDiagramType] = useState("mindmap")
   const [loading, setLoading] = useState(false)
   const [mermaidCode, setMermaidCode] = useState("")
+  const [customPrompt, setCustomPrompt] = useState("")
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const { toast } = useToast()
 
   const handleGenerate = async () => {
@@ -32,14 +34,19 @@ export function MindMapAgent() {
       const response = await fetch("/api/ai-agent/mindmap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, diagramType }),
+        body: JSON.stringify({ 
+          topic, 
+          diagramType,
+          customPrompt: customPrompt.trim() || undefined
+        }),
       })
 
       if (!response.ok) throw new Error("Failed to generate diagram")
 
-      const data = await response.json()
+      const data = await response.json() as { mermaidCode: string }
       setMermaidCode(data.mermaidCode)
     } catch (error) {
+      console.error("Mind map generation error:", error)
       toast({
         title: "Error",
         description: "Failed to generate mind map",
@@ -57,14 +64,16 @@ export function MindMapAgent() {
     a.href = url
     a.download = `${topic.substring(0, 20)}-diagram.mmd`
     a.click()
+    URL.revokeObjectURL(url)
   }
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Topic / Concept</Label>
+          <Label htmlFor="mindmap-topic">Topic / Concept</Label>
           <Textarea
+            id="mindmap-topic"
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
             placeholder="Enter topic for mind mapping..."
@@ -73,9 +82,9 @@ export function MindMapAgent() {
         </div>
 
         <div className="space-y-2">
-          <Label>Diagram Type</Label>
+          <Label htmlFor="diagram-type">Diagram Type</Label>
           <Select value={diagramType} onValueChange={setDiagramType}>
-            <SelectTrigger>
+            <SelectTrigger id="diagram-type">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -121,6 +130,37 @@ export function MindMapAgent() {
           </p>
         </Card>
       )}
+
+      <div className="space-y-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          className="w-full text-sm"
+        >
+          {showAdvanced ? "▼" : "▶"} Advanced Options (Custom AI Prompt)
+        </Button>
+        
+        {showAdvanced && (
+          <Card className="p-4 bg-muted/50">
+            <Label htmlFor="custom-prompt-mindmap" className="text-sm font-medium">
+              Custom System Prompt (Optional)
+            </Label>
+            <Textarea
+              id="custom-prompt-mindmap"
+              value={customPrompt}
+              onChange={(e) => setCustomPrompt(e.target.value)}
+              placeholder="Example: 'Focus on hierarchical relationships' or 'Include technical details' or 'Use simple structure'..."
+              rows={4}
+              className="text-sm mt-2"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              💡 Tip: Customize how the AI structures the diagram. Leave empty for default behavior.
+            </p>
+          </Card>
+        )}
+      </div>
     </div>
   )
 }

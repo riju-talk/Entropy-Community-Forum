@@ -19,7 +19,7 @@ interface DoubtCardProps {
     subject: string
     tags: string[]
     isAnonymous: boolean
-    createdAt: Date
+    createdAt: Date | string // Allow both Date and string
     upvotes?: number
     downvotes?: number
     author?: {
@@ -145,6 +145,20 @@ export function DoubtCard({ doubt }: DoubtCardProps) {
 
   const hasAnswers = (doubt._count?.answers || 0) > 0
 
+  // Safe date parsing helper
+  const getValidDate = (dateInput: Date | string): Date => {
+    try {
+      const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return new Date() // Return current date as fallback
+      }
+      return date
+    } catch {
+      return new Date() // Return current date on any error
+    }
+  }
+
   return (
     <div
       className="flex gap-3 py-4 px-4 border-b last:border-b-0 hover:bg-accent/5 transition-colors relative cursor-pointer"
@@ -219,14 +233,14 @@ export function DoubtCard({ doubt }: DoubtCardProps) {
         {/* Tags and Meta */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div
-            className="flex items-center gap-1.5 flex-wrap"
+            className="flex flex-wrap gap-2"
             onClick={(e) => e.stopPropagation()}
           >
-            {doubt.tags.slice(0, 4).map((tag) => (
+            {doubt.tags?.slice(0, 4).map((tag) => (
               <Badge
                 key={tag}
                 variant="secondary"
-                className="text-[11px] px-2 py-0.5 font-normal hover:bg-secondary/80 cursor-pointer"
+                className="hover:bg-slate-700 hover:text-white transition-colors cursor-pointer"
               >
                 {tag}
               </Badge>
@@ -256,8 +270,7 @@ export function DoubtCard({ doubt }: DoubtCardProps) {
               </>
             )}
             <span>
-              asked{" "}
-              {formatDistanceToNow(new Date(doubt.createdAt), { addSuffix: true })}
+              asked {formatDistanceToNow(getValidDate(doubt.createdAt), { addSuffix: true })}
             </span>
           </div>
         </div>

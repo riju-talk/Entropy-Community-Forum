@@ -1,22 +1,61 @@
-import Header from "@/components/header"
-import DoubtDetail from "@/components/doubt-detail"
+import { notFound } from "next/navigation"
+import { prisma } from "@/lib/prisma"
+import { Header} from "@/components/header"
+import { DoubtDetail } from "@/components/doubt-detail"
 
-interface DoubtPageProps {
-  params: {
-    id: string
+async function getDoubt(id: string) {
+  try {
+    const doubt = await prisma.doubt.findUnique({
+      where: { id },
+      include: {
+        author: {
+          select: {
+            name: true,
+            image: true,
+          },
+        },
+        answers: {
+          include: {
+            author: {
+              select: {
+                name: true,
+                image: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        _count: {
+          select: {
+            answers: true,
+            votes: true,
+          },
+        },
+      },
+    })
+
+    return doubt
+  } catch (error) {
+    console.error("Error fetching doubt:", error)
+    return null
   }
 }
 
-export default function DoubtPage({ params }: DoubtPageProps) {
-  return (
-    <main className="min-h-screen bg-background">
-      <Header />
+export default async function DoubtPage({ params }: { params: { id: string } }) {
+  const doubt = await getDoubt(params.id)
 
-      <div className="container mx-auto px-4 py-6">
-        <div className="max-w-4xl mx-auto">
-          <DoubtDetail doubtId={params.id} />
-        </div>
-      </div>
-    </main>
+  if (!doubt) {
+    notFound()
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-1 container py-8">
+        <DoubtDetail doubt={doubt} answers={doubt.answers} />
+      </main>
+    </div>
   )
 }

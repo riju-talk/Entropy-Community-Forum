@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth"
 import { prisma } from "@/lib/prisma"
 import { authOptions } from "@/lib/auth"
 import { createDoubtSchema, voteSchema } from "@/lib/validations"
+import { awardCredits } from "./credits"
 
 export async function createDoubt(formData: FormData) {
   const session = await getServerSession(authOptions)
@@ -21,6 +22,7 @@ export async function createDoubt(formData: FormData) {
     tags: JSON.parse((formData.get("tags") as string) || "[]"),
     isAnonymous: formData.get("isAnonymous") === "true",
     imageUrl: (formData.get("imageUrl") as string) || undefined,
+    communityId: (formData.get("communityId") as string) || undefined,
   }
 
   const validatedData = createDoubtSchema.parse(data)
@@ -28,12 +30,24 @@ export async function createDoubt(formData: FormData) {
   const doubt = await prisma.doubt.create({
     data: {
       ...validatedData,
-      subject: validatedData.subject as any, // Cast to avoid enum type issues
+      subject: validatedData.subject as any,
       authorId: validatedData.isAnonymous ? null : (session as any)?.user?.id,
     },
   })
 
+  // Award 1 credit for asking doubt (WORKS FOR BOTH GENERAL & COMMUNITY)
+  if (session?.user?.id) {
+    await awardCredits(
+      session.user.id,
+      "DOUBT_CREATED",
+      1,
+      `Asked: ${doubt.title}`,
+      doubt.id
+    )
+  }
+
   revalidatePath("/")
+  revalidatePath(`/communities/${data.communityId}`)
   redirect(`/doubts/${doubt.id}`)
 }
 
@@ -49,7 +63,17 @@ export async function getDoubts(params?: {
     const limit = params?.limit || 10
     const skip = (page - 1) * limit
 
-    const where: any = {}
+    // Get all doubtIds that are in ANY community
+    const communityDoubtIds = await prisma.communityDoubt.findMany({
+      select: { doubtId: true },
+    })
+
+    const where: any = {
+      // Exclude doubts that are in communities
+      id: {
+        notIn: communityDoubtIds.map((cd) => cd.doubtId),
+      },
+    }
 
     if (params?.subject) {
       where.subject = params.subject

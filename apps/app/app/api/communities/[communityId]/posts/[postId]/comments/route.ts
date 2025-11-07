@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { db } from "@/lib/db"
+import { prisma } from "@/lib/prisma"
 
 export async function GET(
   req: NextRequest,
@@ -10,23 +10,19 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions)
 
-    const comments = await db.comment.findMany({
-      where: { postId: params.postId },
+    // Fetch answers (comments) for the doubt (post)
+    const comments = await prisma.answer.findMany({
+      where: { doubtId: params.postId },
       orderBy: { createdAt: "asc" },
       include: {
         author: {
           select: { id: true, name: true, image: true }
         },
         _count: {
-          select: { likes: true }
-        },
-        likes: session?.user?.id
-          ? {
-              where: { userId: session.user.id },
-              select: { id: true }
-            }
-          : false
-      }
+          select: { votes: true }
+        }
+      },
+      take: 100 // Limit comments
     })
 
     return NextResponse.json({
@@ -35,8 +31,8 @@ export async function GET(
         content: comment.content,
         author: comment.author,
         createdAt: comment.createdAt,
-        likes: comment._count.likes,
-        isLiked: session?.user?.id ? comment.likes.length > 0 : false
+        likes: comment.upvotes,
+        isLiked: false // TODO: Implement user-specific like status
       }))
     })
   } catch (error) {
@@ -51,23 +47,76 @@ export async function POST(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true }
+    })
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
     const { content } = await req.json()
 
-    const comment = await db.comment.create({
-      data: {
-        content,
-        postId: params.postId,
-        authorId: session.user.id
+    if (!content?.trim()) {
+      return NextResponse.json(
+        { error: "Comment content is required" },
+        { status: 400 }
+      )
+    }
+
+    // Verify doubt exists and is linked to this community
+    const communityDoubt = await prisma.communityDoubt.findFirst({
+      where: {
+        communityId: params.communityId,
+        doubtId: params.postId
       }
     })
 
-    return NextResponse.json({ comment }, { status: 201 })
+    if (!communityDoubt) {
+      return NextResponse.json({ error: "Post not found in this community" }, { status: 404 })
+    }
+
+    // Create answer (comment)
+    const comment = await prisma.answer.create({
+      data: {
+        content: content.trim(),
+        doubtId: params.postId,
+        authorId: user.id
+      },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            image: true
+          }
+        }
+      }
+    })
+
+    return NextResponse.json({
+      comment: {
+        id: comment.id,
+        content: comment.content,
+        author: comment.author,
+        createdAt: comment.createdAt,
+        likes: 0,
+        isLiked: false
+      }
+    }, { status: 201 })
   } catch (error) {
     console.error("Error creating comment:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : "Unknown error"
+      },
+      { status: 500 }
+    )
   }
 }

@@ -1,120 +1,273 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import Link from "next/link"
-import { Search, Loader2, MessageSquare } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
+import { useEffect, useState, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Search, Loader2, MessageSquare, Users, Calendar } from "lucide-react"
+import Link from "next/link"
+import { formatDistanceToNow } from "date-fns"
 
-type Result = {
-  id: string
-  title: string
-  content: string
-  subject: string
-  votes: number
-  createdAt: string
-  author: { id: string; name: string | null; image: string | null; role: string | null } | null
-  _count: { comments: number }
+interface SearchResults {
+  doubts: Array<{
+    id: string
+    title: string
+    content: string
+    subject: string
+    createdAt: string
+    author: {
+      name: string | null
+      image: string | null
+    }
+    _count: {
+      answers: number
+    }
+  }>
+  communities: Array<{
+    id: string
+    name: string
+    description: string | null
+    _count: {
+      members: number
+    }
+  }>
+  users: Array<{
+    id: string
+    name: string | null
+    email: string
+    image: string | null
+  }>
 }
 
-export default function SearchPage() {
-  const [q, setQ] = useState("")
-  const [results, setResults] = useState<Result[]>([])
+function SearchPageContent() {
+  const searchParams = useSearchParams()
+  const [query, setQuery] = useState("")
+  const [results, setResults] = useState<SearchResults | null>(null)
   const [loading, setLoading] = useState(false)
-  const [total, setTotal] = useState(0)
-
-  const debouncedQ = useDebounce(q, 300)
+  const [activeTab, setActiveTab] = useState<"all" | "doubts" | "communities" | "users">("all")
 
   useEffect(() => {
-    const run = async () => {
-      if (!debouncedQ) {
-        setResults([])
-        setTotal(0)
-        return
-      }
-      setLoading(true)
-      try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(debouncedQ)}&limit=12`)
-        const data = await res.json()
-        setResults(data.results || [])
-        setTotal(data.total || 0)
-      } finally {
-        setLoading(false)
-      }
+    const q = searchParams.get("q")
+    if (q) {
+      setQuery(q)
+      performSearch(q)
     }
-    run()
-  }, [debouncedQ])
+  }, [searchParams])
+
+  const performSearch = async (searchQuery: string) => {
+    if (!searchQuery.trim()) return
+
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`)
+      if (response.ok) {
+        const data = await response.json()
+        setResults(data)
+      } else {
+        setResults({ doubts: [], communities: [], users: [] })
+      }
+    } catch (error) {
+      console.error("Search error:", error)
+      setResults({ doubts: [], communities: [], users: [] })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (query.trim()) {
+      window.history.pushState({}, "", `/search?q=${encodeURIComponent(query)}`)
+      performSearch(query)
+    }
+  }
+
+  const totalResults = results
+    ? (results.doubts?.length || 0) + (results.communities?.length || 0) + (results.users?.length || 0)
+    : 0
+
+  const filteredDoubts = results?.doubts || []
+  const filteredCommunities = results?.communities || []
+  const filteredUsers = results?.users || []
 
   return (
-    <main className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Search Doubts</h1>
-          <p className="text-muted-foreground">Find questions, answers, and topics across Entropy.</p>
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Search Header */}
+        <div className="space-y-4">
+          <h1 className="text-3xl font-bold">Search</h1>
+          <form onSubmit={handleSearch} className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search questions, topics, communities..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Button type="submit" disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
+            </Button>
+          </form>
         </div>
 
-        <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by title, content, or tag..."
-            className="pl-9"
-            autoFocus
-          />
-          {loading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin" />}
-        </div>
-
-        {debouncedQ && (
-          <div className="text-sm text-muted-foreground mb-4">
-            Showing {results.length} of {total} results for "{debouncedQ}"
+        {/* Filter Tabs */}
+        {results && (
+          <div className="flex gap-2 border-b">
+            <Button
+              variant={activeTab === "all" ? "default" : "ghost"}
+              onClick={() => setActiveTab("all")}
+              className="rounded-b-none"
+            >
+              All ({totalResults})
+            </Button>
+            <Button
+              variant={activeTab === "doubts" ? "default" : "ghost"}
+              onClick={() => setActiveTab("doubts")}
+              className="rounded-b-none"
+            >
+              Questions ({filteredDoubts.length})
+            </Button>
+            <Button
+              variant={activeTab === "communities" ? "default" : "ghost"}
+              onClick={() => setActiveTab("communities")}
+              className="rounded-b-none"
+            >
+              Communities ({filteredCommunities.length})
+            </Button>
+            <Button
+              variant={activeTab === "users" ? "default" : "ghost"}
+              onClick={() => setActiveTab("users")}
+              className="rounded-b-none"
+            >
+              Users ({filteredUsers.length})
+            </Button>
           </div>
         )}
 
-        <div className="space-y-3">
-          {results.map((r) => (
-            <Card key={r.id} className="hover:shadow-sm transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="min-w-[3rem] text-center">
-                    <div className="text-sm font-semibold">{r.votes}</div>
-                    <div className="text-2xs text-muted-foreground">votes</div>
-                  </div>
-                  <div className="flex-1">
-                    <Link href={`/doubts/${r.id}`} className="font-medium hover:underline">
-                      {r.title}
-                    </Link>
-                    <div className="mt-1 text-sm text-muted-foreground line-clamp-2">{r.content}</div>
-                    <div className="mt-2 flex items-center gap-2">
-                      <Badge variant="secondary">{r.subject}</Badge>
-                      <Button variant="ghost" size="sm" className="h-7 px-2 text-muted-foreground">
-                        <MessageSquare className="h-3.5 w-3.5 mr-1" />
-                        {r._count.comments}
-                      </Button>
-                      {r.author?.name && <span className="text-xs text-muted-foreground">by {r.author.name}</span>}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        )}
 
-          {!loading && debouncedQ && results.length === 0 && (
-            <div className="text-sm text-muted-foreground">No results found. Try another search.</div>
-          )}
-        </div>
+        {/* No Results */}
+        {!loading && results && totalResults === 0 && (
+          <Card>
+            <CardContent className="pt-6 text-center">
+              <p className="text-muted-foreground">No results found for &quot;{query}&quot;</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Results */}
+        {!loading && results && totalResults > 0 && (
+          <div className="space-y-4">
+            {/* Doubts/Questions */}
+            {(activeTab === "all" || activeTab === "doubts") && filteredDoubts.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-xl font-semibold">Questions</h2>
+                {filteredDoubts.map((doubt) => (
+                  <Card key={doubt.id} className="hover:border-primary transition-colors">
+                    <CardHeader>
+                      <Link href={`/doubts/${doubt.id}`}>
+                        <CardTitle className="hover:text-primary transition-colors cursor-pointer">
+                          {doubt.title}
+                        </CardTitle>
+                      </Link>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Badge variant="secondary">{doubt.subject}</Badge>
+                        <span>•</span>
+                        <span>{doubt.author.name || "Anonymous"}</span>
+                        <span>•</span>
+                        <Calendar className="h-3 w-3" />
+                        <span>{formatDistanceToNow(new Date(doubt.createdAt), { addSuffix: true })}</span>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground line-clamp-2">{doubt.content}</p>
+                      <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <MessageSquare className="h-4 w-4" />
+                          <span>{doubt._count.answers} answers</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* Communities */}
+            {(activeTab === "all" || activeTab === "communities") && filteredCommunities.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-xl font-semibold">Communities</h2>
+                {filteredCommunities.map((community) => (
+                  <Card key={community.id} className="hover:border-primary transition-colors">
+                    <CardHeader>
+                      <Link href={`/communities/${community.id}`}>
+                        <CardTitle className="hover:text-primary transition-colors cursor-pointer">
+                          {community.name}
+                        </CardTitle>
+                      </Link>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        {community.description || "No description"}
+                      </p>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Users className="h-4 w-4" />
+                        <span>{community._count.members} members</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* Users */}
+            {(activeTab === "all" || activeTab === "users") && filteredUsers.length > 0 && (
+              <div className="space-y-3">
+                <h2 className="text-xl font-semibold">Users</h2>
+                {filteredUsers.map((user) => (
+                  <Card key={user.id} className="hover:border-primary transition-colors">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          {user.name?.[0]?.toUpperCase() || "U"}
+                        </div>
+                        <div>
+                          <p className="font-medium">{user.name || "Anonymous"}</p>
+                          <p className="text-sm text-muted-foreground">{user.email}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
-    </main>
+    </div>
   )
 }
 
-function useDebounce<T>(value: T, delay = 300) {
-  const [debounced, setDebounced] = useState(value)
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay)
-    return () => clearTimeout(t)
-  }, [value, delay])
-  return debounced
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    }>
+      <SearchPageContent />
+    </Suspense>
+  )
 }

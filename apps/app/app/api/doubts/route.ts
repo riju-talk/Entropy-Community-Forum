@@ -69,6 +69,7 @@ export async function POST(req: NextRequest) {
         tags: Array.isArray(tags) ? tags : [],
         isAnonymous: Boolean(isAnonymous),
         authorId: user.id, // Use the actual DB user ID
+        isInCommunity: false, // Regular doubts are NOT in communities
       },
       include: {
         author: {
@@ -83,6 +84,11 @@ export async function POST(req: NextRequest) {
     });
 
     console.log("Doubt created successfully:", doubt.id);
+
+    // Award 1 credit
+    if (!isAnonymous) {
+      await awardCredits(user.id, "DOUBT_CREATED", 1, `Asked: ${title}`);
+    }
 
     return NextResponse.json(doubt, { status: id ? 200 : 201 });
   } catch (error) {
@@ -105,76 +111,44 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const subject = searchParams.get("subject");
-    const tag = searchParams.get("tag");
-    const search = searchParams.get("search");
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
-    const skip = (page - 1) * limit;
-
-    const where: any = {};
-
-    if (subject) {
-      where.subject = subject;
-    }
-
-    if (tag) {
-      where.tags = { has: tag };
-    }
-
-    if (search) {
-      where.OR = [
-        { title: { contains: search, mode: "insensitive" } },
-        { content: { contains: search, mode: "insensitive" } },
-      ];
-    }
-
-    const [doubts, total] = await Promise.all([
-      prisma.doubt.findMany({
-        where,
-        include: {
-          author: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-            },
-          },
-          _count: {
-            select: {
-              answers: true,
-            },
+    const doubts = await prisma.doubt.findMany({
+      where: {
+        isInCommunity: false,
+      },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        subject: true,
+        tags: true,
+        isAnonymous: true,
+        createdAt: true, // This will be automatically serialized to ISO string
+        upvotes: true,
+        downvotes: true,
+        author: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
           },
         },
-        orderBy: {
-          createdAt: "desc",
+        _count: {
+          select: {
+            answers: true,
+            votes: true,
+          },
         },
-        take: limit,
-        skip,
-      }),
-      prisma.doubt.count({ where }),
-    ]);
-
-    const totalPages = Math.ceil(total / limit);
-    const hasMore = page < totalPages;
-
-    return NextResponse.json({
-      doubts,
-      total,
-      page,
-      totalPages,
-      hasMore,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 20,
     });
+
+    return NextResponse.json({ doubts });
   } catch (error) {
     console.error("Error fetching doubts:", error);
-    return NextResponse.json(
-      {
-        error: "Failed to fetch doubts",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

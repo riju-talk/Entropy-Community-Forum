@@ -1,23 +1,73 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { CheckCircle, TrendingUp, Globe, BookOpen } from "lucide-react"
+import { CheckCircle, TrendingUp, Globe, BookOpen, Users, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import DoubtCard from "@/components/doubt-card"
+import { DoubtCard } from "@/components/doubt-card"
+
+interface Community {
+  id: string
+  name: string
+  description: string | null
+  subject: string | null
+  createdAt: string
+  _count: {
+    members: number
+    communityDoubts: number
+  }
+}
+
+interface Doubt {
+  id: string
+  title: string
+  content: string
+  subject: string
+  tags: string[]
+  isAnonymous: boolean
+  createdAt: string
+  upvotes: number
+  downvotes: number
+  author?: {
+    id: string
+    name: string | null
+    email: string
+    image: string | null
+  }
+  _count: {
+    answers: number
+    votes: number
+  }
+}
 
 export default function FeedContent() {
-  return (
-    <div className="container mx-auto px-4 md:px-6 py-6">
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        {/* Left Sidebar */}
-        <aside className="md:col-span-3 lg:col-span-2">
-          <Card className="border-neutral-200 mb-6">
-            <CardContent className="p-4 space-y-2">
-              <h3 className="font-medium text-slate-800 mb-2">Browse</h3>
-              <Button variant="outline" className="w-full justify-start" asChild>
-                <Link href="/community">
-                  <Globe className="h-4 w-4 mr-2 text-blue-600" /> Global Community
-                </Link>
+  const [recentCommunities, setRecentCommunities] = useState<Community[]>([])
+  const [doubts, setDoubts] = useState<Doubt[]>([])
+  const [loadingCommunities, setLoadingCommunities] = useState(true)
+  const [loadingDoubts, setLoadingDoubts] = useState(true)
+
+  useEffect(() => {
+    fetchRecentCommunities()
+    fetchDoubts()
+  }, [])
+
+  const fetchRecentCommunities = async () => {
+    try {
+      const response = await fetch("/api/communities/recent?limit=5")
+      if (response.ok) {
+        const data = await response.json()
+        setRecentCommunities(data.communities)
+      }
+    } catch (error) {
+      console.error("Failed to fetch recent communities:", error)
+    } finally {
+      setLoadingCommunities(false)
+    }
+  }
+
+  const fetchDoubts = async () => {
               </Button>
               <Button variant="outline" className="w-full justify-start" asChild>
                 <Link href="/classrooms">
@@ -105,6 +155,7 @@ export default function FeedContent() {
 
         {/* Right Sidebar */}
         <aside className="md:col-span-3">
+          {/* Global Stats */}
           <Card className="border-neutral-200 mb-6">
             <CardContent className="p-6">
               <h2 className="font-serif text-lg font-semibold text-slate-800 mb-4">Global Stats</h2>
@@ -128,6 +179,72 @@ export default function FeedContent() {
             </CardContent>
           </Card>
 
+          {/* NEW COMMUNITIES SECTION */}
+          <Card className="border-neutral-200 mb-6">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Users className="h-5 w-5 text-purple-600" />
+                <h2 className="font-serif text-lg font-semibold text-slate-800">
+                  New Communities
+                </h2>
+              </div>
+
+              {loadingCommunities ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : recentCommunities.length > 0 ? (
+                <div className="space-y-3">
+                  {recentCommunities.map((community) => (
+                    <Link
+                      key={community.id}
+                      href={`/communities/${community.id}`}
+                      className="block hover:bg-slate-50 p-3 rounded-lg transition-colors border border-neutral-100"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white font-bold flex-shrink-0">
+                          {community.name[0]?.toUpperCase() || "?"}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-slate-800 truncate mb-1">
+                            {community.name}
+                          </p>
+                          {community.description && (
+                            <p className="text-xs text-neutral-500 line-clamp-2 mb-2">
+                              {community.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-3 text-xs text-neutral-400">
+                            <span className="flex items-center gap-1">
+                              <Users className="h-3 w-3" />
+                              {community._count.members}
+                            </span>
+                            <span>•</span>
+                            <span>{community._count.communityDoubts} posts</span>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-neutral-500 text-center py-8">
+                  No new communities yet
+                </p>
+              )}
+
+              <Button variant="outline" className="w-full mt-4" size="sm" asChild>
+                <Link href="/communities">View All Communities →</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Top Contributors */}
           <Card className="border-neutral-200">
             <CardContent className="p-6">
               <h2 className="font-serif text-lg font-semibold text-slate-800 mb-4">Top Contributors</h2>
@@ -171,46 +288,64 @@ const doubts = [
     id: "d1",
     title: "How to implement binary search algorithm efficiently?",
     content: "I'm struggling with the implementation of binary search. Can someone explain the logic step by step?",
-    author: "Anonymous Student",
-    authorType: "student",
-    timeAgo: "2 hours ago",
-    topic: "Algorithms",
-    topicId: "algorithms",
-    votes: 15,
-    comments: 8,
-    isResolved: true,
-    image: null,
-    location: "Global Community",
+    author: { 
+      id: "u1",
+      name: "Anonymous Student",
+      email: "student@example.com",
+      image: null 
+    },
+    subject: "COMPUTER_SCIENCE",
+    tags: ["algorithms", "binary-search", "data-structures"],
+    isAnonymous: false,
+    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+    upvotes: 15,
+    downvotes: 2,
+    _count: {
+      answers: 8,
+      votes: 17
+    }
   },
   {
     id: "d2",
     title: "Understanding calculus derivatives for machine learning",
     content: "I need help understanding how derivatives work in the context of gradient descent optimization.",
-    author: "Learning Enthusiast",
-    authorType: "student",
-    timeAgo: "4 hours ago",
-    topic: "Mathematics",
-    topicId: "mathematics",
-    votes: 23,
-    comments: 12,
-    isResolved: false,
-    image: "/placeholder.svg?height=200&width=400",
-    location: "Global Community",
+    author: { 
+      id: "u2",
+      name: "Learning Enthusiast",
+      email: "learner@example.com",
+      image: null 
+    },
+    subject: "MATHEMATICS",
+    tags: ["calculus", "machine-learning", "derivatives"],
+    isAnonymous: false,
+    createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), // 4 hours ago
+    upvotes: 23,
+    downvotes: 1,
+    _count: {
+      answers: 12,
+      votes: 24
+    }
   },
   {
     id: "d3",
     title: "Best practices for React component architecture",
     content: "What are the recommended patterns for structuring React components in large applications?",
-    author: "Prof. Sarah Chen",
-    authorType: "professor",
-    timeAgo: "6 hours ago",
-    topic: "Web Development",
-    topicId: "web-development",
-    votes: 31,
-    comments: 18,
-    isResolved: true,
-    image: null,
-    location: "Global Community",
+    author: { 
+      id: "u3",
+      name: "Prof. Sarah Chen",
+      email: "chen@university.edu",
+      image: null 
+    },
+    subject: "COMPUTER_SCIENCE",
+    tags: ["react", "architecture", "best-practices", "components"],
+    isAnonymous: false,
+    createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), // 6 hours ago
+    upvotes: 31,
+    downvotes: 0,
+    _count: {
+      answers: 18,
+      votes: 31
+    }
   },
 ]
 

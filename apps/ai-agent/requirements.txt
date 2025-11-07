@@ -6,20 +6,28 @@ pydantic==2.5.0
 pydantic-settings==2.1.0
 python-dotenv==1.0.0
 
-# AI/LLM - Using FREE Groq API
-groq==0.4.2
+# AI/LLM - Using Groq via LangChain
+langchain==0.3.0
+langchain-groq==0.2.0
+langchain-community==0.3.0
+langchain-chroma==0.1.4
+langchain-core==0.3.0
+langgraph==0.2.0
 
-# Embeddings - FREE local embeddings (NO HUGGINGFACE)
-gpt4all==2.5.0
+# Embeddings - FREE local GPT4All embeddings
+gpt4all==2.7.0
 
 # Vector Store - FREE/Local
-chromadb==0.4.22
+chromadb==0.5.0
 
 # Document Processing
-PyPDF2==3.0.1
+pypdf2==3.0.1
 python-docx==1.1.0
+markdown==3.5.1
+docx2txt==0.8
 
 # Utilities
 aiofiles==23.2.1
-httpx==0.26.0
+httpx==0.27.0
 numpy==1.26.3
+typing-extensions==4.9.0
