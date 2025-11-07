@@ -2,8 +2,8 @@
 API Routes - All 4 Functions
 """
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
-from typing import List
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from typing import List, Optional
 import os
 import uuid
 
@@ -19,6 +19,10 @@ from app.services.quiz_service import QuizService
 from app.services.mindmap_service import MindMapService
 from app.services.document_service import DocumentService
 
+from app.core.llm import generate_response, generate_with_context
+from app.core.vector_store import get_vector_store
+from app.core.document_processor import get_document_processor
+
 from app.config import settings
 from app.utils.logger import setup_logger
 
@@ -32,6 +36,92 @@ flashcard_service = FlashcardService()
 quiz_service = QuizService()
 mindmap_service = MindMapService()
 document_service = DocumentService()
+
+# ==================== Q&A ENDPOINT (PUBLIC) ====================
+
+@router.post("/qa")
+async def qa_endpoint(
+    question: str = Form(...),
+    system_prompt: str = Form("You are a helpful AI tutor. Provide clear, concise, and educational responses."),
+    documents: Optional[List[UploadFile]] = File(None)
+):
+    """
+    **Q&A with Document Intelligence**
+    
+    Ask questions and optionally upload documents for context.
+    Public endpoint - no authentication required.
+    
+    - question: The question to answer
+    - system_prompt: Custom system prompt (optional)
+    - documents: PDF, DOCX, or TXT files for context (optional)
+    """
+    try:
+        if not question or not question.strip():
+            raise HTTPException(status_code=400, detail="Question cannot be empty")
+        
+        context = ""
+        sources = []
+        
+        # Process documents if provided
+        if documents and len(documents) > 0:
+            try:
+                processor = get_document_processor()
+                vector_store = get_vector_store()
+                
+                doc_texts = await processor.process_documents(documents)
+                
+                if doc_texts:
+                    collection_name = f"qa_session_{uuid.uuid4().hex[:8]}"
+                    
+                    all_chunks = []
+                    for idx, doc_text in enumerate(doc_texts):
+                        chunks = processor.chunk_text(doc_text)
+                        all_chunks.extend(chunks)
+                        sources.append(documents[idx].filename)
+                    
+                    if all_chunks:
+                        await vector_store.add_documents(
+                            collection_name=collection_name,
+                            texts=all_chunks
+                        )
+                        
+                        relevant_docs = await vector_store.query_documents(
+                            collection_name=collection_name,
+                            query_text=question,
+                            n_results=min(3, len(all_chunks))
+                        )
+                        
+                        if relevant_docs:
+                            context = "\n\n".join([doc["content"] for doc in relevant_docs])
+                        
+                        vector_store.delete_collection(collection_name)
+            except Exception as doc_error:
+                logger.error(f"Document processing error: {doc_error}")
+        
+        # Generate answer
+        if context:
+            answer = await generate_with_context(
+                question=question,
+                context=context,
+                system_prompt=system_prompt
+            )
+        else:
+            answer = await generate_response(
+                prompt=question,
+                system_prompt=system_prompt
+            )
+        
+        return {
+            "answer": answer,
+            "has_context": bool(context),
+            "sources": sources if sources else None
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"QA error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ==================== FUNCTION 1: CONVERSATIONAL AI ====================
 
@@ -288,24 +378,34 @@ async def service_info():
         "version": settings.VERSION,
         "functions": [
             {
+                "name": "qa",
+                "description": "Q&A with document intelligence",
+                "cost": "free",
+                "auth_required": False
+            },
+            {
                 "name": "chat",
                 "description": "Conversational AI with context",
-                "cost": f"{settings.CHAT_SHORT_COST}-{settings.CHAT_LONG_COST} credits"
+                "cost": f"{settings.CHAT_SHORT_COST}-{settings.CHAT_LONG_COST} credits",
+                "auth_required": True
             },
             {
                 "name": "flashcards",
                 "description": "Generate study flashcards",
-                "cost": f"{settings.FLASHCARD_COST} credits"
+                "cost": f"{settings.FLASHCARD_COST} credits",
+                "auth_required": True
             },
             {
                 "name": "quiz",
                 "description": "Create interactive quizzes",
-                "cost": f"{settings.QUIZ_COST} credits"
+                "cost": f"{settings.QUIZ_COST} credits",
+                "auth_required": True
             },
             {
                 "name": "mindmap",
                 "description": "Generate concept mind maps",
-                "cost": f"{settings.MINDMAP_COST} credits"
+                "cost": f"{settings.MINDMAP_COST} credits",
+                "auth_required": True
             }
         ],
         "supported_file_types": settings.ALLOWED_FILE_TYPES,

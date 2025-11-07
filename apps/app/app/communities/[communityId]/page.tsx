@@ -1,0 +1,411 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { useToast } from "@/hooks/use-toast"
+import { useAuthModal } from "@/hooks/use-auth-modal"
+import { MessageSquare, ThumbsUp, Send, Plus, Loader2 } from "lucide-react"
+import { formatDistanceToNow } from "date-fns"
+
+interface Post {
+  id: string
+  title: string
+  content: string
+  author: {
+    id: string
+    name: string
+    image?: string
+  }
+  createdAt: string
+  likes: number
+  commentCount: number
+  isLiked: boolean
+}
+
+interface Comment {
+  id: string
+  content: string
+  author: {
+    id: string
+    name: string
+    image?: string
+  }
+  createdAt: string
+  likes: number
+  isLiked: boolean
+}
+
+interface Community {
+  id: string
+  name: string
+  description: string
+  memberCount: number
+  isMember: boolean
+}
+
+export default function CommunityPage({ params }: { params: { communityId: string } }) {
+  const { data: session } = useSession()
+  const isAuthenticated = !!session
+  const { open: openAuthModal } = useAuthModal()
+  const { toast } = useToast()
+  
+  const [community, setCommunity] = useState<Community | null>(null)
+  const [posts, setPosts] = useState<Post[]>([])
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null)
+  const [comments, setComments] = useState<Comment[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showNewPost, setShowNewPost] = useState(false)
+  
+  const [newPostTitle, setNewPostTitle] = useState("")
+  const [newPostContent, setNewPostContent] = useState("")
+  const [newComment, setNewComment] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    fetchCommunity()
+    fetchPosts()
+  }, [params.communityId])
+
+  const fetchCommunity = async () => {
+    try {
+      const response = await fetch(`/api/communities/${params.communityId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setCommunity(data)
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load community",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const fetchPosts = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/communities/${params.communityId}/posts`)
+      if (response.ok) {
+        const data = await response.json()
+        setPosts(data.posts)
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load posts",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchComments = async (postId: string) => {
+    try {
+      const response = await fetch(`/api/communities/${params.communityId}/posts/${postId}/comments`)
+      if (response.ok) {
+        const data = await response.json()
+        setComments(data.comments)
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load comments",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleCreatePost = async () => {
+    if (!isAuthenticated) {
+      openAuthModal()
+      return
+    }
+
+    if (!newPostTitle.trim() || !newPostContent.trim()) {
+      toast({
+        title: "Missing fields",
+        description: "Please provide both title and content",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const response = await fetch(`/api/communities/${params.communityId}/posts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newPostTitle, content: newPostContent }),
+      })
+
+      if (response.ok) {
+        toast({ title: "Success", description: "Post created successfully" })
+        setNewPostTitle("")
+        setNewPostContent("")
+        setShowNewPost(false)
+        fetchPosts()
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create post",
+        variant: "destructive",
+      })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleAddComment = async (postId: string) => {
+    if (!isAuthenticated) {
+      openAuthModal()
+      return
+    }
+
+    if (!newComment.trim()) return
+
+    setSubmitting(true)
+    try {
+      const response = await fetch(`/api/communities/${params.communityId}/posts/${postId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: newComment }),
+      })
+
+      if (response.ok) {
+        setNewComment("")
+        fetchComments(postId)
+        fetchPosts()
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add comment",
+        variant: "destructive",
+      })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleLikePost = async (postId: string) => {
+    if (!isAuthenticated) {
+      openAuthModal()
+      return
+    }
+
+    try {
+      await fetch(`/api/communities/${params.communityId}/posts/${postId}/like`, {
+        method: "POST",
+      })
+      fetchPosts()
+    } catch (error) {
+      console.error("Failed to like post")
+    }
+  }
+
+  const handleViewPost = (post: Post) => {
+    setSelectedPost(post)
+    fetchComments(post.id)
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Community Header */}
+      {community && (
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle className="text-3xl">{community.name}</CardTitle>
+                <CardDescription className="mt-2">{community.description}</CardDescription>
+                <Badge variant="secondary" className="mt-2">
+                  {community.memberCount} members
+                </Badge>
+              </div>
+              <Button onClick={() => setShowNewPost(!showNewPost)}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Post
+              </Button>
+            </div>
+          </CardHeader>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Posts List */}
+        <div className="lg:col-span-2 space-y-4">
+          {showNewPost && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Create New Post</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Input
+                  placeholder="Post title..."
+                  value={newPostTitle}
+                  onChange={(e) => setNewPostTitle(e.target.value)}
+                />
+                <Textarea
+                  placeholder="What's on your mind?"
+                  value={newPostContent}
+                  onChange={(e) => setNewPostContent(e.target.value)}
+                  rows={4}
+                />
+                <div className="flex gap-2">
+                  <Button onClick={handleCreatePost} disabled={submitting}>
+                    {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                    Post
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowNewPost(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {posts.map((post) => (
+            <Card key={post.id} className="cursor-pointer hover:shadow-md transition-shadow">
+              <CardHeader onClick={() => handleViewPost(post)}>
+                <div className="flex items-start gap-3">
+                  <Avatar>
+                    <AvatarImage src={post.author.image} />
+                    <AvatarFallback>{post.author.name[0]}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{post.author.name}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+                      </span>
+                    </div>
+                    <CardTitle className="mt-2">{post.title}</CardTitle>
+                    <p className="mt-2 text-muted-foreground line-clamp-3">{post.content}</p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleLikePost(post.id)
+                    }}
+                  >
+                    <ThumbsUp className={`mr-2 h-4 w-4 ${post.isLiked ? "fill-current" : ""}`} />
+                    {post.likes}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => handleViewPost(post)}>
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    {post.commentCount}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+
+          {posts.length === 0 && (
+            <Card>
+              <CardContent className="text-center py-12">
+                <p className="text-muted-foreground">No posts yet. Be the first to post!</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Thread View */}
+        <div className="lg:col-span-1">
+          {selectedPost ? (
+            <Card className="sticky top-4">
+              <CardHeader>
+                <CardTitle>Thread</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedPost(null)}>
+                  Close
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4 max-h-[600px] overflow-y-auto">
+                <div>
+                  <h3 className="font-semibold">{selectedPost.title}</h3>
+                  <p className="text-sm text-muted-foreground mt-2">{selectedPost.content}</p>
+                </div>
+                
+                <Separator />
+
+                <div className="space-y-3">
+                  {comments.map((comment) => (
+                    <div key={comment.id} className="space-y-2">
+                      <div className="flex items-start gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={comment.author.image} />
+                          <AvatarFallback>{comment.author.name[0]}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold">{comment.author.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                            </span>
+                          </div>
+                          <p className="text-sm mt-1">{comment.content}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {comments.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">No comments yet</p>
+                )}
+
+                <div className="space-y-2">
+                  <Textarea
+                    placeholder="Add a comment..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    rows={3}
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => handleAddComment(selectedPost.id)}
+                    disabled={submitting}
+                    className="w-full"
+                  >
+                    {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                    Comment
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="sticky top-4">
+              <CardContent className="text-center py-12">
+                <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">Select a post to view comments</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

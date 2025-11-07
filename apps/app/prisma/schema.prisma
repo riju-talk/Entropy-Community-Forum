@@ -58,6 +58,7 @@ model User {
   leaderboardSnapshots  LeaderboardSnapshot[] @relation("UserLeaderboardSnapshots")
   conversations         Conversation[]
   aiRecommendations     AIRecommendation[]
+  aiChatSessions        AIChatSession[]  // Add this line
   createdCommunities    Community[]
   communityMemberships  CommunityMember[]
   addedDoubts           CommunityDoubt[]
@@ -393,6 +394,75 @@ enum LeaderboardScope {
 }
 
 // AI Integration System
+
+model AIChatSession {
+  id              String   @id @default(cuid())
+  userId          String
+  sessionType     AISessionType @default(QA)
+  systemPrompt    String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages        AIChatMessage[]
+  documents       AIDocument[]
+
+  @@map("ai_chat_sessions")
+  @@index([userId, createdAt])
+  @@index([sessionType])
+}
+
+model AIChatMessage {
+  id              String   @id @default(cuid())
+  sessionId       String
+  role            MessageRole
+  content         String   @db.Text
+  metadata        Json?
+  createdAt       DateTime @default(now())
+
+  session         AIChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("ai_chat_messages")
+  @@index([sessionId, createdAt])
+}
+
+model AIDocument {
+  id              String   @id @default(cuid())
+  sessionId       String
+  fileName        String
+  fileSize        Int
+  fileType        String
+  uploadedAt      DateTime @default(now())
+  processedAt     DateTime?
+  status          DocumentStatus @default(PENDING)
+  metadata        Json?
+
+  session         AIChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("ai_documents")
+  @@index([sessionId])
+  @@index([status])
+}
+
+enum AISessionType {
+  QA
+  MINDMAP
+  QUIZ
+  FLASHCARDS
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum DocumentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
 
 model Conversation {
   id        String   @id @default(cuid())

@@ -1,142 +1,127 @@
 """
-Vector Store Integration (ChromaDB)
-Handles document storage, retrieval, and similarity search
+Vector Store using ChromaDB (FREE and local) - NO HUGGINGFACE
 """
 
-from typing import Optional, List, Dict, Any
-from langchain_chroma import Chroma
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_core.documents import Document
+import chromadb
+from chromadb.config import Settings as ChromaSettings
+from typing import List, Dict, Optional
+from pathlib import Path
 
-from app.core.embeddings import get_embeddings
 from app.config import settings
+from app.core.embeddings import get_embedding_service
 from app.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
-_vector_store: Optional[Chroma] = None
-_text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=settings.CHUNK_SIZE,
-    chunk_overlap=settings.CHUNK_OVERLAP,
-    length_function=len,
-    add_start_index=True,
-)
+_vector_store_instance = None
 
-def init_vector_store() -> Chroma:
-    """
-    Initialize ChromaDB vector store with configured embeddings
-    """
-    global _vector_store
-
-    if _vector_store is not None:
-        return _vector_store
-
-    try:
-        logger.info("Initializing ChromaDB vector store...")
+class VectorStoreService:
+    def __init__(self):
+        # Create data directory
+        data_dir = Path(settings.CHROMA_PERSIST_DIR)
+        data_dir.mkdir(parents=True, exist_ok=True)
         
-        # Get embeddings from service
-        embeddings = get_embeddings()
-
-        # Initialize ChromaDB with better config
-        _vector_store = Chroma(
-            persist_directory=settings.CHROMA_PERSIST_DIR,
-            embedding_function=embeddings,
-            collection_name="spark_documents",
-            collection_metadata={
-                "description": "Document storage for Spark AI Agent",
-                "embedding_model": settings.EMBEDDING_MODEL,
-                "chunk_size": settings.CHUNK_SIZE,
-                "chunk_overlap": settings.CHUNK_OVERLAP
-            }
-        )
-
-        logger.info(
-            f"ChromaDB initialized successfully with {settings.EMBEDDING_MODEL} embeddings"
-        )
-        return _vector_store
-
-    except Exception as e:
-        logger.error("Failed to initialize vector store", exc_info=True)
-        raise
-
-def get_vector_store() -> Chroma:
-    """Get the vector store instance"""
-    if _vector_store is None:
-        return init_vector_store()
-    return _vector_store
-
-def add_documents(
-    texts: List[str],
-    metadatas: Optional[List[Dict[str, Any]]] = None,
-    **kwargs
-) -> List[str]:
-    """
-    Add documents to the vector store with proper chunking
-    """
-    try:
-        store = get_vector_store()
+        try:
+            self.client = chromadb.PersistentClient(
+                path=str(data_dir),
+                settings=ChromaSettings(
+                    anonymized_telemetry=False,
+                    allow_reset=True
+                )
+            )
+            logger.info(f"✅ ChromaDB initialized at {data_dir}")
+        except Exception as e:
+            logger.warning(f"ChromaDB initialization error: {e}, using in-memory")
+            self.client = chromadb.Client()
         
-        # Split texts into chunks
-        all_chunks = []
-        all_metadatas = []
+        self.embedding_service = get_embedding_service()
+    
+    def get_or_create_collection(self, name: str):
+        """Get or create a collection"""
+        try:
+            return self.client.get_or_create_collection(
+                name=name,
+                metadata={"hnsw:space": "cosine"}
+            )
+        except Exception:
+            return self.client.get_or_create_collection(name=name)
+    
+    async def add_documents(
+        self,
+        collection_name: str,
+        texts: List[str],
+        metadatas: Optional[List[Dict]] = None,
+        ids: Optional[List[str]] = None
+    ):
+        """Add documents to collection"""
+        if not texts:
+            return
         
-        for i, text in enumerate(texts):
-            # Create chunks
-            chunks = _text_splitter.split_text(text)
-            all_chunks.extend(chunks)
+        collection = self.get_or_create_collection(collection_name)
+        embeddings = await self.embedding_service.embed_documents(texts)
+        
+        if not ids:
+            ids = [f"doc_{i}" for i in range(len(texts))]
+        
+        if not metadatas:
+            metadatas = [{}] * len(texts)
+        
+        try:
+            collection.add(
+                embeddings=embeddings,
+                documents=texts,
+                metadatas=metadatas,
+                ids=ids
+            )
+        except Exception as e:
+            logger.error(f"Add documents error: {e}")
+            raise
+    
+    async def query_documents(
+        self,
+        collection_name: str,
+        query_text: str,
+        n_results: int = 3
+    ) -> List[Dict]:
+        """Query documents from collection"""
+        try:
+            collection = self.get_or_create_collection(collection_name)
+            query_embedding = await self.embedding_service.embed_text(query_text)
             
-            # Extend metadata to all chunks
-            if metadatas:
-                chunk_metadata = metadatas[i].copy()
-                # Add chunk info to metadata
-                chunk_metadata.update({
-                    "chunk_index": i,
-                    "total_chunks": len(chunks),
-                    "original_length": len(text)
-                })
-                all_metadatas.extend([chunk_metadata] * len(chunks))
-        
-        # Add to vector store
-        ids = store.add_texts(
-            texts=all_chunks,
-            metadatas=all_metadatas if all_metadatas else None,
-            **kwargs
-        )
-        
-        logger.info(f"Added {len(ids)} chunks to vector store")
-        return ids
-
-    except Exception as e:
-        logger.error("Failed to add documents", exc_info=True)
-        raise
-
-def similarity_search(
-    query: str,
-    k: int = 4,
-    filter: Optional[Dict[str, Any]] = None,
-    fetch_k: Optional[int] = None,
-    **kwargs
-) -> List[Document]:
-    """
-    Enhanced similarity search with better defaults and filtering
-    """
-    try:
-        store = get_vector_store()
-        
-        # If fetch_k not specified, get more candidates for better results
-        if fetch_k is None:
-            fetch_k = min(k * 4, 20)
+            results = collection.query(
+                query_embeddings=[query_embedding],
+                n_results=min(n_results, collection.count() or 1)
+            )
             
-        results = store.similarity_search(
-            query,
-            k=k,
-            filter=filter,
-            fetch_k=fetch_k,
-            **kwargs
-        )
-        
-        return results
-        
-    except Exception as e:
-        logger.error(f"Similarity search failed: {str(e)}", exc_info=True)
-        raise
+            documents = []
+            if results["documents"] and results["documents"][0]:
+                for i, doc in enumerate(results["documents"][0]):
+                    documents.append({
+                        "content": doc,
+                        "metadata": results["metadatas"][0][i] if results.get("metadatas") and results["metadatas"][0] else {},
+                        "distance": results["distances"][0][i] if results.get("distances") and results["distances"][0] else 0
+                    })
+            
+            return documents
+        except Exception as e:
+            logger.error(f"Query error: {e}")
+            return []
+    
+    def delete_collection(self, name: str):
+        """Delete a collection"""
+        try:
+            self.client.delete_collection(name)
+        except Exception as e:
+            logger.warning(f"Delete collection error: {e}")
+
+def get_vector_store():
+    """Get singleton vector store"""
+    global _vector_store_instance
+    if _vector_store_instance is None:
+        _vector_store_instance = VectorStoreService()
+    return _vector_store_instance
+
+# For backward compatibility with old code
+def init_vector_store():
+    """Initialize vector store (called on startup)"""
+    return get_vector_store()

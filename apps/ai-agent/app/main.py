@@ -12,20 +12,30 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
 import time
+from datetime import datetime
+import os
 
-from app.config import settings
-from app.api.routes import router
-from app.core.vector_store import init_vector_store
-from app.utils.logger import setup_logger
-
-# Initialize logger
-logger = setup_logger(__name__)
+# Import with error handling
+try:
+    from app.config import settings
+    from app.api.routes import router
+    from app.core.vector_store import init_vector_store
+    from app.utils.logger import setup_logger
+    
+    logger = setup_logger(__name__)
+except Exception as e:
+    print(f"❌ Configuration Error: {e}")
+    print("\nPlease check your .env file and ensure all required settings are correct.")
+    print("Copy .env.example to .env and configure it properly.")
+    import sys
+    sys.exit(1)
 
 # Create FastAPI app
 app = FastAPI(
-    title="Spark AI Agent",
+    title=settings.APP_NAME,
     description="Intelligent study assistant for Entropy platform",
-    version="1.0.0",
+    version=settings.APP_VERSION,
+    debug=settings.DEBUG,
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -33,7 +43,7 @@ app = FastAPI(
 # CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=settings.ALLOWED_ORIGINS if isinstance(settings.ALLOWED_ORIGINS, list) else [settings.ALLOWED_ORIGINS],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -60,7 +70,8 @@ async def global_exception_handler(request: Request, exc: Exception):
 # Startup event
 @app.on_event("startup")
 async def startup_event():
-    logger.info("🚀 Starting Spark AI Agent...")
+    logger.info(f"🚀 Starting {settings.APP_NAME} v{settings.APP_VERSION}")
+    logger.info(f"📊 Groq API configured: {bool(settings.GROQ_API_KEY or os.getenv('GROQ_API_KEY'))}")
 
     # Initialize vector store
     try:
@@ -69,12 +80,12 @@ async def startup_event():
     except Exception as e:
         logger.error(f"❌ Vector store initialization failed: {e}")
 
-    logger.info("✅ Spark AI Agent started successfully")
+    logger.info("✅ Server ready!")
 
 # Shutdown event
 @app.on_event("shutdown")
 async def shutdown_event():
-    logger.info("👋 Shutting down Spark AI Agent...")
+    logger.info("👋 Shutting down...")
 
 # Include API routes
 app.include_router(router, prefix="/api")
@@ -83,10 +94,11 @@ app.include_router(router, prefix="/api")
 @app.get("/")
 async def root():
     return {
-        "service": "Spark AI Agent",
-        "version": "1.0.0",
+        "service": settings.APP_NAME,
+        "version": settings.APP_VERSION,
         "status": "running",
         "functions": [
+            "qa",
             "chat",
             "flashcards",
             "quiz",
@@ -97,9 +109,19 @@ async def root():
 # Health check
 @app.get("/health")
 async def health_check():
+    """Health check endpoint"""
+    groq_key = settings.GROQ_API_KEY or os.getenv("GROQ_API_KEY")
+    
     return {
-        "status": "healthy",
-        "timestamp": time.time()
+        "status": "healthy" if groq_key else "degraded",
+        "version": settings.APP_VERSION,
+        "timestamp": datetime.utcnow().isoformat(),
+        "services": {
+            "groq": bool(groq_key),
+            "embeddings": settings.EMBEDDING_MODEL,
+            "vector_store": "chromadb"
+        },
+        "message": "AI Agent operational" if groq_key else "GROQ_API_KEY not configured"
     }
 
 if __name__ == "__main__":

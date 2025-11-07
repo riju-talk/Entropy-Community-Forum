@@ -1,20 +1,34 @@
+# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.sqlite3
-.env
-.env.*
-.venv/
+*.py[cod]
+*$py.class
+*.so
+.Python
 venv/
-build/
-dist/
+env/
+ENV/
+
+# Data
+data/
+*.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Environment
+.env
+.env.local
+
+# Node
+node_modules/
+package-lock.json
+
+# Git
 .git/
 .gitignore
-nyc_output/
-coverage/
-.mypy_cache/
-.pytest_cache/
-.cache/
-Dockerfile
+
+# Documentation
 README.md
+docs/

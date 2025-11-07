@@ -1,12 +1,12 @@
 """
 Document Processing Service
-Handles text extraction and preprocessing
 """
 
 import os
+import PyPDF2
+import docx
 from typing import Dict, Any, List, Tuple
-from pypdf import PdfReader
-from docx import Document as DocxDocument
+import io
 import re
 
 from app.config import settings
@@ -14,137 +14,89 @@ from app.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
-def process_document(file_path: str) -> Tuple[List[str], List[Dict[str, Any]]]:
-    """
-    Extract and preprocess text from documents
-    Returns (texts, metadatas)
-    """
-    try:
-        file_ext = os.path.splitext(file_path)[1].lower()
-        
-        if file_ext == '.pdf':
-            return _process_pdf(file_path)
-        elif file_ext == '.txt':
-            return _process_text(file_path)
-        elif file_ext in ['.doc', '.docx']:
-            return _process_docx(file_path)
-        else:
-            raise ValueError(f"Unsupported file type: {file_ext}")
-            
-    except Exception as e:
-        logger.error(f"Document processing failed: {str(e)}", exc_info=True)
-        raise
-
-def _process_pdf(file_path: str) -> Tuple[List[str], List[Dict[str, Any]]]:
-    """Process PDF files"""
-    try:
-        reader = PdfReader(file_path)
-        texts = []
-        metadatas = []
-        
-        for i, page in enumerate(reader.pages):
-            text = page.extract_text()
-            if text.strip():
-                texts.append(text)
-                metadatas.append({
-                    "source": os.path.basename(file_path),
-                    "page": i + 1,
-                    "type": "pdf"
-                })
-        
-        return texts, metadatas
-        
-    except Exception as e:
-        logger.error(f"PDF processing failed: {str(e)}")
-        raise
-
-def _process_text(file_path: str) -> Tuple[List[str], List[Dict[str, Any]]]:
-    """Process text files"""
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            text = f.read()
-            
-        # Split into sections if we detect markdown headers
-        sections = _split_markdown_sections(text)
-        
-        texts = []
-        metadatas = []
-        
-        for i, (title, content) in enumerate(sections):
-            if content.strip():
-                texts.append(content)
-                metadatas.append({
-                    "source": os.path.basename(file_path),
-                    "section": title or f"Section {i+1}",
-                    "type": "text"
-                })
-                
-        return texts, metadatas
-        
-    except Exception as e:
-        logger.error(f"Text file processing failed: {str(e)}")
-        raise
-
-def _process_docx(file_path: str) -> Tuple[List[str], List[Dict[str, Any]]]:
-    """Process Word documents"""
-    try:
-        doc = DocxDocument(file_path)
-        texts = []
-        metadatas = []
-        
-        current_text = []
-        
-        for para in doc.paragraphs:
-            if para.text.strip():
-                current_text.append(para.text)
-                
-            # Start new section if we hit a heading
-            if para.style.name.startswith('Heading'):
-                if current_text:
-                    texts.append('\n'.join(current_text))
-                    metadatas.append({
-                        "source": os.path.basename(file_path),
-                        "section": para.text,
-                        "type": "docx"
-                    })
-                    current_text = []
-                    
-        # Add remaining text
-        if current_text:
-            texts.append('\n'.join(current_text))
-            metadatas.append({
-                "source": os.path.basename(file_path),
-                "section": "End",
-                "type": "docx"
-            })
-            
-        return texts, metadatas
-        
-    except Exception as e:
-        logger.error(f"Word document processing failed: {str(e)}")
-        raise
-
-def _split_markdown_sections(text: str) -> List[Tuple[str, str]]:
-    """Split text into sections based on markdown headers"""
-    sections = []
-    lines = text.split('\n')
+class DocumentProcessor:
+    @staticmethod
+    def extract_text_from_pdf(file_content: bytes) -> str:
+        """Extract text from PDF"""
+        try:
+            pdf_file = io.BytesIO(file_content)
+            pdf_reader = PyPDF2.PdfReader(pdf_file)
+            text = ""
+            for page in pdf_reader.pages:
+                text += page.extract_text() + "\n"
+            return text.strip()
+        except Exception as e:
+            logger.error(f"PDF processing error: {e}")
+            raise Exception(f"PDF processing error: {str(e)}")
     
-    current_title = ''
-    current_content = []
+    @staticmethod
+    def extract_text_from_docx(file_content: bytes) -> str:
+        """Extract text from DOCX"""
+        try:
+            doc = docx.Document(io.BytesIO(file_content))
+            text = "\n".join([paragraph.text for paragraph in doc.paragraphs])
+            return text.strip()
+        except Exception as e:
+            logger.error(f"DOCX processing error: {e}")
+            raise Exception(f"DOCX processing error: {str(e)}")
     
-    for line in lines:
-        # Check for markdown headers
-        if re.match(r'^#+\s', line):
-            # Save previous section
-            if current_content:
-                sections.append((current_title, '\n'.join(current_content)))
-                current_content = []
-            current_title = line.lstrip('#').strip()
-        else:
-            current_content.append(line)
-            
-    # Add final section
-    if current_content:
-        sections.append((current_title, '\n'.join(current_content)))
+    @staticmethod
+    def extract_text_from_txt(file_content: bytes) -> str:
+        """Extract text from TXT"""
+        try:
+            return file_content.decode('utf-8').strip()
+        except Exception as e:
+            logger.error(f"TXT processing error: {e}")
+            raise Exception(f"TXT processing error: {str(e)}")
+    
+    @staticmethod
+    async def process_documents(files: List) -> List[str]:
+        """Process multiple documents and return texts"""
+        texts = []
         
-    return sections or [('', text)]  # Default to whole text if no sections
+        for file in files:
+            content = await file.read()
+            filename = file.filename.lower()
+            
+            try:
+                if filename.endswith('.pdf'):
+                    text = DocumentProcessor.extract_text_from_pdf(content)
+                elif filename.endswith('.docx'):
+                    text = DocumentProcessor.extract_text_from_docx(content)
+                elif filename.endswith('.txt'):
+                    text = DocumentProcessor.extract_text_from_txt(content)
+                else:
+                    logger.warning(f"Unsupported file type: {filename}")
+                    continue
+                
+                if text:
+                    texts.append(text)
+            except Exception as e:
+                logger.error(f"Error processing {filename}: {e}")
+                continue
+        
+        return texts
+    
+    @staticmethod
+    def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> List[str]:
+        """Split text into chunks"""
+        chunks = []
+        start = 0
+        text_length = len(text)
+        
+        while start < text_length:
+            end = start + chunk_size
+            chunk = text[start:end]
+            chunks.append(chunk)
+            start = end - overlap
+        
+        return chunks
+
+# Singleton
+_processor_instance = None
+
+def get_document_processor():
+    global _processor_instance
+    if _processor_instance is None:
+        _processor_instance = DocumentProcessor()
+    return _processor_instance

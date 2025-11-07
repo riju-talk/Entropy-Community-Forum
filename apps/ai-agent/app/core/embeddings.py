@@ -3,45 +3,58 @@ Embeddings Service
 Provides embedding models and configuration
 """
 
-from typing import Optional
-from langchain_huggingface import HuggingFaceEmbeddings
-from app.config import settings
+from typing import List, Optional
 from app.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
 _embeddings_instance = None
 
-def get_embeddings():
-    """
-    Get configured embeddings model instance
-    Default to all-MiniLM-L6-v2 for better quality,
-    fallback to GPT4All for offline/local use
-    """
-    global _embeddings_instance
-
-    if _embeddings_instance is not None:
-        return _embeddings_instance
-
-    try:
-        # Try HuggingFace (sentence-transformers) first
-        logger.info(f"Initializing embeddings model: {settings.EMBEDDING_MODEL}")
-        _embeddings_instance = HuggingFaceEmbeddings(
-            model_name=settings.EMBEDDING_MODEL,
-            model_kwargs={'device': 'cpu'},
-            encode_kwargs={'normalize_embeddings': True}
-        )
-        logger.info("Using HuggingFace embeddings (sentence-transformers)")
-        return _embeddings_instance
-
-    except Exception as e:
-        logger.warning(f"Failed to initialize HuggingFace embeddings: {str(e)}")
-        logger.info("Falling back to GPT4All embeddings")
+class EmbeddingService:
+    def __init__(self):
+        self._embeddings = None
+    
+    def _get_embeddings(self):
+        """Lazy load embeddings model"""
+        if self._embeddings is None:
+            try:
+                from gpt4all import Embed4All
+                self._embeddings = Embed4All()
+                logger.info("✅ GPT4All embeddings model loaded")
+            except Exception as e:
+                logger.warning(f"Could not load GPT4All embeddings: {e}")
+                self._embeddings = "fallback"
+        return self._embeddings
+    
+    async def embed_text(self, text: str) -> List[float]:
+        """Embed a single text"""
+        embeddings = self._get_embeddings()
+        if embeddings == "fallback":
+            return self._simple_embed(text)
         
         try:
-            # Fallback to GPT4All (local, no download needed)
-            _embeddings_instance = GPT4AllEmbeddings()
-            return _embeddings_instance
+            return embeddings.embed(text)
         except Exception as e:
-            logger.error("Failed to initialize embeddings", exc_info=True)
-            raise
+            logger.warning(f"Embedding error: {e}, using fallback")
+            return self._simple_embed(text)
+    
+    async def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        """Embed multiple documents"""
+        return [await self.embed_text(text) for text in texts]
+    
+    def _simple_embed(self, text: str) -> List[float]:
+        """Fallback simple embedding"""
+        import hashlib
+        hash_obj = hashlib.md5(text.encode())
+        hash_bytes = hash_obj.digest()
+        embedding = []
+        for _ in range(24):
+            embedding.extend([float(b) / 255.0 for b in hash_bytes])
+        return embedding[:384]
+
+def get_embedding_service():
+    """Get singleton embedding service"""
+    global _embeddings_instance
+    if _embeddings_instance is None:
+        _embeddings_instance = EmbeddingService()
+    return _embeddings_instance

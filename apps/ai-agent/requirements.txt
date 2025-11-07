@@ -1,37 +1,25 @@
-# FastAPI
-fastapi>=0.103.0
-uvicorn[standard]>=0.23.0
-pydantic>=2.3.0
-pydantic-settings>=2.0.0
-python-multipart>=0.0.6
+# FastAPI and server
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+pydantic==2.5.0
+pydantic-settings==2.1.0
+python-dotenv==1.0.0
 
-# LangChain
-langchain>=0.1.0
-langchain-community>=0.0.10
-langchain-huggingface>=0.0.1
-langchain-groq>=0.0.2
-groq>=0.3.0
-gpt4all>=1.0.0
+# AI/LLM - Using FREE Groq API
+groq==0.4.2
 
-# Vector Store & Embeddings
-chromadb>=0.4.0
-langchain-chroma>=0.1.0
-sentence-transformers>=2.2.0
-torch>=2.0.0  # needed by sentence-transformers
-numpy>=1.24.0  # needed by various ML packages
+# Embeddings - FREE local embeddings (NO HUGGINGFACE)
+gpt4all==2.5.0
+
+# Vector Store - FREE/Local
+chromadb==0.4.22
 
 # Document Processing
-pypdf>=3.17.0  # new name for PyPDF2
-python-docx>=1.0.0
-markdown>=3.5.0  # for markdown processing
+PyPDF2==3.0.1
+python-docx==1.1.0
 
 # Utilities
-python-dotenv>=1.0.0
-python-jose[cryptography]>=3.3.0
-httpx>=0.24.0
-tenacity>=8.2.0  # for retries
-loguru>=0.7.0  # better logging
-
-# Database (optional)
-asyncpg>=0.28.0
-psycopg2-binary>=2.9.9  # needed by some langchain features
+aiofiles==23.2.1
+httpx==0.26.0
+numpy==1.26.3

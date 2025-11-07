@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth/next";
+import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -8,16 +8,20 @@ export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session?.user?.id) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({ 
-      where: { id: session.user.id },
+      where: { email: session.user.email },
       select: { credits: true }
     });
 
-    return NextResponse.json({ credits: user?.credits || 0 });
+    if (!user) {
+      return NextResponse.json({ credits: 0 });
+    }
+
+    return NextResponse.json({ credits: user.credits || 0 });
   } catch (error) {
     console.error("Error fetching user credits:", error);
     return NextResponse.json({ error: "Failed to fetch credits" }, { status: 500 });
@@ -29,8 +33,17 @@ export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session?.user?.id) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true, credits: true }
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const body = await request.json();
@@ -40,55 +53,74 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Action is required" }, { status: 400 });
     }
 
-    const cost = amount || 1;
+    const cost = amount || 1; // Default cost of 1 credit
 
-    // First check if user has enough credits
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { credits: true }
-    });
+    // Use transaction to ensure data consistency
+    const result = await prisma.$transaction(async (tx) => {
+      // Get current user with locking to prevent race conditions
+      const currentUser = await tx.user.findUnique({
+        where: { id: user.id },
+        select: { id: true, credits: true }
+      });
 
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
+      if (!currentUser) {
+        throw new Error("User not found");
+      }
 
-    if (user.credits < cost) {
-      return NextResponse.json({
-        error: "Insufficient credits",
-        required: cost,
-        available: user.credits
-      }, { status: 402 });
-    }
+      if (currentUser.credits < cost) {
+        throw new Error("Insufficient credits");
+      }
 
-    // Update user credits
-    const updatedUser = await prisma.user.update({
-      where: { id: session.user.id },
-      data: { 
-        credits: { decrement: cost },
-        updatedAt: new Date()
-      },
-      select: { credits: true }
-    });
+      // Update user credits
+      const updatedUser = await tx.user.update({
+        where: { id: user.id },
+        data: { 
+          credits: { decrement: cost },
+          updatedAt: new Date()
+        },
+        select: { credits: true }
+      });
 
-    // Create ledger entry
-    await prisma.points_ledger.create({
-      data: {
-        userId: session.user.id,
-        eventType: "CREDITS_REDEEMED",
-        points: -cost,
-        description: `Redeemed ${cost} credits for ${action}`,
-        createdAt: new Date(),
-      },
+      // Create ledger entry
+      await tx.pointsLedger.create({
+        data: {
+          userId: user.id,
+          eventType: "CREDITS_REDEEMED",
+          points: -cost,
+          description: `Redeemed ${cost} credits for ${action}`,
+          createdAt: new Date(),
+        },
+      });
+
+      return updatedUser;
     });
 
     return NextResponse.json({
-      credits: updatedUser.credits,
+      credits: result.credits,
       redeemed: cost,
       action
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error redeeming credits:", error);
+    
+    if (error.message === "User not found") {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+    
+    if (error.message === "Insufficient credits") {
+      const currentUser = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { credits: true }
+      });
+      
+      return NextResponse.json({
+        error: "Insufficient credits",
+        required: cost,
+        available: currentUser?.credits || 0
+      }, { status: 402 });
+    }
+
     return NextResponse.json({ error: "Failed to redeem credits" }, { status: 500 });
   }
 }
