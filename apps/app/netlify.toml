@@ -1,6 +1,6 @@
 [build]
   base = "apps/app"
-  command = "npm run build"
+  command = "npm run generate && npm run build"
   publish = ".next"
 
 [build.environment]
