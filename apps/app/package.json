@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p 5000",
     "generate": "npx prisma generate --schema=prisma/schema.prisma",
-    "build": "next build",
+    "build": "sh -c \"if [ -n \\\"$DATABASE_URL\\\" ]; then echo 'Running prisma generate (DATABASE_URL present)'; npx prisma generate --schema=prisma/schema.prisma; else echo 'Skipping prisma generate (DATABASE_URL not set)'; fi\" && next build",
     "start": "next start -p 5000",
     "lint": "next lint",
     "test": "jest",
