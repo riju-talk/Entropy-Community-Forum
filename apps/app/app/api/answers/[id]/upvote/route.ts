@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+import { PrismaClient } from "@prisma/client"
+
+let __prisma__: PrismaClient | undefined;
+function getPrisma() {
+  if (!__prisma__) {
+    __prisma__ = new PrismaClient({ log: ["error", "warn"] });
+  }
+  return __prisma__;
+}
 
 export async function POST(
   req: NextRequest,
@@ -17,7 +25,7 @@ export async function POST(
     const answerId = params.id
 
     // Verify answer exists
-    const answer = await prisma.answer.findUnique({
+    const answer = await getPrisma().answer.findUnique({
       where: { id: answerId },
     })
 

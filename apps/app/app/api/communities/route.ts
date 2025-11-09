@@ -1,29 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
+let __prisma__: PrismaClient | undefined;
+function getPrisma() {
+  if (!__prisma__) {
+    __prisma__ = new PrismaClient({ log: ["error", "warn"] });
+  }
+  return __prisma__;
+}
+
 export async function GET(_req: NextRequest) {
   try {
-    const communities = await prisma.community.findMany({
+    const communities = await getPrisma().community.findMany({
       orderBy: { createdAt: "desc" },
       take: 5,
-      include: {
-        _count: {
-          select: { members: true },
-        },
-      },
     });
 
-    return NextResponse.json(
-      communities.map((c) => ({
-        id: c.id,
-        name: c.name,
-        description: c.description,
-        memberCount: c._count.members,
-        createdAt: c.createdAt,
-      }))
+    // Fetch member counts separately for each community
+    const communitiesWithCounts = await Promise.all(
+      communities.map(async (c) => {
+        const memberCount = await getPrisma().communityMember.count({
+          where: { communityId: c.id },
+        });
+        return {
+          id: c.id,
+          name: c.name,
+          description: c.description,
+          memberCount,
+          createdAt: c.createdAt,
+        };
+      })
     );
+
+    return NextResponse.json(communitiesWithCounts);
   } catch (error) {
     console.error("Error fetching communities:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -37,9 +48,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await getPrisma().user.findUnique({
       where: { email: session.user.email },
-      select: { id: true }
+      select: { id: true },
     });
 
     if (!user) {
@@ -50,7 +61,7 @@ export async function POST(req: NextRequest) {
     const { name, description, subject, isPublic } = body;
 
     // Create community and add creator as first member (ADMIN) in a transaction
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await getPrisma().$transaction(async (tx) => {
       const community = await tx.community.create({
         data: {
           name,

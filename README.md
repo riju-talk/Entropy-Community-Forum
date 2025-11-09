@@ -102,6 +102,11 @@ Please treat this as high priority for the alpha stage — document upload is co
 
 ---
 
+## 🌐 Live Demo
+
+- **Production**: [https://entropy-community-forum.vercel.app](https://entropy-community-forum.vercel.app)
+- **AI Agent Backend**: [https://entropy-community-forum.onrender.com](https://entropy-community-forum.onrender.com)
+
 1) Repo layout (monorepo / Turborepo)
 - Root
   - package.json (turbo scripts)

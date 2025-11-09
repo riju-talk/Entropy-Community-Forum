@@ -14,10 +14,6 @@ interface Community {
   description: string | null
   subject: string | null
   createdAt: string
-  _count: {
-    members: number
-    communityDoubts: number
-  }
 }
 
 interface Doubt {
@@ -243,10 +239,8 @@ export default function FeedContent() {
                           <div className="flex items-center gap-3 text-xs text-neutral-400">
                             <span className="flex items-center gap-1">
                               <Users className="h-3 w-3" />
-                              {community._count.members}
+                              Community
                             </span>
-                            <span>•</span>
-                            <span>{community._count.communityDoubts} posts</span>
                           </div>
                         </div>
                       </div>

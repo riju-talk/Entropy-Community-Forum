@@ -1,9 +1,17 @@
 "use server"
 
 import { getServerSession } from "next-auth"
-import { prisma } from "@/lib/prisma"
+import { PrismaClient } from "@prisma/client"
 import { authOptions } from "@/lib/auth"
 import { PointEventType } from "@prisma/client"
+
+let __prisma__: PrismaClient | undefined;
+function getPrisma() {
+  if (!__prisma__) {
+    __prisma__ = new PrismaClient({ log: ["error", "warn"] });
+  }
+  return __prisma__;
+}
 
 const CREDIT_VALUES = {
   DOUBT_CREATED: 1,      // 1 credit for asking
@@ -18,7 +26,7 @@ export async function getUserCredits() {
     return { credits: 0, subscriptionTier: "FREE", documentCount: 0 }
   }
 
-  const user = await prisma.user.findUnique({
+  const user = await getPrisma().user.findUnique({
     where: { id: session.user.id },
     select: {
       credits: true,
@@ -39,7 +47,7 @@ export async function awardCredits(
 ) {
   try {
     // Create ledger entry
-    await prisma.pointsLedger.create({
+    await getPrisma().pointsLedger.create({
       data: {
         userId,
         eventType,
@@ -50,7 +58,7 @@ export async function awardCredits(
     })
 
     // Update user credits
-    await prisma.user.update({
+    await getPrisma().user.update({
       where: { id: userId },
       data: {
         credits: {
@@ -67,7 +75,7 @@ export async function awardCredits(
 }
 
 export async function checkUserCredits(userId: string): Promise<number> {
-  const user = await prisma.user.findUnique({
+  const user = await getPrisma().user.findUnique({
     where: { id: userId },
     select: { credits: true },
   })
@@ -82,7 +90,7 @@ export async function deductCredits(amount: number) {
     throw new Error("Authentication required")
   }
 
-  const user = await prisma.user.findUnique({
+  const user = await getPrisma().user.findUnique({
     where: { id: session.user.id },
     select: { credits: true },
   })
@@ -91,7 +99,7 @@ export async function deductCredits(amount: number) {
     throw new Error("Insufficient credits")
   }
 
-  await prisma.user.update({
+  await getPrisma().user.update({
     where: { id: session.user.id },
     data: {
       credits: {
@@ -110,7 +118,7 @@ export async function addCredits(amount: number) {
     throw new Error("Authentication required")
   }
 
-  await prisma.user.update({
+  await getPrisma().user.update({
     where: { id: session.user.id },
     data: {
       credits: {
@@ -119,7 +127,7 @@ export async function addCredits(amount: number) {
     },
   })
 
-  const user = await prisma.user.findUnique({
+  const user = await getPrisma().user.findUnique({
     where: { id: session.user.id },
     select: { credits: true },
   })
@@ -141,7 +149,7 @@ export async function updateSubscription(tier: string) {
     creditsToAdd = 2000
   }
 
-  await prisma.user.update({
+  await getPrisma().user.update({
     where: { id: session.user.id },
     data: {
       subscriptionTier: tier,
@@ -161,7 +169,7 @@ export async function incrementDocumentCount() {
     throw new Error("Authentication required")
   }
 
-  const user = await prisma.user.findUnique({
+  const user = await getPrisma().user.findUnique({
     where: { id: session.user.id },
     select: { documentCount: true, subscriptionTier: true },
   })
@@ -174,7 +182,7 @@ export async function incrementDocumentCount() {
     throw new Error("Document limit reached for free tier")
   }
 
-  await prisma.user.update({
+  await getPrisma().user.update({
     where: { id: session.user.id },
     data: {
       documentCount: {
@@ -193,7 +201,7 @@ export async function decrementDocumentCount() {
     throw new Error("Authentication required")
   }
 
-  const user = await prisma.user.findUnique({
+  const user = await getPrisma().user.findUnique({
     where: { id: session.user.id },
     select: { documentCount: true },
   })
@@ -203,7 +211,7 @@ export async function decrementDocumentCount() {
   }
 
   if (user.documentCount > 0) {
-    await prisma.user.update({
+    await getPrisma().user.update({
       where: { id: session.user.id },
       data: {
         documentCount: {
@@ -233,7 +241,7 @@ export async function checkCreditsAndDeduct(operation: string) {
 
   const cost = costMap[operation] || 1
 
-  const user = await prisma.user.findUnique({
+  const user = await getPrisma().user.findUnique({
     where: { id: session.user.id },
     select: { credits: true, subscriptionTier: true },
   })
@@ -249,7 +257,7 @@ export async function checkCreditsAndDeduct(operation: string) {
   }
 
   if (user.subscriptionTier === "FREE") {
-    await prisma.user.update({
+    await getPrisma().user.update({
       where: { id: session.user.id },
       data: {
         credits: {
@@ -268,7 +276,7 @@ export async function checkCreditsAndDeduct(operation: string) {
 }
 
 export async function getCreditHistory(userId: string, limit = 20) {
-  return await prisma.pointsLedger.findMany({
+  return await getPrisma().pointsLedger.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
     take: limit,

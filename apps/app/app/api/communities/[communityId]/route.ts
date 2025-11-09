@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { PrismaClient } from "@prisma/client"
+
+let __prisma__: PrismaClient | undefined;
+function getPrisma() {
+  if (!__prisma__) {
+    __prisma__ = new PrismaClient({ log: ["error", "warn"] });
+  }
+  return __prisma__;
+}
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: { communityId: string } }
 ) {
   try {
-    const community = await prisma.community.findUnique({
+    const community = await getPrisma().community.findUnique({
       where: { id: params.communityId },
       select: {
         id: true,
@@ -16,12 +24,6 @@ export async function GET(
         isPublic: true,
         createdAt: true,
         createdBy: true,
-        _count: {
-          select: {
-            members: true,
-            communityDoubts: true
-          }
-        }
       }
     })
 
@@ -29,7 +31,19 @@ export async function GET(
       return NextResponse.json({ error: "Community not found" }, { status: 404 })
     }
 
-    return NextResponse.json(community)
+    // Fetch counts separately
+    const [memberCount, postCount] = await Promise.all([
+      getPrisma().communityMember.count({ where: { communityId: params.communityId } }),
+      getPrisma().communityDoubt.count({ where: { communityId: params.communityId } }),
+    ])
+
+    return NextResponse.json({
+      ...community,
+      _count: {
+        members: memberCount,
+        communityDoubts: postCount,
+      }
+    })
   } catch (error) {
     console.error("Error fetching community:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

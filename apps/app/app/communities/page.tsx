@@ -17,10 +17,6 @@ interface Community {
   description: string | null
   subject: string | null
   createdAt: string
-  _count: {
-    members: number
-    communityDoubts: number
-  }
 }
 
 export default function CommunitiesPage() {
@@ -71,7 +67,7 @@ export default function CommunitiesPage() {
     }
   }
 
-  const filteredCommunities = communities.filter((community) =>
+  const filteredCommunities = (communities || []).filter((community) =>
     community.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
@@ -149,11 +145,11 @@ export default function CommunitiesPage() {
                     <div className="flex items-center justify-between text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4" />
-                        <span>{community._count.members} members</span>
+                        <span>Community</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        <TrendingUp className="h-4 w-4" />
-                        <span>{community._count.communityDoubts} posts</span>
+                        <Clock className="h-3 w-3" />
+                        {formatDistanceToNow(new Date(community.createdAt), { addSuffix: true })}
                       </div>
                     </div>
                     {community.subject && (

@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+import { PrismaClient } from "@prisma/client"
+
+let __prisma__: PrismaClient | undefined;
+function getPrisma() {
+  if (!__prisma__) {
+    __prisma__ = new PrismaClient({ log: ["error", "warn"] });
+  }
+  return __prisma__;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,7 +20,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get the actual user from database
-    const user = await prisma.user.findUnique({
+    const user = await getPrisma().user.findUnique({
       where: { email: session.user.email },
       select: { id: true }
     })
@@ -40,7 +48,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify doubt exists
-    const doubt = await prisma.doubt.findUnique({
+    const doubt = await getPrisma().doubt.findUnique({
       where: { id: doubtId },
       select: { id: true }
     })
@@ -53,7 +61,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create answer
-    const answer = await prisma.answer.create({
+    const answer = await getPrisma().answer.create({
       data: {
         content: content.trim(),
         doubtId,

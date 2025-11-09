@@ -2,9 +2,17 @@
 
 import { revalidatePath } from "next/cache"
 import { getServerSession } from "next-auth"
-import { prisma } from "@/lib/prisma"
+import { PrismaClient } from "@prisma/client"
 import { authOptions } from "@/lib/auth"
 import { awardCredits } from "./credits"
+
+let __prisma__: PrismaClient | undefined
+function getPrisma() {
+  if (!__prisma__) {
+    __prisma__ = new PrismaClient({ log: ["error", "warn"] })
+  }
+  return __prisma__
+}
 
 export async function createAnswer(doubtId: string, content: string) {
   const session = await getServerSession(authOptions)
@@ -13,7 +21,7 @@ export async function createAnswer(doubtId: string, content: string) {
     throw new Error("Authentication required")
   }
 
-  const answer = await prisma.answer.create({
+  const answer = await getPrisma().answer.create({
     data: {
       content,
       doubtId,
@@ -35,7 +43,7 @@ export async function acceptAnswer(answerId: string, doubtId: string) {
 
   try {
     // Verify the doubt belongs to the current user
-    const doubt = await prisma.doubt.findUnique({
+    const doubt = await getPrisma().doubt.findUnique({
       where: { id: doubtId },
       select: { authorId: true },
     })
@@ -45,7 +53,7 @@ export async function acceptAnswer(answerId: string, doubtId: string) {
     }
 
     // Get the answer to find the answerer's ID
-    const answer = await prisma.answer.findUnique({
+    const answer = await getPrisma().answer.findUnique({
       where: { id: answerId },
       select: { userId: true },
     })
@@ -55,7 +63,7 @@ export async function acceptAnswer(answerId: string, doubtId: string) {
     }
 
     // Mark answer as accepted
-    await prisma.answer.update({
+    await getPrisma().answer.update({
       where: { id: answerId },
       data: { isAccepted: true },
     })
@@ -85,7 +93,7 @@ export async function voteOnAnswer(answerId: string, voteType: "UP" | "DOWN") {
     throw new Error("Authentication required")
   }
 
-  const existingVote = await prisma.answerVote.findUnique({
+  const existingVote = await getPrisma().answerVote.findUnique({
     where: {
       userId_answerId: {
         userId: session.user.id,
@@ -97,19 +105,19 @@ export async function voteOnAnswer(answerId: string, voteType: "UP" | "DOWN") {
   if (existingVote) {
     if (existingVote.type === voteType) {
       // Remove vote
-      await prisma.answerVote.delete({
+      await getPrisma().answerVote.delete({
         where: { id: existingVote.id },
       })
     } else {
       // Change vote
-      await prisma.answerVote.update({
+      await getPrisma().answerVote.update({
         where: { id: existingVote.id },
         data: { type: voteType },
       })
     }
   } else {
     // New vote
-    await prisma.answerVote.create({
+    await getPrisma().answerVote.create({
       data: {
         userId: session.user.id,
         answerId,
@@ -119,7 +127,7 @@ export async function voteOnAnswer(answerId: string, voteType: "UP" | "DOWN") {
   }
 
   // Recalculate answer score
-  const votes = await prisma.answerVote.groupBy({
+  const votes = await getPrisma().answerVote.groupBy({
     by: ["type"],
     where: { answerId },
     _count: true,
@@ -128,7 +136,7 @@ export async function voteOnAnswer(answerId: string, voteType: "UP" | "DOWN") {
   const upvotes = votes.find((v) => v.type === "UP")?._count ?? 0
   const downvotes = votes.find((v) => v.type === "DOWN")?._count ?? 0
 
-  const answer = await prisma.answer.update({
+  const answer = await getPrisma().answer.update({
     where: { id: answerId },
     data: {
       upvotes,

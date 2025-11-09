@@ -3,7 +3,18 @@ import { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import GitHubProvider from "next-auth/providers/github"
 import { PrismaAdapter } from "@auth/prisma-adapter"
-import { prisma } from "@/lib/prisma"
+import { PrismaClient } from "@prisma/client"
+
+// Local Prisma singleton
+let __prisma__: PrismaClient | undefined
+function getPrisma() {
+  if (!__prisma__) {
+    __prisma__ = new PrismaClient({ log: ["error", "warn"] })
+  }
+  return __prisma__
+}
+
+const prisma = getPrisma()
 
 // Prefer GITHUB_ID/SECRET but also support *_CLIENT_* fallbacks
 const githubId = process.env.GITHUB_ID || process.env.GITHUB_CLIENT_ID
@@ -120,5 +131,3 @@ if (process.env.NODE_ENV === "development") {
     NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
   })
 }
-
-export { prisma }

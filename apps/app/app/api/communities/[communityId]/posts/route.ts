@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+import { PrismaClient } from "@prisma/client"
 import { awardCredits } from "@/app/actions/credits"
+
+let __prisma__: PrismaClient | undefined;
+function getPrisma() {
+  if (!__prisma__) {
+    __prisma__ = new PrismaClient({ log: ["error", "warn"] });
+  }
+  return __prisma__;
+}
 
 export async function GET(
   req: NextRequest,
@@ -10,7 +18,7 @@ export async function GET(
 ) {
   try {
     // Step 1: Get all doubtIds linked to this community
-    const communityDoubts = await prisma.communityDoubt.findMany({
+    const communityDoubts = await getPrisma().communityDoubt.findMany({
       where: { communityId: params.communityId },
       select: { doubtId: true },
     })
@@ -24,12 +32,10 @@ export async function GET(
       return NextResponse.json({ posts: [] })
     }
 
-    // Step 3: Fetch the actual doubts - REMOVE isInCommunity filter
-    // If a doubt is in CommunityDoubt table, show it regardless of flag
-    const posts = await prisma.doubt.findMany({
+    // Step 3: Fetch the actual doubts
+    const posts = await getPrisma().doubt.findMany({
       where: {
         id: { in: doubtIds },
-        // DON'T filter by isInCommunity here - if it's linked, show it
       },
       orderBy: { createdAt: "desc" },
       include: {
@@ -51,7 +57,7 @@ export async function GET(
     const postsToUpdate = posts.filter(p => !p.isInCommunity).map(p => p.id)
     if (postsToUpdate.length > 0) {
       console.log(`[Community ${params.communityId}] Updating ${postsToUpdate.length} posts to set isInCommunity=true`)
-      await prisma.doubt.updateMany({
+      await getPrisma().doubt.updateMany({
         where: { id: { in: postsToUpdate } },
         data: { isInCommunity: true }
       })
@@ -89,7 +95,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await getPrisma().user.findUnique({
       where: { email: session.user.email },
       select: { id: true, credits: true, name: true }
     })
@@ -108,7 +114,7 @@ export async function POST(
     }
 
     // Verify community exists
-    const community = await prisma.community.findUnique({
+    const community = await getPrisma().community.findUnique({
       where: { id: params.communityId },
       select: { id: true, name: true }
     })
@@ -120,14 +126,14 @@ export async function POST(
     console.log(`[POST] Creating doubt for community ${params.communityId}`)
 
     // Create doubt WITH isInCommunity flag set to true
-    const post = await prisma.doubt.create({
+    const post = await getPrisma().doubt.create({
       data: {
         title: title.trim(),
         content: content.trim(),
         subject: subject || "OTHER",
         authorId: user.id,
         tags: [],
-        isInCommunity: true, // Mark as community-only doubt
+        isInCommunity: true,
       },
       select: {
         id: true,
@@ -147,7 +153,7 @@ export async function POST(
     console.log(`[POST] Created doubt ${post.id}`)
 
     // Link to community via junction table
-    const communityDoubt = await prisma.communityDoubt.create({
+    await getPrisma().communityDoubt.create({
       data: {
         communityId: params.communityId,
         doubtId: post.id,

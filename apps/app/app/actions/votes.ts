@@ -1,10 +1,18 @@
 "use server"
 
 import { getServerSession } from "next-auth"
-import { prisma } from "@/lib/prisma"
+import { PrismaClient } from "@prisma/client"
 import { authOptions } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
+
+let __prisma__: PrismaClient | undefined
+function getPrisma() {
+  if (!__prisma__) {
+    __prisma__ = new PrismaClient({ log: ["error", "warn"] })
+  }
+  return __prisma__
+}
 
 const voteSchema = z.object({
   type: z.enum(["UP", "DOWN"]),
@@ -29,7 +37,7 @@ export async function handleVote(formData: FormData) {
     throw new Error("Either doubtId or commentId must be provided")
   }
 
-  const existingVote = await prisma.vote.findFirst({
+  const existingVote = await getPrisma().vote.findFirst({
     where: {
       userId: session.user.id,
       ...(doubtId ? { doubtId } : {}),
@@ -38,7 +46,7 @@ export async function handleVote(formData: FormData) {
   })
 
   // Begin transaction
-  await prisma.$transaction(async (tx: any) => {
+  await getPrisma().$transaction(async (tx: any) => {
     if (existingVote) {
       if (existingVote.type === type) {
         // Remove vote if same type

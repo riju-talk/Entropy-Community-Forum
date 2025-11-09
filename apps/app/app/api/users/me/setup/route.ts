@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { PrismaClient } from "@prisma/client";
+
+let __prisma__: PrismaClient | undefined;
+function getPrisma() {
+  if (!__prisma__) {
+    __prisma__ = new PrismaClient({ log: ["error", "warn"] });
+  }
+  return __prisma__;
+}
 
 // Check if profile setup is complete
 export async function GET(request: Request) {
@@ -12,7 +20,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let user = await prisma.user.findUnique({
+    let user = await getPrisma().user.findUnique({
       where: { email: session.user.email },
       select: {
         id: true,
@@ -29,7 +37,7 @@ export async function GET(request: Request) {
     if (!user) {
       console.log('[Profile Setup Check] User not found, creating:', session.user.email);
       
-      const newUser = await prisma.user.create({
+      const newUser = await getPrisma().user.create({
         data: {
           email: session.user.email,
           name: session.user.name || null,
@@ -120,7 +128,7 @@ export async function POST(request: Request) {
     console.log('[Profile Setup] Upserting user:', session.user.email);
 
     // Upsert user profile (create if doesn't exist, update if exists)
-    const updatedUser = await prisma.user.upsert({
+    const updatedUser = await getPrisma().user.upsert({
       where: { email: session.user.email },
       create: {
         email: session.user.email,

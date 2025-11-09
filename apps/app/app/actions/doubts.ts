@@ -3,10 +3,18 @@
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { getServerSession } from "next-auth"
-import { prisma } from "@/lib/prisma"
+import { PrismaClient } from "@prisma/client"
 import { authOptions } from "@/lib/auth"
 import { createDoubtSchema, voteSchema } from "@/lib/validations"
 import { awardCredits } from "./credits"
+
+let __prisma__: PrismaClient | undefined
+function getPrisma() {
+  if (!__prisma__) {
+    __prisma__ = new PrismaClient({ log: ["error", "warn"] })
+  }
+  return __prisma__
+}
 
 export async function createDoubt(formData: FormData) {
   const session = await getServerSession(authOptions)
@@ -27,7 +35,7 @@ export async function createDoubt(formData: FormData) {
 
   const validatedData = createDoubtSchema.parse(data)
 
-  const doubt = await prisma.doubt.create({
+  const doubt = await getPrisma().doubt.create({
     data: {
       ...validatedData,
       subject: validatedData.subject as any,
@@ -64,7 +72,7 @@ export async function getDoubts(params?: {
     const skip = (page - 1) * limit
 
     // Get all doubtIds that are in ANY community
-    const communityDoubtIds = await prisma.communityDoubt.findMany({
+    const communityDoubtIds = await getPrisma().communityDoubt.findMany({
       select: { doubtId: true },
     })
 
@@ -91,7 +99,7 @@ export async function getDoubts(params?: {
     }
 
     const [doubts, total] = await Promise.all([
-      prisma.doubt.findMany({
+      getPrisma().doubt.findMany({
         where,
         select: {
           id: true,
@@ -124,7 +132,7 @@ export async function getDoubts(params?: {
         take: limit,
         skip,
       }),
-      prisma.doubt.count({ where }),
+      getPrisma().doubt.count({ where }),
     ])
 
     return {
@@ -147,7 +155,7 @@ export async function getDoubts(params?: {
 }
 
 export async function getDoubtById(id: string) {
-  const doubt = await prisma.doubt.findUnique({
+  const doubt = await getPrisma().doubt.findUnique({
     where: { id },
     include: {
       author: {
@@ -189,7 +197,7 @@ export async function getDoubtById(id: string) {
 
   if (doubt) {
     // Increment view count
-    await prisma.doubt.update({
+    await getPrisma().doubt.update({
       where: { id },
       data: { views: { increment: 1 } },
     })

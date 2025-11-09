@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { PrismaClient } from "@prisma/client";
+
+let __prisma__: PrismaClient | undefined;
+function getPrisma() {
+  if (!__prisma__) {
+    __prisma__ = new PrismaClient({ log: ["error", "warn"] });
+  }
+  return __prisma__;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,7 +26,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get the actual user from database using email
-    const user = await prisma.user.findUnique({
+    const user = await getPrisma().user.findUnique({
       where: { email: session.user.email },
       select: { id: true },
     });
@@ -51,7 +59,7 @@ export async function POST(req: NextRequest) {
     console.log("Creating doubt with authorId:", user.id);
 
     // Upsert doubt
-    const doubt = await prisma.doubt.upsert({
+    const doubt = await getPrisma().doubt.upsert({
       where: {
         id: id || "new-doubt-placeholder",
       },
@@ -111,7 +119,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const doubts = await prisma.doubt.findMany({
+    const doubts = await getPrisma().doubt.findMany({
       where: {
         isInCommunity: false,
       },

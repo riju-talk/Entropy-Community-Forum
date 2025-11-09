@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (type === "all" || type === "communities") {
-      communities = await prisma.community.findMany({
+      const communitiesRaw = await prisma.community.findMany({
         where: {
           OR: [
             { name: { contains: searchTerm, mode: "insensitive" } },
@@ -56,17 +56,32 @@ export async function GET(req: NextRequest) {
           ],
         },
         take: 10,
-        include: {
-          _count: {
-            select: {
-              members: true,
-            },
-          },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          subject: true,
+          createdAt: true,
         },
         orderBy: {
           createdAt: "desc",
         },
       })
+
+      // Fetch member counts separately
+      communities = await Promise.all(
+        communitiesRaw.map(async (c) => {
+          const memberCount = await prisma.communityMember.count({
+            where: { communityId: c.id },
+          })
+          return {
+            ...c,
+            _count: {
+              members: memberCount,
+            },
+          }
+        })
+      )
     }
 
     if (type === "all" || type === "users") {

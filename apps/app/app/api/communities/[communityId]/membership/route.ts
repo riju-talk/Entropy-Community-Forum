@@ -1,30 +1,38 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+import { PrismaClient } from "@prisma/client"
+
+let __prisma__: PrismaClient | undefined;
+function getPrisma() {
+  if (!__prisma__) {
+    __prisma__ = new PrismaClient({ log: ["error", "warn"] });
+  }
+  return __prisma__;
+}
 
 // Check membership status
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { communityId: string } }
 ) {
   try {
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.email) {
-      return NextResponse.json({ isMember: false })
+      return NextResponse.json({ isMember: false, role: null })
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await getPrisma().user.findUnique({
       where: { email: session.user.email },
       select: { id: true }
     })
 
     if (!user) {
-      return NextResponse.json({ isMember: false })
+      return NextResponse.json({ isMember: false, role: null })
     }
 
-    const membership = await prisma.communityMember.findUnique({
+    const membership = await getPrisma().communityMember.findUnique({
       where: {
         userId_communityId: {
           userId: user.id,
@@ -42,13 +50,13 @@ export async function GET(
     })
   } catch (error) {
     console.error("Error checking membership:", error)
-    return NextResponse.json({ isMember: false })
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
 // Join community
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { communityId: string } }
 ) {
   try {
@@ -58,7 +66,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await getPrisma().user.findUnique({
       where: { email: session.user.email },
       select: { id: true }
     })
@@ -68,30 +76,17 @@ export async function POST(
     }
 
     // Check if community exists
-    const community = await prisma.community.findUnique({
-      where: { id: params.communityId }
+    const community = await getPrisma().community.findUnique({
+      where: { id: params.communityId },
+      select: { id: true }
     })
 
     if (!community) {
       return NextResponse.json({ error: "Community not found" }, { status: 404 })
     }
 
-    // Check if already a member
-    const existingMembership = await prisma.communityMember.findUnique({
-      where: {
-        userId_communityId: {
-          userId: user.id,
-          communityId: params.communityId
-        }
-      }
-    })
-
-    if (existingMembership) {
-      return NextResponse.json({ error: "Already a member" }, { status: 400 })
-    }
-
-    // Add as member
-    await prisma.communityMember.create({
+    // Create membership
+    const membership = await getPrisma().communityMember.create({
       data: {
         userId: user.id,
         communityId: params.communityId,
@@ -99,16 +94,21 @@ export async function POST(
       }
     })
 
-    return NextResponse.json({ success: true, message: "Joined community" })
-  } catch (error) {
+    return NextResponse.json({ success: true, membership })
+  } catch (error: any) {
     console.error("Error joining community:", error)
-    return NextResponse.json({ error: "Failed to join community" }, { status: 500 })
+    
+    if (error.code === 'P2002') {
+      return NextResponse.json({ error: "Already a member" }, { status: 409 })
+    }
+    
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
 // Leave community
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { communityId: string } }
 ) {
   try {
@@ -118,7 +118,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await getPrisma().user.findUnique({
       where: { email: session.user.email },
       select: { id: true }
     })
@@ -127,8 +127,7 @@ export async function DELETE(
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    // Check if member exists
-    const membership = await prisma.communityMember.findUnique({
+    await getPrisma().communityMember.delete({
       where: {
         userId_communityId: {
           userId: user.id,
@@ -137,33 +136,9 @@ export async function DELETE(
       }
     })
 
-    if (!membership) {
-      return NextResponse.json({ error: "Not a member" }, { status: 400 })
-    }
-
-    // Prevent creator from leaving
-    const community = await prisma.community.findUnique({
-      where: { id: params.communityId },
-      select: { createdBy: true }
-    })
-
-    if (community?.createdBy === user.id) {
-      return NextResponse.json({ error: "Community creator cannot leave" }, { status: 400 })
-    }
-
-    // Remove membership
-    await prisma.communityMember.delete({
-      where: {
-        userId_communityId: {
-          userId: user.id,
-          communityId: params.communityId
-        }
-      }
-    })
-
-    return NextResponse.json({ success: true, message: "Left community" })
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Error leaving community:", error)
-    return NextResponse.json({ error: "Failed to leave community" }, { status: 500 })
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }

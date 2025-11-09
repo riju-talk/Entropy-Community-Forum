@@ -1,8 +1,9 @@
 export const dynamic = "force-dynamic"
+export const runtime = "nodejs"
 
 import { DoubtsFeed } from "@/components/doubts-feed"
 import { getDoubts } from "@/app/actions/doubts"
-import { prisma } from "@/lib/prisma"
+import { PrismaClient } from "@prisma/client"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -14,8 +15,18 @@ import {
 import { Users, ArrowRight } from "lucide-react"
 import Link from "next/link"
 
+// Local Prisma singleton (no external prisma.ts)
+let __prisma__: PrismaClient | undefined
+function getPrisma() {
+  if (!__prisma__) {
+    __prisma__ = new PrismaClient({ log: ["error", "warn"] })
+  }
+  return __prisma__
+}
+
 async function getRecentCommunities() {
   try {
+    const prisma = getPrisma()
     const communities = await prisma.community.findMany({
       orderBy: { createdAt: "desc" },
       take: 5,
@@ -25,16 +36,27 @@ async function getRecentCommunities() {
         description: true,
         subject: true,
         createdAt: true,
-        _count: {
-          select: {
-            members: true,
-            communityDoubts: true,
-          },
-        },
       },
     })
 
-    return { communities }
+    // Fetch counts separately for each community
+    const communitiesWithCounts = await Promise.all(
+      communities.map(async (c) => {
+        const [memberCount, postCount] = await Promise.all([
+          prisma.communityMember.count({ where: { communityId: c.id } }),
+          prisma.communityDoubt.count({ where: { communityId: c.id } }),
+        ])
+        return {
+          ...c,
+          _count: {
+            members: memberCount,
+            communityDoubts: postCount,
+          },
+        }
+      })
+    )
+
+    return { communities: communitiesWithCounts }
   } catch (error) {
     console.error("[HomePage] Error fetching communities:", error)
     return { communities: [] }
@@ -42,7 +64,7 @@ async function getRecentCommunities() {
 }
 
 async function safeGetDoubts() {
-  if (process.env.VERCEL || process.env.SKIP_DB === "true") {
+  if (process.env.SKIP_DB === "true") {
     return { doubts: [], total: 0, totalPages: 0, hasMore: false }
   }
   try {
@@ -54,7 +76,7 @@ async function safeGetDoubts() {
 }
 
 async function safeGetRecentCommunities() {
-  if (process.env.VERCEL || process.env.SKIP_DB === "true") {
+  if (process.env.SKIP_DB === "true") {
     return { communities: [] }
   }
   return await getRecentCommunities()

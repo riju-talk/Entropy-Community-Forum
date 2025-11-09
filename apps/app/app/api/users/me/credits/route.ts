@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { PrismaClient } from "@prisma/client";
+
+let __prisma__: PrismaClient | undefined;
+function getPrisma() {
+  if (!__prisma__) {
+    __prisma__ = new PrismaClient({ log: ["error", "warn"] });
+  }
+  return __prisma__;
+}
 
 // GET /api/users/me/credits - Get current user's credits
 export async function GET(request: Request) {
@@ -12,7 +20,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({ 
+    const user = await getPrisma().user.findUnique({ 
       where: { email: session.user.email },
       select: { credits: true }
     });
@@ -37,7 +45,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await getPrisma().user.findUnique({
       where: { email: session.user.email },
       select: { id: true, credits: true }
     });
@@ -56,7 +64,7 @@ export async function POST(request: Request) {
     const cost = amount || 1; // Default cost of 1 credit
 
     // Use transaction to ensure data consistency
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await getPrisma().$transaction(async (tx) => {
       // Get current user with locking to prevent race conditions
       const currentUser = await tx.user.findUnique({
         where: { id: user.id },
@@ -109,7 +117,7 @@ export async function POST(request: Request) {
     }
     
     if (error.message === "Insufficient credits") {
-      const currentUser = await prisma.user.findUnique({
+      const currentUser = await getPrisma().user.findUnique({
         where: { email: session.user.email },
         select: { credits: true }
       });

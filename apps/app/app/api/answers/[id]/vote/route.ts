@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+import { PrismaClient } from "@prisma/client"
+
+let __prisma__: PrismaClient | undefined;
+function getPrisma() {
+  if (!__prisma__) {
+    __prisma__ = new PrismaClient({ log: ["error", "warn"] });
+  }
+  return __prisma__;
+}
 
 export async function GET(
   req: NextRequest,
@@ -14,7 +22,7 @@ export async function GET(
       return NextResponse.json({ userVote: null })
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await getPrisma().user.findUnique({
       where: { email: session.user.email },
       select: { id: true }
     })
@@ -23,7 +31,7 @@ export async function GET(
       return NextResponse.json({ userVote: null })
     }
 
-    const existingVote = await prisma.answerVote.findUnique({
+    const existingVote = await getPrisma().answerVote.findUnique({
       where: {
         userId_answerId: {
           userId: user.id,
@@ -50,7 +58,7 @@ export async function POST(
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await getPrisma().user.findUnique({
       where: { email: session.user.email },
       select: { id: true }
     })
@@ -66,7 +74,7 @@ export async function POST(
       return NextResponse.json({ error: "Invalid vote type" }, { status: 400 })
     }
 
-    const answer = await prisma.answer.findUnique({
+    const answer = await getPrisma().answer.findUnique({
       where: { id: answerId },
       select: { id: true }
     })
@@ -76,7 +84,7 @@ export async function POST(
     }
 
     // Use a transaction to handle vote logic atomically
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await getPrisma().$transaction(async (tx) => {
       const existingVote = await tx.answerVote.findUnique({
         where: {
           userId_answerId: {

@@ -1,5 +1,10 @@
 // lib/spark-api.ts
-const API_BASE_URL = process.env.NEXT_PUBLIC_SPARK_API_URL || "http://localhost:8000";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_SPARK_API_URL ||
+  (typeof window !== "undefined"
+    ? "/api/ai-agent" // Use Next.js proxy on client
+    : "https://entropy-community-forum.onrender.com/api"); // Use Render backend on server
+
 const AI_BACKEND_TOKEN = process.env.NEXT_PUBLIC_AI_BACKEND_TOKEN || "";
 
 export interface ChatMessage {

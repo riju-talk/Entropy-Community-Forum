@@ -2,10 +2,18 @@
 
 import { revalidatePath } from "next/cache"
 import { getServerSession } from "next-auth"
-import { prisma } from "@/lib/prisma"
+import { PrismaClient } from "@prisma/client"
 import { authOptions } from "@/lib/auth"
 import { createCommentSchema, voteSchema } from "@/lib/validations"
 import type { VoteType } from "@prisma/client"
+
+let __prisma__: PrismaClient | undefined;
+function getPrisma() {
+  if (!__prisma__) {
+    __prisma__ = new PrismaClient({ log: ["error", "warn"] });
+  }
+  return __prisma__;
+}
 
 export async function createComment(formData: FormData) {
   const session = await getServerSession(authOptions)
@@ -19,7 +27,7 @@ export async function createComment(formData: FormData) {
 
   const validatedData = createCommentSchema.parse(data)
 
-  await prisma.comment.create({
+  await getPrisma().comment.create({
     data: {
       ...validatedData,
       authorId: validatedData.isAnonymous ? null : session?.user?.id,
@@ -39,7 +47,7 @@ export async function voteOnComment(commentId: string, voteType: VoteType) {
   const validatedData = voteSchema.parse({ type: voteType, commentId })
 
   // Check if user already voted
-  const existingVote = await prisma.vote.findUnique({
+  const existingVote = await getPrisma().vote.findUnique({
     where: {
       userId_commentId: {
         userId: session.user.id,
@@ -51,19 +59,19 @@ export async function voteOnComment(commentId: string, voteType: VoteType) {
   if (existingVote) {
     if (existingVote.type === voteType) {
       // Remove vote if same type
-      await prisma.vote.delete({
+      await getPrisma().vote.delete({
         where: { id: existingVote.id },
       })
     } else {
       // Update vote type
-      await prisma.vote.update({
+      await getPrisma().vote.update({
         where: { id: existingVote.id },
         data: { type: voteType },
       })
     }
   } else {
     // Create new vote
-    await prisma.vote.create({
+    await getPrisma().vote.create({
       data: {
         type: voteType,
         userId: session.user.id,
@@ -73,19 +81,19 @@ export async function voteOnComment(commentId: string, voteType: VoteType) {
   }
 
   // Update comment vote count
-  const voteCount = await prisma.vote.aggregate({
+  const voteCount = await getPrisma().vote.aggregate({
     where: { commentId },
     _sum: {
       type: true,
     },
   })
 
-  await prisma.comment.update({
+  await getPrisma().comment.update({
     where: { id: commentId },
     data: { votes: voteCount._sum.type || 0 },
   })
 
-  const comment = await prisma.comment.findUnique({
+  const comment = await getPrisma().comment.findUnique({
     where: { id: commentId },
     select: { doubtId: true },
   })
@@ -102,7 +110,7 @@ export async function markCommentAsAccepted(commentId: string) {
     throw new Error("Authentication required")
   }
 
-  const comment = await prisma.comment.findUnique({
+  const comment = await getPrisma().comment.findUnique({
     where: { id: commentId },
     include: {
       doubt: {
@@ -119,7 +127,7 @@ export async function markCommentAsAccepted(commentId: string) {
   }
 
   // Unmark other accepted answers for this doubt
-  await prisma.comment.updateMany({
+  await getPrisma().comment.updateMany({
     where: {
       doubtId: comment.doubtId,
       isAccepted: true,
@@ -130,13 +138,13 @@ export async function markCommentAsAccepted(commentId: string) {
   })
 
   // Mark this comment as accepted
-  await prisma.comment.update({
+  await getPrisma().comment.update({
     where: { id: commentId },
     data: { isAccepted: true },
   })
 
   // Mark doubt as resolved
-  await prisma.doubt.update({
+  await getPrisma().doubt.update({
     where: { id: comment.doubtId },
     data: { isResolved: true },
   })
