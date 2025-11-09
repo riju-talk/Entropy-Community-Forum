@@ -10,8 +10,24 @@ import { QuizAgent } from "@/components/ai-agent/quiz-agent"
 import { MindMapAgent } from "@/components/ai-agent/mindmap-agent"
 import { ChatAgent } from "@/components/ai-agent/chat-agent"
 import { FlashcardsAgent } from "@/components/ai-agent/flashcards-agent"
+import { useSession, signIn } from "next-auth/react"
+import { useToast } from "@/hooks/use-toast"
 
 export default function AIAgentPage() {
+  const { data: session, status: sessionStatus } = useSession()
+  const { toast } = useToast()
+
+  // track which tab is active (controlled) and local free-qa usage
+  const [activeTab, setActiveTab] = useState<string>("qa")
+  const [freeQAUsed, setFreeQAUsed] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem("entropy_free_qa_used") === "1"
+    } catch {
+      return false
+    }
+  })
+
+  // show/hide agents based on simple gating
   const [agentStatus, setAgentStatus] = useState<"checking" | "available" | "unavailable">("checking")
 
   useEffect(() => {
@@ -40,13 +56,113 @@ export default function AIAgentPage() {
     }
   }
 
-  const handleProtectedTab = (tab: string) => {
-    if (tab !== "qa") {
-      openAuthModal()
-      setActiveTab("qa") // Keep them on QA tab if not authenticated
+  // Credit costs
+  const COSTS = {
+    mindmap: 5,
+    flashcards: 5,
+    qa: 10, // QA normally costs 10, but unauthenticated users get one free QA per session
+    quiz: 5,
+  }
+
+  // Helper: ask server if user has credits for operation.
+  // Server must implement POST /api/credits/check with body { operation: string, cost: number }
+  // Response expected: { allowed: boolean, credits: number, cost: number, needsUpgrade?: boolean }
+  async function checkCreditsForOperation(operation: string, cost: number) {
+    if (sessionStatus !== "authenticated") {
+      return { allowed: false, reason: "unauthenticated" }
+    }
+
+    try {
+      const res = await fetch("/api/credits/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ operation, cost }),
+      })
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "")
+        console.warn("credits check failed:", res.status, txt)
+        return { allowed: false, reason: "server" }
+      }
+      const data = await res.json()
+      return data
+    } catch (err) {
+      console.error("credits check error:", err)
+      return { allowed: false, reason: "network" }
+    }
+  }
+
+  // Handle tab change with gating logic
+  const handleTabChange = async (tab: string) => {
+    // Always allow QA
+    if (tab === "qa") {
+      setActiveTab("qa")
       return
     }
-    setActiveTab(tab)
+
+    // For other tabs require authentication
+    if (sessionStatus !== "authenticated") {
+      // show informative toast and prompt sign-in
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to access this tool. Your feedback and credits enable these features.",
+      })
+      // open sign-in (server-side next-auth flow)
+      signIn()
+      // keep user on QA
+      setActiveTab("qa")
+      return
+    }
+
+    // If authenticated, perform credits check before granting access
+    const opCost = (tab === "mindmap" && COSTS.mindmap) ||
+                   (tab === "flashcards" && COSTS.flashcards) ||
+                   (tab === "quiz" && COSTS.quiz) || COSTS.qa
+
+    const result = await checkCreditsForOperation(tab, opCost)
+    if (result.allowed) {
+      setActiveTab(tab)
+      // Optionally show toast with remaining credits
+      if (typeof result.credits === "number") {
+        toast({
+          title: "Access granted",
+          description: `Credits remaining: ${result.credits}`,
+        })
+      }
+    } else {
+      // Not allowed: show actionable message
+      if (result.reason === "unauthenticated") {
+        toast({
+          title: "Sign in required",
+          description: "Please sign in to use this tool.",
+        })
+        signIn()
+      } else if (result.needsUpgrade) {
+        toast({
+          title: "Insufficient credits",
+          description: "Your account lacks credits. Please upgrade or add credits to continue.",
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Insufficient credits",
+          description: `You need ${opCost} credits to use this tool.`,
+          variant: "destructive",
+        })
+      }
+      setActiveTab("qa")
+    }
+  }
+
+  // Allow unauthenticated user to consume the one free QA for this session
+  const consumeFreeQA = () => {
+    try {
+      sessionStorage.setItem("entropy_free_qa_used", "1")
+    } catch {}
+    setFreeQAUsed(true)
+    toast({
+      title: "Free QA used",
+      description: "You used your one free QA for this session. Sign in to continue using AI tools.",
+    })
   }
 
   return (
@@ -64,6 +180,18 @@ export default function AIAgentPage() {
               </p>
             </div>
             <div className="text-xs text-yellow-800">Your feedback helps shape development</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Subscription info banner */}
+      <div className="w-full bg-blue-50 border-b border-blue-200">
+        <div className="container mx-auto px-4 py-2 max-w-6xl">
+          <div className="flex items-center justify-center gap-3">
+            <Sparkles className="h-4 w-4 text-blue-600" />
+            <p className="text-sm text-blue-900 m-0">
+              <strong>Coming in Beta:</strong> Premium subscriptions with unlimited credits, priority support, and exclusive features
+            </p>
           </div>
         </div>
       </div>
@@ -124,7 +252,7 @@ export default function AIAgentPage() {
               <CardDescription>Enhance your learning with advanced AI capabilities</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
-              <Tabs defaultValue="qa" className="w-full">
+              <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                 <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="qa">Q&A + Chat</TabsTrigger>
                   <TabsTrigger value="mindmap">Mind Mapping</TabsTrigger>
@@ -134,7 +262,41 @@ export default function AIAgentPage() {
 
                 <TabsContent value="qa" className="space-y-4">
                   {agentStatus === "available" ? (
-                    <ChatAgent />
+                    <>
+                      {!session && !freeQAUsed && (
+                        <div className="p-4 bg-yellow-50 rounded-md">
+                          <p className="text-sm mb-2">
+                            You have one free QA query this session. Sign in to continue using more AI features.
+                          </p>
+                          <div className="flex gap-2">
+                            <button
+                              className="btn btn-primary"
+                              onClick={() => {
+                                // mark free QA used and allow ChatAgent to run
+                                consumeFreeQA()
+                              }}
+                            >
+                              Use Free QA
+                            </button>
+                            <button
+                              className="btn btn-outline"
+                              onClick={() => signIn()}
+                            >
+                              Sign in
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      {(sessionStatus === "authenticated" || !freeQAUsed) ? (
+                        <ChatAgent />
+                      ) : (
+                        <div className="p-6 text-center border-2 border-dashed rounded-lg">
+                          <p className="text-muted-foreground">
+                            Please sign in to continue using AI features.
+                          </p>
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="p-8 text-center border-2 border-dashed rounded-lg">
                       <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -145,7 +307,16 @@ export default function AIAgentPage() {
 
                 <TabsContent value="mindmap" className="space-y-4">
                   {agentStatus === "available" ? (
-                    <MindMapAgent />
+                    sessionStatus === "authenticated" ? (
+                      <MindMapAgent />
+                    ) : (
+                      <div className="p-6 text-center border-2 border-dashed rounded-lg">
+                        <p className="text-sm text-muted-foreground mb-3">Mindmap costs {COSTS.mindmap} credits. Sign in to use.</p>
+                        <div className="flex justify-center gap-2">
+                          <button className="btn btn-primary" onClick={() => signIn()}>Sign in</button>
+                        </div>
+                      </div>
+                    )
                   ) : (
                     <div className="p-8 text-center border-2 border-dashed rounded-lg">
                       <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -156,7 +327,16 @@ export default function AIAgentPage() {
 
                 <TabsContent value="quiz" className="space-y-4">
                   {agentStatus === "available" ? (
-                    <QuizAgent />
+                    sessionStatus === "authenticated" ? (
+                      <QuizAgent />
+                    ) : (
+                      <div className="p-6 text-center border-2 border-dashed rounded-lg">
+                        <p className="text-sm text-muted-foreground mb-3">Quiz generation costs {COSTS.quiz} credits. Sign in to use.</p>
+                        <div className="flex justify-center gap-2">
+                          <button className="btn btn-primary" onClick={() => signIn()}>Sign in</button>
+                        </div>
+                      </div>
+                    )
                   ) : (
                     <div className="p-8 text-center border-2 border-dashed rounded-lg">
                       <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -167,7 +347,16 @@ export default function AIAgentPage() {
 
                 <TabsContent value="flashcards" className="space-y-4">
                   {agentStatus === "available" ? (
-                    <FlashcardsAgent />
+                    sessionStatus === "authenticated" ? (
+                      <FlashcardsAgent />
+                    ) : (
+                      <div className="p-6 text-center border-2 border-dashed rounded-lg">
+                        <p className="text-sm text-muted-foreground mb-3">Flashcards cost {COSTS.flashcards} credits. Sign in to use.</p>
+                        <div className="flex justify-center gap-2">
+                          <button className="btn btn-primary" onClick={() => signIn()}>Sign in</button>
+                        </div>
+                      </div>
+                    )
                   ) : (
                     <div className="p-8 text-center border-2 border-dashed rounded-lg">
                       <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />

@@ -28,38 +28,63 @@ export function MindMapAgent() {
     if (!topic.trim()) {
       toast({
         title: "Topic required",
-        description: "Please enter a topic",
+        description: "Please enter a topic to generate a mindmap",
         variant: "destructive",
       })
       return
     }
 
     setLoading(true)
-    setMermaidCode("")
+    setParseError(null)
 
     try {
       const response = await fetch("/api/ai-agent/mindmap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          topic,
-          diagramType,
-          depth,
-          customPrompt: customPrompt.trim() || undefined,
-          colorScheme,
-          studentLevel
+          topic: topic.trim(),
+          depth: parseInt(depth),
+          diagram_type: diagramType,
+          custom_prompt: customPrompt || undefined,
+          color_scheme: colorScheme,
+          student_level: studentLevel,
         }),
       })
 
-      if (!response.ok) throw new Error("Failed to generate diagram")
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.detail || "Failed to generate mindmap")
+      }
 
-      const data = await response.json() as { mermaidCode: string; themeVars?: Record<string,string> }
-      setMermaidCode(data.mermaidCode || "")
-      setThemeVars(data.themeVars || null)
-    } catch (error) {
+      const data = await response.json()
+      setMermaidCode(data.mermaidCode || data.mermaid || "")
+      
+      toast({
+        title: "Success!",
+        description: "Mindmap generated successfully",
+      })
+
+      // Deduct 5 credits for mindmap generation
+      try {
+        await fetch("/api/credits/deduct", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: 5,
+            operation: "mindmap",
+            metadata: { topic, depth, diagramType }
+          })
+        })
+      } catch (creditError) {
+        console.warn("Failed to deduct credits:", creditError)
+      }
+
+    } catch (error: any) {
+      console.error("Mindmap generation error:", error)
+      setParseError(error.message || "Failed to generate mindmap")
       toast({
         title: "Error",
-        description: "Failed to generate mind map",
+        description: error.message || "Failed to generate mindmap",
         variant: "destructive",
       })
     } finally {

@@ -51,17 +51,37 @@ export function QuizAgent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          topic, 
-          numQuestions, 
+          topic: topic.trim(), 
+          num_questions: numQuestions, 
           difficulty,
-          customPrompt: customPrompt.trim() || undefined
         }),
       })
 
       if (!response.ok) throw new Error("Failed to generate quiz")
 
-      const data = await response.json() as { questions: QuizQuestion[] }
-      setQuestions(data.questions)
+      const data = await response.json()
+      setQuestions(data.questions || [])
+      
+      toast({
+        title: "Success!",
+        description: `Generated ${data.questions?.length || 0} questions`,
+      })
+
+      // Deduct 5 credits for quiz generation
+      try {
+        await fetch("/api/credits/deduct", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: 5,
+            operation: "quiz",
+            metadata: { topic, numQuestions, difficulty }
+          })
+        })
+      } catch (creditError) {
+        console.warn("Failed to deduct credits:", creditError)
+      }
+
     } catch (error) {
       console.error("Quiz generation error:", error)
       toast({

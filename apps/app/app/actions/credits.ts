@@ -8,7 +8,7 @@ import { PointEventType } from "@prisma/client"
 const CREDIT_VALUES = {
   DOUBT_CREATED: 1,      // 1 credit for asking
   ANSWER_ACCEPTED: 2,    // 2 credits for solving
-  AI_CHAT_MESSAGE: -5,
+  AI_CHAT_MESSAGE: -5,   // AI usage deducts credits
 } as const
 
 export async function getUserCredits() {

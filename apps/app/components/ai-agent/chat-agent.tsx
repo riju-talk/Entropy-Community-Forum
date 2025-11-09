@@ -100,7 +100,7 @@ export function ChatAgent() {
           userId: "user123",
           collection_name: "default",
           conversation_history: conversationHistory,
-          system_prompt: systemPrompt || undefined,  // Send system prompt
+          system_prompt: systemPrompt || undefined,
         }),
       })
 
@@ -114,18 +114,36 @@ export function ChatAgent() {
         qaId: data.qaId
       })
       
-      // Format response with sources metadata
-      let responseText = data.answer  // Already in Markdown format
+      let responseText = data.answer
       
-      // Add sources info as metadata (not in main message)
       if (data.sources && data.sources.length > 0) {
         responseText += `\n\n---\n**📚 ${data.sources.length} source(s) used**`
       }
       
-      // Add mode indicator
       responseText += `\n\n*Response mode: ${data.mode === 'rag' ? '📖 RAG (Document-based)' : '💬 Direct Chat'}*`
       
       setMessages((prev) => [...prev, { role: "assistant", content: responseText }])
+
+      // Deduct credits after successful response (token-based calculation)
+      // Estimate tokens: ~4 chars per token (rough approximation)
+      const estimatedTokens = Math.ceil(data.answer.length / 4)
+      const creditsToDeduct = Math.max(1, Math.ceil(estimatedTokens / 100)) // 1 credit per 100 tokens, min 1
+      
+      try {
+        await fetch("/api/credits/deduct", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: creditsToDeduct,
+            operation: "qa_chat",
+            metadata: { tokens: estimatedTokens, mode: data.mode }
+          })
+        })
+      } catch (creditError) {
+        console.warn("Failed to deduct credits:", creditError)
+        // Don't block user experience if credit deduction fails
+      }
+      
     } catch (error) {
       console.error("❌ Chat error:", error)
       toast({
