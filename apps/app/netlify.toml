@@ -1,21 +1,11 @@
 [build]
   base = "apps/app"
-  command = "npm run generate && npm run build"
+  command = "npm run build"
   publish = ".next"
 
 [build.environment]
   NODE_VERSION = "18"
   NPM_FLAGS = "--legacy-peer-deps"
-
-[[redirects]]
-  from = "/api/ai-agent/*"
-  to = "/.netlify/functions/proxy-ai-agent"
-  status = 200
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
 
 [functions]
   directory = "netlify/functions"
@@ -23,3 +13,9 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+[[redirects]]
+  from = "/api/ai-agent/*"
+  to = "/.netlify/functions/proxy-ai-agent/:splat"
+  status = 200
+  force = true
