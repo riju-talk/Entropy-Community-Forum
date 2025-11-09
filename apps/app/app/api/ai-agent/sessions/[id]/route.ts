@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+import { PrismaClient } from "@prisma/client"
+
+let __prisma__: PrismaClient | undefined;
+function getPrisma() {
+  if (!__prisma__) {
+    __prisma__ = new PrismaClient({ log: ["error", "warn"] });
+  }
+  return __prisma__;
+}
 
 // GET - Get session details
 export async function GET(
@@ -14,7 +22,7 @@ export async function GET(
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await getPrisma().user.findUnique({
       where: { email: session.user.email },
       select: { id: true }
     })
@@ -23,7 +31,7 @@ export async function GET(
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    const chatSession = await prisma.aIChatSession.findFirst({
+    const chatSession = await getPrisma().aIChatSession.findFirst({
       where: {
         id: params.id,
         userId: user.id,
@@ -58,7 +66,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await getPrisma().user.findUnique({
       where: { email: session.user.email },
       select: { id: true }
     })
@@ -69,7 +77,7 @@ export async function PATCH(
 
     const { systemPrompt } = await req.json()
 
-    const chatSession = await prisma.aIChatSession.updateMany({
+    const chatSession = await getPrisma().aIChatSession.updateMany({
       where: {
         id: params.id,
         userId: user.id,
@@ -102,7 +110,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await getPrisma().user.findUnique({
       where: { email: session.user.email },
       select: { id: true }
     })
@@ -111,7 +119,7 @@ export async function DELETE(
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    await prisma.aIChatSession.deleteMany({
+    await getPrisma().aIChatSession.deleteMany({
       where: {
         id: params.id,
         userId: user.id,
