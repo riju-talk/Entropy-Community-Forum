@@ -1,15 +1,11 @@
 {
   "name": "@entropy/ai-agent",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "private": true,
-  "description": "AI Agent Backend for Entropy Community Forum",
   "scripts": {
-    "dev": "python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload",
-    "start": "python -m uvicorn app.main:app --host 0.0.0.0 --port 8000",
-    "build": "python setup.py",
-    "setup": "python setup.py && pip install -r requirements.txt",
-    "test": "echo \"No tests configured for Python backend\"",
-    "lint": "echo \"Linting skipped for Python\"",
-    "clean": "python -c \"import shutil, pathlib; [shutil.rmtree(p, ignore_errors=True) for p in pathlib.Path('.').rglob('__pycache__')]\""
+    "build": "echo \"ai-agent: no JS build step (Python service)\""
+  },
+  "turbo": {
+    "outputs": []
   }
 }

@@ -4,6 +4,56 @@
 **Repository:** entropy-community-forum  
 **Objective:** Prepare alpha release with Firebase removal, NextAuth simplification, and AI agent integration
 
+## ⚠️ Critical Known Issue — Document Upload Broken (Library Conflict)
+
+- SUMMARY: Document upload and processing in the AI Agent (POST /api/documents/upload) currently fails in some environments due to a library conflict between installed LangChain-related packages (e.g., langchain_core, langchain_text_splitters, langchain_community, langchain_chroma, etc.). This prevents uploaded files from being parsed, split, embedded and added to Chroma, breaking RAG features.
+
+- SYMPTOMS:
+  - 500 responses from `/api/documents/upload` with tracebacks mentioning import errors or attribute errors in LangChain modules.
+  - FastAPI logs showing ImportError, AttributeError, or TypeError during loader or Chroma initialization.
+  - Vector store not created under `apps/ai-agent/data/chroma_db`.
+
+- REPRODUCE:
+  1. Start ai-agent in its venv: `python -m uvicorn app.main:app --reload`
+  2. POST a small file to `http://localhost:8000/api/documents/upload` (multipart FormData)
+  3. Observe backend logs and returned error/traceback
+
+- LOGS / ARTIFACTS TO COLLECT:
+  - `pip freeze` from the ai-agent venv
+  - Full traceback from FastAPI logs on upload failure
+  - Example failing request headers and body summary
+  - Output of running a minimal import smoke test:
+    ```py
+    from langchain_core.documents import Document
+    from langchain_community.embeddings import GPT4AllEmbeddings
+    from langchain_chroma import Chroma
+    print("Imports OK")
+    ```
+
+- TEMPORARY WORKAROUNDS:
+  - Use direct LLM chat (RAG bypass) — UI already falls back to direct_chat.
+  - Perform document processing in an isolated environment and manually load embeddings; avoid using the ai-agent service until fixed.
+  - Pin packages to a previously known-good set if available (see remediation).
+
+- RECOMMENDED REMEDIATION (priority):
+  1. Capture `pip freeze` and identify conflicting langchain packages.
+  2. Uninstall all langchain-related packages and reinstall a single, compatible set matching code imports.
+  3. Pin exact versions in `apps/ai-agent/requirements.txt`.
+  4. Add a startup import smoke-check in `app/main.py` to fail fast with clear guidance if incompatible packages are present.
+  5. Add CI check to run the import smoke test on PRs.
+
+- QUICK FIX COMMANDS (ai-agent venv)
+  ```bash
+  pip freeze > deps.txt
+  pip install pipdeptree
+  pipdeptree | grep -i langchain -A 5
+  # uninstall and reinstall curated packages:
+  pip uninstall -y langchain langchain-core langchain_community langchain_chroma langchain_text_splitters
+  pip install --no-cache-dir langchain_core langchain_text_splitters langchain_community langchain_chroma langchain_groq gpt4all
+  ```
+
+---
+
 ## ✅ Acceptance Criteria Met
 
 ### Branch Structure
@@ -217,7 +267,7 @@ DEBUG=true
 
 ## 🎉 Conclusion
 
-The alpha preparation is **complete and successful**. Both branches are ready for owner deployment with:
+The alpha preparation is **complete and successful**, except for the known document upload issue described above. Both branches are ready for owner deployment with:
 
 - ✅ Firebase completely removed
 - ✅ NextAuth simplified and functional
@@ -226,4 +276,4 @@ The alpha preparation is **complete and successful**. Both branches are ready fo
 - ✅ Development tools and validation scripts added
 - ✅ Deployment-ready configuration
 
-The codebase is now ready for the owner to deploy and continue development on the alpha release.
+The codebase is now ready for the owner to deploy and continue development on the alpha release. Prioritize resolving the document upload library conflict to restore full RAG functionality.
