@@ -15,7 +15,7 @@
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
     "@mermaid-js/mermaid-mindmap": "^9.3.0",
-    "@prisma/client": "latest",
+    "@prisma/client": "^6.19.0",
     "@radix-ui/react-accordion": "latest",
     "@radix-ui/react-alert-dialog": "latest",
     "@radix-ui/react-aspect-ratio": "latest",
@@ -57,6 +57,7 @@
     "next": "14.2.16",
     "next-auth": "latest",
     "next-themes": "latest",
+    "prisma": "6.19.0",
     "react": "^18",
     "react-day-picker": "latest",
     "react-dom": "^18",
@@ -69,12 +70,11 @@
     "remark-gfm": "latest",
     "sonner": "latest",
     "tailwind-merge": "^2.5.5",
+    "tailwindcss": "^3.4.17",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "latest",
     "zod": "^4.1.12",
-    "zustand": "^5.0.8",
-    "prisma": "5.14.0",
-    "tailwindcss": "^3.4.17"
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.16",
