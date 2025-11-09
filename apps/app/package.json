@@ -75,6 +75,7 @@
     "vaul": "latest",
     "zod": "^4.1.12",
     "zustand": "^5.0.8",
+    "prisma": "5.14.0",
     "tailwindcss": "^3.4.17"
   },
   "devDependencies": {
@@ -86,8 +87,7 @@
     "eslint": "^8",
     "eslint-config-next": "14.0.4",
     "postcss": "^8.5",
-    "typescript": "^5",
-    "prisma": "5.14.0"
+    "typescript": "^5"
   },
   "jest": {
     "testEnvironment": "node",
