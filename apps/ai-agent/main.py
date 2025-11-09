@@ -2,7 +2,7 @@
 AI Agent Backend - FastAPI Application
 Uses ChatGroq (free), GPT4All embeddings (free), and ChromaDB (local)
 """
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import os
@@ -12,8 +12,8 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Import routers
-from routers import qa, mindmap, quiz, flashcards
+# Import routers from app.api.routes
+from app.api.routes import documents, qa, mindmap, quiz, flashcards
 
 app = FastAPI(
     title="Entropy AI Agent",
@@ -21,16 +21,17 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS configuration - Allow all origins for development
+# CORS configuration - Allow all origins for development (use strict list in prod)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include routers
+# Include routers under /api
+app.include_router(documents.router, prefix="/api", tags=["Documents"])
 app.include_router(qa.router, prefix="/api", tags=["Q&A"])
 app.include_router(mindmap.router, prefix="/api", tags=["Mind Mapping"])
 app.include_router(quiz.router, prefix="/api", tags=["Quiz"])
@@ -45,6 +46,7 @@ async def root():
         "endpoints": {
             "health": "/health",
             "qa": "/api/qa",
+            "documents_upload": "/api/documents/upload",
             "mindmap": "/api/mindmap",
             "quiz": "/api/quiz",
             "flashcards": "/api/flashcards"
@@ -67,13 +69,6 @@ async def health_check():
         },
         "message": "AI Agent is operational" if groq_key else "GROQ_API_KEY not configured"
     }
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize services on startup"""
-    print("🚀 Starting Entropy AI Agent...")
-    print(f"📊 Groq API configured: {bool(os.getenv('GROQ_API_KEY'))}")
-    print("✅ Server ready!")
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
