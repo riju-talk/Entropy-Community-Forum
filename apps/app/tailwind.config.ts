@@ -1,5 +1,16 @@
 import type { Config } from "tailwindcss"
 
+const tryRequire = (name: string) => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return require(name)
+  } catch (e) {
+    return null
+  }
+}
+
+const animatePlugin = tryRequire("tailwindcss-animate")
+
 const config = {
   darkMode: ["class"],
   content: [
@@ -9,8 +20,9 @@ const config = {
     "./components/**/*.{ts,tsx,js,jsx,mdx}",
     // include src if used
     "./src/**/*.{ts,tsx,js,jsx,mdx}",
-    // include workspace-wide files (monorepo) — helpful for Turborepo builds on Netlify
-    "../../**/*.{ts,tsx,js,jsx,mdx}",
+    // safer: include only known monorepo package folders (avoid ../../** which scans node_modules)
+    "../../packages/**/*.{ts,tsx,js,jsx,mdx}",
+    "../../libs/**/*.{ts,tsx,js,jsx,mdx}",
   ],
   prefix: "",
   theme: {
@@ -78,7 +90,7 @@ const config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: animatePlugin ? [animatePlugin] : [],
 } satisfies Config
 
 export default config
