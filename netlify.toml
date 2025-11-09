@@ -1,0 +1,21 @@
+[build]
+  # Base directory for the Next app inside the Turborepo
+  base = "apps/app"
+  command = "npm run build"
+  publish = ".next"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Use the official Next.js Netlify plugin
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Proxy all AI agent API calls to the Netlify Function.
+# The function will forward to AI_AGENT_URL (set in Netlify env).
+[[redirects]]
+  from = "/api/ai-agent/*"
+  to = "/.netlify/functions/proxy-ai-agent/:splat"
+  status = 200
+  force = true
