@@ -1,5 +1,5 @@
-import React from "react"
 import { DoubtsFeed } from "@/components/doubts-feed"
+import { getDoubts } from "@/app/actions/doubts"
 import { prisma } from "@/lib/prisma"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,26 +12,40 @@ import {
 import { Users, ArrowRight } from "lucide-react"
 import Link from "next/link"
 
-// Assume these server-side helpers exist; previously they threw during build when DB failed
-import { getCommunities } from "@/app/actions/communities"
-import { getDoubts } from "@/app/actions/doubts"
+async function getRecentCommunities() {
+  try {
+    const communities = await prisma.community.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        subject: true,
+        createdAt: true,
+        _count: {
+          select: {
+            members: true,
+            communityDoubts: true,
+          },
+        },
+      },
+    })
+
+    return { communities }
+  } catch (error) {
+    console.error("[HomePage] Error fetching communities:", error)
+    return { communities: [] }
+  }
+}
 
 export default async function HomePage() {
-  let communities = []
-  let doubts = []
-  try {
-    communities = await getCommunities?.() ?? []
-  } catch (err) {
-    console.error("[HomePage] Error fetching communities:", err)
-    communities = []
-  }
+  const { doubts, total, totalPages, hasMore } = await getDoubts({
+    page: 1,
+    limit: 15,
+  })
 
-  try {
-    doubts = await getDoubts?.({ limit: 10 }) ?? []
-  } catch (err) {
-    console.error("[HomePage] Error fetching doubts:", err)
-    doubts = []
-  }
+  const { communities } = await getRecentCommunities()
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
@@ -46,7 +60,7 @@ export default async function HomePage() {
       {/* Stats */}
       <div className="flex items-center gap-6 text-sm mb-6">
         <div>
-          <span className="font-semibold">{doubts.length}</span>
+          <span className="font-semibold">{total}</span>
           <span className="text-muted-foreground ml-1">questions</span>
         </div>
         <div>
@@ -64,8 +78,8 @@ export default async function HomePage() {
           <DoubtsFeed
             initialDoubts={doubts}
             currentPage={1}
-            totalPages={1}
-            hasMore={false}
+            totalPages={totalPages}
+            hasMore={hasMore}
           />
         </div>
 

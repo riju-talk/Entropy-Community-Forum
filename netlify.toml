@@ -1,21 +1,39 @@
 [build]
-  # Base directory for the Next app inside the Turborepo
+  # Set base to Next.js app directory (NOT repo root)
   base = "apps/app"
+  
+  # Build command - ONLY Next.js
   command = "npm run build"
+  
+  # Publish the Next.js build output
   publish = ".next"
+  
+  # Ignore the Python backend completely
+  ignore = "/apps/ai-agent/**"
 
+# Environment variables for build
+[build.environment]
+  NODE_VERSION = "18.20.8"
+  NPM_FLAGS = "--legacy-peer-deps"
+  # Skip Python installs
+  SKIP_PYTHON = "true"
+
+# Netlify Functions (for proxy)
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
-# Use the official Next.js Netlify plugin
+# Next.js plugin
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# Proxy all AI agent API calls to the Netlify Function.
-# The function will forward to AI_AGENT_URL (set in Netlify env).
+# Redirects - proxy AI agent requests to Render backend
 [[redirects]]
   from = "/api/ai-agent/*"
   to = "/.netlify/functions/proxy-ai-agent/:splat"
   status = 200
   force = true
+
+# Workspace configuration - exclude ai-agent
+[workspace]
+  packages = ["apps/app"]
