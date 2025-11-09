@@ -5,8 +5,8 @@
   # Build command - ONLY Next.js
   command = "npm run build"
   
-  # Publish the Next.js build output
-  publish = ".next"
+  # Publish the Next.js build output (relative to base directory)
+  publish = "apps/app/.next"
   
   # Ignore the Python backend completely
   ignore = "/apps/ai-agent/**"

@@ -5,7 +5,7 @@
     "dev": "turbo run dev --parallel",
     "dev:app": "turbo run dev --filter=@entropy/app",
     "dev:agent": "turbo run dev --filter=@entropy/ai-agent",
-    "build": "turbo run build",
+    "build": "cd apps/app && npm run build",
     "lint": "turbo run lint",
     "clean": "turbo run clean",
     "setup:agent": "cd apps/ai-agent && python setup.py"
