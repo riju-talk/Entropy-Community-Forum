@@ -23,10 +23,3 @@
   to = "/.netlify/functions/proxy-ai-agent/:splat"
   status = 200
   force = true
-
-# Ensure client-side routes still work (Next plugin handles most routes).
-# This fallback is optional and can be removed if undesired.
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
