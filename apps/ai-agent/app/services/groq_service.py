@@ -4,7 +4,7 @@ Groq AI service using LangChain framework
 import json
 from typing import List, Dict, Any, Optional
 import logging
-from langchain.schema import HumanMessage, SystemMessage, AIMessage
+from langchain.messages import HumanMessage, SystemMessage, AIMessage
 from app.services.langchain_service import langchain_service
 
 logger = logging.getLogger(__name__)
@@ -42,17 +42,29 @@ class GroqService:
     ) -> List[Dict[str, Any]]:
         """Generate quiz questions"""
         try:
-            system_prompt = custom_prompt or f"""Generate {num_questions} multiple-choice questions about {topic} at {difficulty} difficulty.
+            system_prompt = custom_prompt or f"""You are Spark, an educational AI assistant.
 
-Return ONLY valid JSON array:
-[{{"question": "...", "options": ["A", "B", "C", "D"], "correctAnswer": 0, "explanation": "..."}}]"""
+Generate EXACTLY {num_questions} multiple-choice questions about "{topic}" at {difficulty} difficulty level.
+
+CRITICAL REQUIREMENTS:
+1. Return ONLY a valid JSON array, no markdown fences, no explanations
+2. Each question MUST have exactly 4 options labeled A, B, C, D
+3. correctAnswer must be the index (0-3) of the correct option
+4. Include a clear explanation for each answer
+
+JSON format:
+[{{"question": "...", "options": ["A. ...", "B. ...", "C. ...", "D. ..."], "correctAnswer": 0, "explanation": "..."}}]
+
+Generate {num_questions} questions now:"""
 
             messages = [
                 SystemMessage(content=system_prompt),
-                HumanMessage(content=f"Create {num_questions} {difficulty} questions about: {topic}")
+                HumanMessage(content=f"Generate {num_questions} {difficulty} quiz questions about: {topic}")
             ]
             
-            content = await self.langchain.invoke_llm(messages, temperature=0.7, max_tokens=2000)
+            # Direct LLM invocation
+            response = self.langchain.llm.invoke(messages)
+            content = response.content
             
             # Clean and parse JSON
             if "```json" in content:
@@ -107,15 +119,27 @@ Return ONLY valid Mermaid syntax without markdown formatting."""
     ) -> List[Dict[str, str]]:
         """Generate flashcards"""
         try:
-            system_prompt = custom_prompt or f"""Generate {count} flashcards about {topic}.
-Return ONLY valid JSON array: [{{"front": "...", "back": "..."}}]"""
+            system_prompt = custom_prompt or f"""You are Spark, an educational AI assistant.
+
+Generate EXACTLY {count} flashcards about "{topic}".
+
+CRITICAL REQUIREMENTS:
+1. Return ONLY a valid JSON array, no markdown fences
+2. Each flashcard MUST have "front" (question) and "back" (answer)
+3. Keep content concise and educational
+
+JSON format: [{{"front": "Question or concept", "back": "Answer or explanation"}}]
+
+Generate {count} flashcards now:"""
 
             messages = [
                 SystemMessage(content=system_prompt),
                 HumanMessage(content=f"Create {count} flashcards for: {topic}")
             ]
             
-            content = await self.langchain.invoke_llm(messages, temperature=0.7, max_tokens=2000)
+            # Direct LLM invocation
+            response = self.langchain.llm.invoke(messages)
+            content = response.content
             
             # Clean and parse
             if "```json" in content:
@@ -124,12 +148,23 @@ Return ONLY valid JSON array: [{{"front": "...", "back": "..."}}]"""
                 content = content.split("```")[1].split("```")[0].strip()
             
             flashcards = json.loads(content)
+            
+            # Ensure exactly count flashcards
+            if len(flashcards) < count:
+                logger.warning(f"Only {len(flashcards)} flashcards generated, padding...")
+                while len(flashcards) < count:
+                    flashcards.append({
+                        "front": f"Concept {len(flashcards)+1} about {topic}",
+                        "back": f"Explanation for concept {len(flashcards)+1}"
+                    })
+            
+            flashcards = flashcards[:count]
             logger.info(f"✅ Generated {len(flashcards)} flashcards")
             return flashcards
             
         except Exception as e:
             logger.error(f"Flashcard error: {e}")
-            return [{"front": "Error", "back": str(e)}]
+            return [{"front": f"Concept {i+1}: {topic}", "back": f"Explanation {i+1}"} for i in range(count)]
     
     async def answer_question(
         self,

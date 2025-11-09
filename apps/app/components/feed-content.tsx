@@ -30,6 +30,7 @@ interface Doubt {
   createdAt: string
   upvotes: number
   downvotes: number
+  isResolved?: boolean
   author?: {
     id: string
     name: string | null
@@ -68,6 +69,30 @@ export default function FeedContent() {
   }
 
   const fetchDoubts = async () => {
+    try {
+      const response = await fetch("/api/doubts?limit=10")
+      if (response.ok) {
+        const data = await response.json()
+        setDoubts(data.doubts)
+      }
+    } catch (error) {
+      console.error("Failed to fetch doubts:", error)
+    } finally {
+      setLoadingDoubts(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-white">
+      <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-12 gap-6">
+        {/* Left Sidebar */}
+        <aside className="md:col-span-3">
+          <Card className="border-neutral-200 mb-6">
+            <CardContent className="p-4 space-y-2">
+              <Button variant="outline" className="w-full justify-start" asChild>
+                <Link href="/communities">
+                  <Globe className="h-4 w-4 mr-2 text-blue-600" /> All Communities
+                </Link>
               </Button>
               <Button variant="outline" className="w-full justify-start" asChild>
                 <Link href="/classrooms">
@@ -123,9 +148,15 @@ export default function FeedContent() {
             </TabsList>
 
             <TabsContent value="all" className="mt-0 space-y-4">
-              {doubts.map((doubt) => (
-                <DoubtCard key={doubt.id} doubt={doubt} />
-              ))}
+              {loadingDoubts ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-slate-600" />
+                </div>
+              ) : (
+                doubts.map((doubt) => (
+                  <DoubtCard key={doubt.id} doubt={doubt} />
+                ))
+              )}
             </TabsContent>
 
             <TabsContent value="my-doubts" className="mt-0">
@@ -172,9 +203,6 @@ export default function FeedContent() {
                   <p className="text-2xl font-bold text-slate-700">15K</p>
                   <p className="text-neutral-600 text-sm">Active Classrooms</p>
                 </div>
-                <Button className="w-full bg-slate-700 hover:bg-slate-600" asChild>
-                  <Link href="/ask">Ask a Doubt</Link>
-                </Button>
               </div>
             </CardContent>
           </Card>
@@ -182,12 +210,9 @@ export default function FeedContent() {
           {/* NEW COMMUNITIES SECTION */}
           <Card className="border-neutral-200 mb-6">
             <CardContent className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Users className="h-5 w-5 text-purple-600" />
-                <h2 className="font-serif text-lg font-semibold text-slate-800">
-                  New Communities
-                </h2>
-              </div>
+              <h2 className="font-serif text-lg font-semibold text-slate-800 mb-4">
+                New Communities
+              </h2>
 
               {loadingCommunities ? (
                 <div className="space-y-3">
@@ -201,11 +226,7 @@ export default function FeedContent() {
               ) : recentCommunities.length > 0 ? (
                 <div className="space-y-3">
                   {recentCommunities.map((community) => (
-                    <Link
-                      key={community.id}
-                      href={`/communities/${community.id}`}
-                      className="block hover:bg-slate-50 p-3 rounded-lg transition-colors border border-neutral-100"
-                    >
+                    <Link key={community.id} href={`/communities/${community.id}`}>
                       <div className="flex items-start gap-3">
                         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white font-bold flex-shrink-0">
                           {community.name[0]?.toUpperCase() || "?"}
@@ -281,72 +302,6 @@ const popularTopics = [
   { id: "3", name: "Physics", slug: "physics" },
   { id: "4", name: "Data Science", slug: "data-science" },
   { id: "5", name: "Programming", slug: "programming" },
-]
-
-const doubts = [
-  {
-    id: "d1",
-    title: "How to implement binary search algorithm efficiently?",
-    content: "I'm struggling with the implementation of binary search. Can someone explain the logic step by step?",
-    author: { 
-      id: "u1",
-      name: "Anonymous Student",
-      email: "student@example.com",
-      image: null 
-    },
-    subject: "COMPUTER_SCIENCE",
-    tags: ["algorithms", "binary-search", "data-structures"],
-    isAnonymous: false,
-    createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-    upvotes: 15,
-    downvotes: 2,
-    _count: {
-      answers: 8,
-      votes: 17
-    }
-  },
-  {
-    id: "d2",
-    title: "Understanding calculus derivatives for machine learning",
-    content: "I need help understanding how derivatives work in the context of gradient descent optimization.",
-    author: { 
-      id: "u2",
-      name: "Learning Enthusiast",
-      email: "learner@example.com",
-      image: null 
-    },
-    subject: "MATHEMATICS",
-    tags: ["calculus", "machine-learning", "derivatives"],
-    isAnonymous: false,
-    createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), // 4 hours ago
-    upvotes: 23,
-    downvotes: 1,
-    _count: {
-      answers: 12,
-      votes: 24
-    }
-  },
-  {
-    id: "d3",
-    title: "Best practices for React component architecture",
-    content: "What are the recommended patterns for structuring React components in large applications?",
-    author: { 
-      id: "u3",
-      name: "Prof. Sarah Chen",
-      email: "chen@university.edu",
-      image: null 
-    },
-    subject: "COMPUTER_SCIENCE",
-    tags: ["react", "architecture", "best-practices", "components"],
-    isAnonymous: false,
-    createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), // 6 hours ago
-    upvotes: 31,
-    downvotes: 0,
-    _count: {
-      answers: 18,
-      votes: 31
-    }
-  },
 ]
 
 const contributors = [

@@ -45,7 +45,16 @@ export function Header() {
         <div className="flex items-center gap-6 md:gap-10">
           <Link href="/" className="flex items-center space-x-2">
             <Brain className="h-6 w-6" />
-            <span className="font-bold text-xl">Entropy</span>
+            <span className="font-bold text-xl flex items-center gap-2">
+              Entropy
+              <span
+                title="Alpha phase of development"
+                className="inline-flex items-center px-2 py-0.5 rounded-full bg-yellow-200 text-yellow-800 text-xs font-semibold"
+                aria-label="Alpha"
+              >
+                ALPHA
+              </span>
+            </span>
           </Link>
           <div className="hidden md:flex gap-6">
             {navigation.map((item) => (

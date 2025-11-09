@@ -19,5 +19,9 @@
   "packageManager": "npm@10.0.0",
   "workspaces": [
     "apps/*"
-  ]
+  ],
+  "dependencies": {
+    "@mermaid-js/mermaid-mindmap": "^9.3.0",
+    "mermaid": "^10.9.5"
+  }
 }
