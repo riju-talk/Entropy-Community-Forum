@@ -3,11 +3,14 @@ import type { Config } from "tailwindcss"
 const config = {
   darkMode: ["class"],
   content: [
-    "./pages/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
-    "./app/**/*.{ts,tsx}",
-    "./src/**/*.{ts,tsx}",
-    "*.{js,ts,jsx,tsx,mdx}",
+    // app router / pages / components inside this Next app
+    "./app/**/*.{ts,tsx,js,jsx,mdx}",
+    "./pages/**/*.{ts,tsx,js,jsx,mdx}",
+    "./components/**/*.{ts,tsx,js,jsx,mdx}",
+    // include src if used
+    "./src/**/*.{ts,tsx,js,jsx,mdx}",
+    // include workspace-wide files (monorepo) — helpful for Turborepo builds on Netlify
+    "../../**/*.{ts,tsx,js,jsx,mdx}",
   ],
   prefix: "",
   theme: {

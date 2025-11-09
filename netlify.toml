@@ -4,13 +4,29 @@
   command = "npm run build"
   publish = "apps/app/.next"
 
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_FLAGS = "--legacy-peer-deps"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
 # Use the official Next.js Netlify plugin
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
+# Proxy all AI agent API calls to the Netlify Function.
+# The function will forward to AI_AGENT_URL (set in Netlify env).
 [[redirects]]
-  # Proxy all ai-agent API calls to the Netlify Function which forwards to your backend
   from = "/api/ai-agent/*"
   to = "/.netlify/functions/proxy-ai-agent/:splat"
   status = 200
   force = true
+
+# Ensure client-side routes still work (Next plugin handles most routes).
+# This fallback is optional and can be removed if undesired.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

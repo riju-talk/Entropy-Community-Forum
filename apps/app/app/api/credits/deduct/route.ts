@@ -37,6 +37,12 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("Credit deduction error:", error)
     
+    if (error.message === "Authentication required") {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      )
+    }
     if (error.message === "Insufficient credits") {
       return NextResponse.json(
         { error: "Insufficient credits" },

@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { checkCreditsAndDeduct } from "@/app/actions/credits"
+import { checkUserCredits } from "@/app/actions/credits"
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
     if (!session?.user?.id) {
       return NextResponse.json(
         { allowed: false, reason: "unauthenticated" },
@@ -14,7 +13,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
+    const body = await request.json().catch(() => ({}))
     const { operation, cost } = body
 
     if (!operation || typeof cost !== "number") {
@@ -24,12 +23,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if user has enough credits (doesn't deduct yet)
-    const result = await checkCreditsAndDeduct(operation)
+    const credits = await checkUserCredits(session.user.id)
+    const allowed = credits >= cost
 
-    return NextResponse.json(result)
-  } catch (error) {
-    console.error("Credit check error:", error)
+    return NextResponse.json({
+      allowed,
+      credits,
+      cost,
+      needsUpgrade: !allowed,
+    })
+  } catch (err) {
+    console.error("credits/check error:", err)
     return NextResponse.json(
       { error: "Failed to check credits" },
       { status: 500 }

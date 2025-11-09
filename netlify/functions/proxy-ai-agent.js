@@ -3,48 +3,49 @@ const { URL } = require("url")
 exports.handler = async function (event, context) {
   try {
     const AI_AGENT_URL =
-      "https://entropy-community-forum.onrender.com"
+      process.env.AI_AGENT_URL || process.env.NEXT_PUBLIC_SPARK_API_URL || "http://localhost:8000"
+    const AI_BACKEND_TOKEN = process.env.AI_BACKEND_TOKEN || process.env.NEXT_PUBLIC_AI_BACKEND_TOKEN || ""
 
-    // Determine splat portion from invoked path
-    const fnPrefix = "/.netlify/functions/proxy-ai-agent/"
-    let splat = ""
-    if (event.path && event.path.startsWith(fnPrefix)) {
-      splat = event.path.slice(fnPrefix.length)
-    } else if (event.path) {
-      splat = event.path.replace(/^\/+/, "")
+    // Expect incoming path like "/api/ai-agent/..."
+    const prefix = "/api/ai-agent"
+    const incomingPath = event.path || ""
+    if (!incomingPath.startsWith(prefix)) {
+      return { statusCode: 404, body: "Not Found" }
     }
 
-    // Build target backend URL
-    let target = `${AI_AGENT_URL.replace(/\/+$/, "")}/api/ai-agent/${splat.replace(/^\/+/, "")}`
-    if (event.queryStringParameters && Object.keys(event.queryStringParameters).length > 0) {
-      const qs = new URLSearchParams(event.queryStringParameters).toString()
-      target += `?${qs}`
-    }
+    const rest = incomingPath.slice(prefix.length) || ""
+    const base = AI_AGENT_URL.replace(/\/+$/, "")
+    const qs = event.rawQueryString ? `?${event.rawQueryString}` : ""
+    const target = `${base}/api${rest}${qs}`
 
-    // Clone headers and sanitize
+    // Build headers to forward
     const forwardHeaders = Object.assign({}, event.headers || {})
     delete forwardHeaders["host"]
     delete forwardHeaders["content-length"]
+    delete forwardHeaders["transfer-encoding"]
+    delete forwardHeaders["connection"]
     forwardHeaders["accept-encoding"] = "identity"
 
-    // Prepare body
-    const body = event.isBase64Encoded ? Buffer.from(event.body, "base64") : event.body
+    if (AI_BACKEND_TOKEN && !(forwardHeaders["authorization"] || forwardHeaders["Authorization"])) {
+      forwardHeaders["Authorization"] = `Bearer ${AI_BACKEND_TOKEN}`
+    }
 
-    const fetchOptions = {
+    // Prepare body
+    const body = event.body ? (event.isBase64Encoded ? Buffer.from(event.body, "base64") : event.body) : undefined
+
+    const _fetch = global.fetch || (await import("node-fetch")).default
+    const resp = await _fetch(target, {
       method: event.httpMethod || "GET",
       headers: forwardHeaders,
       body: ["GET", "HEAD"].includes((event.httpMethod || "GET").toUpperCase()) ? undefined : body,
       redirect: "follow",
-    }
+    })
 
-    // Use global fetch (Node 18+) or node-fetch fallback
-    const _fetch = global.fetch || (await import("node-fetch")).default
-    const resp = await _fetch(target, fetchOptions)
-
-    // Build response headers (exclude hop-by-hop)
+    // Collect response headers
     const respHeaders = {}
     resp.headers.forEach((v, k) => {
-      if (["transfer-encoding", "connection", "keep-alive"].includes(k.toLowerCase())) return
+      const key = k.toLowerCase()
+      if (["transfer-encoding", "connection", "keep-alive"].includes(key)) return
       respHeaders[k] = v
     })
 
