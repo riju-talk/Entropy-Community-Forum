@@ -4,14 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 5000",
-    "build": "next build",
+    "generate": "npx prisma generate --schema=prisma/schema.prisma",
+    "build": "npx prisma generate --schema=prisma/schema.prisma && next build",
     "start": "next start -p 5000",
     "lint": "next lint",
     "test": "jest",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio",
-    "generate": "prisma generate"
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
