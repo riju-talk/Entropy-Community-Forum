@@ -17,14 +17,11 @@ import { getCommunities } from "@/app/actions/communities"
 import { getDoubts } from "@/app/actions/doubts"
 
 export default async function HomePage() {
-  // Wrap DB calls to avoid build-time crash if Prisma/DB not available
   let communities = []
   let doubts = []
   try {
     communities = await getCommunities?.() ?? []
   } catch (err) {
-    // Log and continue with empty fallback so static generation completes
-    // Use console.error so Netlify build logs capture the error
     console.error("[HomePage] Error fetching communities:", err)
     communities = []
   }

@@ -4,14 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 5000",
-    "generate": "npx prisma generate --schema=prisma/schema.prisma",
-    "build": "sh -c \"if [ -n \\\"$DATABASE_URL\\\" ]; then echo 'Running prisma generate (DATABASE_URL present)'; npx prisma generate --schema=prisma/schema.prisma; else echo 'Skipping prisma generate (DATABASE_URL not set)'; fi\" && next build",
+    "build": "next build",
     "start": "next start -p 5000",
     "lint": "next lint",
     "test": "jest",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "generate": "npx prisma generate --schema=prisma/schema.prisma"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
