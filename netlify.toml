@@ -2,7 +2,7 @@
   # Base directory for the Next app inside the Turborepo
   base = "apps/app"
   command = "npm run build"
-  publish = "apps/app/.next"
+  publish = ".next"
 
 [build.environment]
   NODE_VERSION = "18"

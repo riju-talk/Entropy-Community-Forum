@@ -15,6 +15,10 @@ RUN apt-get update \
        curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Rust (for chromadb, pydantic-core, etc.)
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y \
+    && export PATH="$PATH:/root/.cargo/bin"
+
 # Create app directory
 WORKDIR /app
 

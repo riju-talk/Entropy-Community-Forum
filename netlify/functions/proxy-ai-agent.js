@@ -2,9 +2,8 @@ const { URL } = require("url")
 
 exports.handler = async function (event, context) {
   try {
-    const AI_AGENT_URL =
-      process.env.AI_AGENT_URL || process.env.NEXT_PUBLIC_SPARK_API_URL || "http://localhost:8000"
-    const AI_BACKEND_TOKEN = process.env.AI_BACKEND_TOKEN || process.env.NEXT_PUBLIC_AI_BACKEND_TOKEN || ""
+    const AI_AGENT_URL = "https://entropy-community-forum.onrender.com"
+    const AI_BACKEND_TOKEN = process.env.AI_BACKEND_TOKEN || ""
 
     // Expect incoming path like "/api/ai-agent/..."
     const prefix = "/api/ai-agent"
