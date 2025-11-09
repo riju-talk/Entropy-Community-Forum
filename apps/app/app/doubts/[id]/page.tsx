@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
-import { prisma } from "@/lib/prisma"
+import { PrismaClient } from "@prisma/client"
+const prisma = new PrismaClient()
 import { Header} from "@/components/header"
 import { DoubtDetail } from "@/components/doubt-detail"
 

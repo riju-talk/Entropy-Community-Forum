@@ -1,14 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { PrismaClient } from "@prisma/client"
-
-let __prisma__: PrismaClient | undefined;
-function getPrisma() {
-  if (!__prisma__) {
-    __prisma__ = new PrismaClient({ log: ["error", "warn"] });
-  }
-  return __prisma__;
-}
+const prisma = new PrismaClient()
 
 // GET /api/users/me/credits - Get current user's credits
 export async function GET(request: Request) {
@@ -19,7 +12,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await getPrisma().user.findUnique({ 
+    const user = await prisma.user.findUnique({ 
       where: { id: session.user.id },
       select: { credits: true }
     });
@@ -120,7 +113,7 @@ export async function POST(request: Request) {
 
 // Helper function to get current credits
 async function getCurrentCredits(userId: string): Promise<number> {
-  const user = await getPrisma().user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { credits: true }
   });

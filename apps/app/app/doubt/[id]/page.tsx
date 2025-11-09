@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation"
-import { prisma } from "@/lib/prisma"
+import { PrismaClient } from "@prisma/client"
 import { DoubtDetail } from "@/components/doubt-detail"
 import { AnswersSection } from "@/components/answers-section"
+
+const prisma = new PrismaClient()
 
 async function getDoubt(id: string) {
   try {
