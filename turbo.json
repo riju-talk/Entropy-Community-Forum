@@ -26,5 +26,29 @@
       "dependsOn": ["^build"],
       "outputs": ["coverage/**"]
     }
+  },
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["apps/app/.next/**"],
+      "env": [
+        "DATABASE_URL",
+        "DIRECT_URL",
+        "NEXTAUTH_URL",
+        "NEXTAUTH_SECRET",
+        "GITHUB_ID",
+        "GITHUB_SECRET",
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "AI_AGENT_URL",
+        "AI_BACKEND_TOKEN",
+        "GROQ_API_KEY",
+        "GROQ_MODEL",
+        "SKIP_AI_AGENT_HEALTH_CHECK",
+        "SKIP_DB"
+      ]
+    }
   }
 }

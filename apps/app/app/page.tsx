@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { DoubtsFeed } from "@/components/doubts-feed"
 import { getDoubts } from "@/app/actions/doubts"
 import { prisma } from "@/lib/prisma"
@@ -39,13 +41,28 @@ async function getRecentCommunities() {
   }
 }
 
-export default async function HomePage() {
-  const { doubts, total, totalPages, hasMore } = await getDoubts({
-    page: 1,
-    limit: 15,
-  })
+async function safeGetDoubts() {
+  if (process.env.VERCEL || process.env.SKIP_DB === "true") {
+    return { doubts: [], total: 0, totalPages: 0, hasMore: false }
+  }
+  try {
+    return await getDoubts({ page: 1, limit: 15 })
+  } catch (e) {
+    console.error("safeGetDoubts error:", e)
+    return { doubts: [], total: 0, totalPages: 0, hasMore: false }
+  }
+}
 
-  const { communities } = await getRecentCommunities()
+async function safeGetRecentCommunities() {
+  if (process.env.VERCEL || process.env.SKIP_DB === "true") {
+    return { communities: [] }
+  }
+  return await getRecentCommunities()
+}
+
+export default async function HomePage() {
+  const { doubts, total, totalPages, hasMore } = await safeGetDoubts()
+  const { communities } = await safeGetRecentCommunities()
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
@@ -65,7 +82,9 @@ export default async function HomePage() {
         </div>
         <div>
           <span className="font-semibold">
-            {doubts.reduce((acc, d) => acc + (d._count?.answers || 0), 0)}
+            {Array.isArray(doubts)
+              ? doubts.reduce((acc, d) => acc + (d._count?.answers || 0), 0)
+              : 0}
           </span>
           <span className="text-muted-foreground ml-1">answers</span>
         </div>
