@@ -73,23 +73,23 @@ model VerificationToken {
 }
 
 model Doubt {
-  id            String           @id @default(cuid())
-  title         String
-  content       String
-  tags          String[]
-  isAnonymous   Boolean          @default(false)
-  authorId      String
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
-  subject       String           @default("OTHER")
-  downvotes     Int              @default(0)
-  upvotes       Int              @default(0)
-  isResolved    Boolean          @default(false)
-  isInCommunity Boolean          @default(false)
-  answers       Answer[]
-  votes         DoubtVote[]
-  author        User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  id              String           @id @default(cuid())
+  title           String
+  content         String
+  tags            String[]
+  isAnonymous     Boolean          @default(false)
+  authorId        String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  subject         String           @default("OTHER")
+  downvotes       Int              @default(0)
+  upvotes         Int              @default(0)
+  isResolved      Boolean          @default(false)
+  isInCommunity   Boolean          @default(false)
+  answers         Answer[]
   communityDoubts CommunityDoubt[]
+  votes           DoubtVote[]
+  author          User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([authorId])
   @@index([createdAt])
@@ -321,17 +321,15 @@ model Message {
 }
 
 model Community {
-  id              String            @id @default(cuid())
-  name            String
-  description     String?
-  subject         Subject?
-  isPublic        Boolean           @default(true)
-  createdBy       String?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
-  users           User?             @relation(fields: [createdBy], references: [id])
-  communityDoubts CommunityDoubt[]
-  members         CommunityMember[]
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  subject     Subject?
+  isPublic    Boolean  @default(true)
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       User?    @relation(fields: [createdBy], references: [id])
 
   @@index([createdBy])
   @@index([isPublic])
@@ -345,7 +343,6 @@ model CommunityMember {
   communityId String
   role        CommunityRole @default(MEMBER)
   joinedAt    DateTime      @default(now())
-  community   Community     @relation(fields: [communityId], references: [id], onDelete: Cascade)
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, communityId])
@@ -355,14 +352,13 @@ model CommunityMember {
 }
 
 model CommunityDoubt {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   communityId String
-  doubtId     String
   addedBy     String?
-  addedAt     DateTime  @default(now())
-  adder       User?     @relation(fields: [addedBy], references: [id])
-  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  doubt       Doubt     @relation(fields: [doubtId], references: [id], onDelete: Cascade)
+  addedAt     DateTime @default(now())
+  doubtId     String
+  adder       User?    @relation(fields: [addedBy], references: [id])
+  doubt       Doubt    @relation(fields: [doubtId], references: [id], onDelete: Cascade)
 
   @@unique([communityId, doubtId])
   @@index([communityId])
