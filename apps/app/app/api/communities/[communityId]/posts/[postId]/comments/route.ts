@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+import { PrismaClient } from "@prisma/client"
+
+const prisma = new PrismaClient()
 
 export async function GET(
   req: NextRequest,
@@ -31,7 +33,7 @@ export async function GET(
         content: comment.content,
         author: comment.author,
         createdAt: comment.createdAt,
-        likes: comment.upvotes,
+        likes: comment._count.votes,
         isLiked: false // TODO: Implement user-specific like status
       }))
     })
