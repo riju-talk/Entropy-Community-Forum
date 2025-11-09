@@ -17,7 +17,8 @@ services:
       - key: DEBUG
         value: false
       - key: ALLOWED_ORIGINS
-        value: https://your-app.netlify.app
+        # include the Netlify frontend origin so Cross-Origin requests from the site are allowed
+        value: "https://your-app.netlify.app,https://entropy-communtiy.netlify.app"
       - key: LLM_MODEL
         value: llama3-8b-8192
       - key: LLM_TEMPERATURE

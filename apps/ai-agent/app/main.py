@@ -47,10 +47,28 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configure CORS
+# Load environment variable and build allowed origins list
+_allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+if _allowed_origins_env:
+    # split on commas, strip whitespace, ignore empty strings
+    allowed_origins = [o.strip() for o in _allowed_origins_env.split(",") if o.strip()]
+else:
+    # fallback for development only - keep localhosts
+    allowed_origins = ["http://localhost:3000", "http://localhost:5000", "https://entropy-communtiy.netlify.app"]
+
+# If a single asterisk present, treat as wildcard
+if any(o == "*" for o in allowed_origins):
+    cors_origins = ["*"]
+else:
+    cors_origins = allowed_origins
+
+# Provide informative logging
+logger.info("CORS allowed origins: %s", cors_origins)
+
+# CORS configuration using allowed origins from environment
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.get_allowed_origins_list(),
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
