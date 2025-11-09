@@ -3,9 +3,7 @@ const { URL } = require("url")
 exports.handler = async function (event, context) {
   try {
     const AI_AGENT_URL =
-      process.env.AI_AGENT_URL ||
-      process.env.NEXT_PUBLIC_AI_AGENT_URL ||
-      "http://localhost:8000"
+      "https://entropy-community-forum.onrender.com"
 
     // Determine splat portion from invoked path
     const fnPrefix = "/.netlify/functions/proxy-ai-agent/"
