@@ -18,7 +18,8 @@
   },
   "packageManager": "npm@10.0.0",
   "workspaces": [
-    "apps/app"
+    "apps/app",
+    "apps/ai-agent"
   ],
   "dependencies": {
     "@mermaid-js/mermaid-mindmap": "^9.3.0",

@@ -1,99 +1,181 @@
 """
 Document upload and RAG query endpoints using LangChain directly
 """
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Request
 from pydantic import BaseModel
 from typing import Optional, List
 import logging
 import aiofiles
 from pathlib import Path
+import shutil
+import uuid
+import os
 
 from langchain_core.documents import Document
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 import docx2txt
 
 from app.services.langchain_service import langchain_service
+from app.core.auth import verify_secret
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+# Config
+UPLOAD_DIR = Path("./data/uploads")
+VECTOR_STORE_ROOT = Path("./data/chroma_db")
+ALLOWED_EXT = {".pdf", ".txt", ".doc", ".docx"}
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+MAX_FILES_PER_UPLOAD = 10
 
-class DocxLoader:
-    """Custom DOCX loader using docx2txt"""
-    
-    def __init__(self, file_path: str):
-        self.file_path = file_path
-    
-    def load(self) -> List[Document]:
-        """Load DOCX file and return as Document"""
-        try:
-            text = docx2txt.process(self.file_path)
-            metadata = {"source": self.file_path}
-            return [Document(page_content=text, metadata=metadata)]
-        except Exception as e:
-            logger.error(f"Error loading DOCX: {e}")
-            raise
+# Safe helper to ensure directories exist
+def _ensure_dir(p: Path):
+    p.mkdir(parents=True, exist_ok=True)
+
+# Save UploadFile to disk
+async def _save_upload_file(upload: UploadFile, dest: Path) -> Path:
+    _ensure_dir(dest.parent)
+    with open(dest, "wb") as out_f:
+        content = await upload.read()
+        out_f.write(content)
+    return dest
+
+# Determine loader type by extension (defer actual loader logic to langchain_service)
+def _is_allowed_file(filename: str) -> bool:
+    ext = Path(filename).suffix.lower()
+    return ext in ALLOWED_EXT
 
 
-@router.post("/upload")
-async def upload_document(
-    file: UploadFile = File(...),
-    collection_name: str = "default"
+@router.post("/upload", dependencies=[Depends(verify_secret)])
+async def upload_documents(
+    request: Request,
+    files: Optional[List[UploadFile]] = File(None),
+    collection_name: str = Form("default"),
+    user_id: Optional[str] = Form(None),
 ):
-    """Upload and process document for RAG"""
+    """
+    Upload documents for RAG processing.
+    - files: list of files (pdf/txt/doc/docx)
+    - collection_name: collection under which to store vectors (default 'default')
+    - user_id: optional user identifier (for metadata)
+    """
     try:
-        if not langchain_service:
-            raise HTTPException(status_code=503, detail="AI service not available")
-        
-        # Save uploaded file
-        upload_dir = Path("./data/uploads")
-        upload_dir.mkdir(parents=True, exist_ok=True)
-        
-        file_path = upload_dir / file.filename
-        
-        async with aiofiles.open(file_path, 'wb') as f:
-            content = await file.read()
-            await f.write(content)
-        
-        logger.info(f"📁 File uploaded: {file.filename}")
-        
-        # Process document based on type
-        suffix = file_path.suffix.lower()
-        
-        if suffix == ".pdf":
-            loader = PyPDFLoader(str(file_path))
-            documents = loader.load()
-        elif suffix == ".txt":
-            loader = TextLoader(str(file_path), encoding='utf-8')
-            documents = loader.load()
-        elif suffix in [".doc", ".docx"]:
-            loader = DocxLoader(str(file_path))
-            documents = loader.load()
+        logger.info("[DOCUMENTS] Upload requested: collection=%s user_id=%s", collection_name, user_id)
+
+        if not files or len(files) == 0:
+            raise HTTPException(status_code=400, detail="No files uploaded")
+
+        if len(files) > MAX_FILES_PER_UPLOAD:
+            raise HTTPException(status_code=400, detail=f"Too many files uploaded. Max {MAX_FILES_PER_UPLOAD} allowed")
+
+        saved_paths = []
+        filenames = []
+        # Validate and save files
+        upload_collection_dir = UPLOAD_DIR / collection_name
+        _ensure_dir(upload_collection_dir)
+
+        for f in files:
+            if not _is_allowed_file(f.filename):
+                raise HTTPException(status_code=400, detail=f"Unsupported file type: {f.filename}")
+            # Check size by reading but avoid re-reading large file twice; we already have content in UploadFile.read
+            content = await f.read()
+            if len(content) > MAX_FILE_SIZE:
+                raise HTTPException(status_code=400, detail=f"File too large: {f.filename}")
+            # write to disk
+            target_path = upload_collection_dir / f"{uuid.uuid4().hex}_{Path(f.filename).name}"
+            with open(target_path, "wb") as out_f:
+                out_f.write(content)
+            saved_paths.append(target_path)
+            filenames.append(Path(f.filename).name)
+            logger.info("[DOCUMENTS] Saved upload: %s (%d bytes)", str(target_path), target_path.stat().st_size)
+            # reset file if needed (we already consumed it)
+
+        # Process documents: use langchain_service if available
+        # This module assumes there is a langchain_service with split_documents and create_vector_store
+        try:
+            from app.services.langchain_service import langchain_service  # type: ignore
+        except Exception as e:
+            langchain_service = None
+            logger.warning("[DOCUMENTS] langchain_service not available: %s", e)
+
+        created_doc_ids = []
+        if langchain_service:
+            # Load and convert files into langchain Document objects using langchain loaders if available
+            docs_for_indexing = []
+            for path in saved_paths:
+                suffix = path.suffix.lower()
+                try:
+                    if suffix == ".pdf":
+                        try:
+                            from langchain_community.document_loaders import PyPDFLoader  # type: ignore
+                            loader = PyPDFLoader(str(path))
+                            loaded = loader.load()
+                        except Exception:
+                            # fallback plaintext read
+                            loaded = [type("D", (), {"page_content": path.read_text(encoding="utf-8", errors="ignore"), "metadata": {"source": path.name}})()]
+                    elif suffix in {".txt", ".md"}:
+                        try:
+                            from langchain_community.document_loaders import TextLoader  # type: ignore
+                            loader = TextLoader(str(path), encoding="utf-8")
+                            loaded = loader.load()
+                        except Exception:
+                            loaded = [type("D", (), {"page_content": path.read_text(encoding="utf-8", errors="ignore"), "metadata": {"source": path.name}})()]
+                    elif suffix in {".docx", ".doc"}:
+                        # use docx2txt as basic fallback
+                        try:
+                            import docx2txt  # type: ignore
+                            txt = docx2txt.process(str(path))
+                            loaded = [type("D", (), {"page_content": txt, "metadata": {"source": path.name}})()]
+                        except Exception:
+                            loaded = [type("D", (), {"page_content": path.read_text(encoding="utf-8", errors="ignore"), "metadata": {"source": path.name}})()]
+                    else:
+                        loaded = [type("D", (), {"page_content": path.read_text(encoding="utf-8", errors="ignore"), "metadata": {"source": path.name}})()]
+                except Exception as e:
+                    logger.exception("[DOCUMENTS] Failed to load file %s: %s", path, e)
+                    continue
+
+                # ensure metadata and append
+                for d in loaded:
+                    if not hasattr(d, "metadata") or d.metadata is None:
+                        d.metadata = {}
+                    d.metadata["source"] = path.name
+                    docs_for_indexing.append(d)
+
+            if docs_for_indexing:
+                # split documents (langchain_service.split_documents expected)
+                try:
+                    split_docs = langchain_service.split_documents(docs_for_indexing)
+                    logger.info("[DOCUMENTS] Split into %d chunks", len(split_docs))
+                    # create or update vector store
+                    collection_id = collection_name or f"collection_{uuid.uuid4().hex[:8]}"
+                    langchain_service.create_vector_store(split_docs, collection_id)
+                    logger.info("[DOCUMENTS] Vector store created/updated: %s", collection_id)
+                    # Map created doc ids to filenames (we return collection name and filenames)
+                    created_doc_ids = [str(uuid.uuid4()) for _ in saved_paths]
+                except Exception as e:
+                    logger.exception("[DOCUMENTS] Failed to index documents: %s", e)
+                    raise HTTPException(status_code=500, detail="Failed to process documents into vector store")
+            else:
+                logger.warning("[DOCUMENTS] No documents loaded for indexing")
         else:
-            raise HTTPException(status_code=400, detail=f"Unsupported file type: {suffix}")
-        
-        logger.info(f"📄 Loaded {len(documents)} documents")
-        
-        # Split documents
-        split_docs = langchain_service.split_documents(documents)
-        logger.info(f"✂️  Split into {len(split_docs)} chunks")
-        
-        # Create vector store
-        vectorstore = langchain_service.create_vector_store(split_docs, collection_name)
-        
-        return {
-            "success": True,
-            "file_name": file.filename,
-            "file_type": suffix,
-            "num_documents": len(documents),
-            "num_chunks": len(split_docs),
-            "collection_name": collection_name,
-            "message": f"Document processed! You can now ask questions about '{file.filename}' using the Q&A endpoint."
+            # If service not available, still return saved file metadata
+            created_doc_ids = [str(uuid.uuid4()) for _ in saved_paths]
+            logger.info("[DOCUMENTS] langchain_service unavailable; saved files only")
+
+        # Return normalized response
+        response = {
+            "collection": collection_name,
+            "documentIds": created_doc_ids,
+            "filenames": filenames,
+            "count": len(saved_paths),
         }
-        
+        return response
+
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"❌ Upload error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("[DOCUMENTS] Unexpected error: %s", e)
+        raise HTTPException(status_code=500, detail="Internal server error while processing uploads")
 
 
 @router.get("/collections")

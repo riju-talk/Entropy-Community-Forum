@@ -219,45 +219,65 @@ Polished Answer:"""
     async def process_question(
         self,
         question: str,
-        collection_name: str = "default"
+        collection_name: str = "default",
+        user_id: str = "anonymous",
+        system_prompt: Optional[str] = None,
+        conversation_history: Optional[List[Dict[str, str]]] = None
     ) -> Dict[str, Any]:
-        """Process question through the agentic RAG workflow"""
-        logger.info("🚀 Starting agentic RAG workflow...")
+        """
+        Process a question with RAG workflow.
         
+        Args:
+            question: The user's question
+            collection_name: Vector store collection to query
+            user_id: User identifier for context/logging
+            system_prompt: Optional custom system prompt
+            conversation_history: Optional chat history for context
+        """
         try:
-            # Initialize state
-            initial_state: RAGState = {
-                "question": question,
-                "retrieved_docs": [],
-                "context": "",
-                "initial_answer": "",
-                "needs_refinement": False,
-                "refined_answer": "",
-                "final_answer": "",
-                "sources": [],
-                "mode": "direct"
-            }
+            logger.info(f"Processing question for user {user_id} with collection {collection_name}")
             
-            # Run workflow
-            result = self.workflow.invoke(initial_state)
+            # Try to load vector store for RAG
+            vector_store = None
+            try:
+                vector_store = self.langchain.load_vector_store(collection_name)
+                if vector_store:
+                    logger.info(f"Loaded vector store for collection: {collection_name}")
+            except Exception as e:
+                logger.warning(f"Could not load vector store: {e}")
             
-            logger.info(f"✅ Workflow completed - Mode: {result['mode']}")
+            # Use RAG if vector store available, otherwise direct chat
+            if vector_store:
+                result = await self.langchain.rag_chat(
+                    message=question,
+                    vector_store=vector_store,
+                    system_prompt=system_prompt or "You are a helpful AI assistant. Answer based on the provided context."
+                )
+                mode = "rag"
+                sources = result.get("sources", [])
+            else:
+                result = await self.langchain.direct_chat(
+                    message=question,
+                    conversation_history=conversation_history or [],
+                    system_prompt=system_prompt or "You are a helpful AI assistant."
+                )
+                mode = "direct"
+                sources = []
             
             return {
-                "answer": result["final_answer"],
-                "sources": result["sources"],
-                "mode": result["mode"],
+                "answer": result.get("answer", ""),
+                "sources": sources,
+                "mode": mode,
                 "workflow_info": {
-                    "initial_answer_length": len(result["initial_answer"]),
-                    "was_refined": bool(result.get("refined_answer")),
-                    "num_docs_retrieved": len(result["retrieved_docs"])
+                    "user_id": user_id,
+                    "collection_name": collection_name,
+                    "used_vector_store": vector_store is not None
                 }
             }
-        
+            
         except Exception as e:
-            logger.error(f"Workflow error: {e}")
-            # Fallback to simple direct chat
-            return await self.langchain.direct_chat(question, None, None)
+            logger.error(f"Error in process_question: {e}", exc_info=True)
+            raise
 
 
 # Create singleton

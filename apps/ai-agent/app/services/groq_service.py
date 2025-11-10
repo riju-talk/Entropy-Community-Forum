@@ -95,21 +95,64 @@ Return ONLY valid Mermaid syntax without markdown formatting."""
                 SystemMessage(content=system_prompt),
                 HumanMessage(content=f"Create {diagram_type} for: {topic}")
             ]
-            
-            content = await self.langchain.invoke_llm(messages, temperature=0.7, max_tokens=1500)
-            
-            # Clean Mermaid code
-            if "```mermaid" in content:
-                content = content.split("```mermaid")[1].split("```")[0].strip()
-            elif "```" in content:
-                content = content.split("```")[1].split("```")[0].strip()
-            
+
+            # Try multiple invocation methods on langchain_service (compatibility)
+            content = None
+
+            # Preferred: langchain_service.invoke_llm (async)
+            try:
+                if hasattr(self.langchain, "invoke_llm"):
+                    content = await self.langchain.invoke_llm(messages, temperature=0.7, max_tokens=1500)
+                else:
+                    raise AttributeError("invoke_llm not available")
+            except Exception:
+                # Fallback: try langchain_service.llm.invoke (sync or async)
+                try:
+                    if hasattr(self.langchain, "llm") and hasattr(self.langchain.llm, "invoke"):
+                        resp = self.langchain.llm.invoke(messages)
+                        # resp may be object with .content or string
+                        content = getattr(resp, "content", resp)
+                        # if it's awaitable
+                        if hasattr(content, "__await__"):
+                            content = await content
+                    else:
+                        raise AttributeError("llm.invoke not available")
+                except Exception:
+                    # Final fallback: try generic call/invoke function names
+                    try:
+                        if hasattr(self.langchain, "call"):
+                            content = await self.langchain.call(messages, temperature=0.7, max_tokens=1500)
+                        elif hasattr(self.langchain, "invoke"):
+                            content = await self.langchain.invoke(messages, temperature=0.7, max_tokens=1500)
+                        else:
+                            raise RuntimeError("No supported LLM invocation method on langchain_service")
+                    except Exception as e:
+                        logger.error("Failed to invoke LLM via langchain_service: %s", e, exc_info=True)
+                        raise
+
+            # content may be Response-like or plain string
+            if isinstance(content, (dict, list)):
+                # try to extract text field if present
+                content_text = content.get("content") if isinstance(content, dict) else None
+                if not content_text:
+                    content_text = str(content)
+            else:
+                content_text = getattr(content, "content", None) or str(content)
+
+            # Clean Mermaid code from code fences if present
+            if "```mermaid" in content_text:
+                content_text = content_text.split("```mermaid", 1)[1].split("```", 1)[0].strip()
+            elif "```" in content_text:
+                # take first fenced block
+                content_text = content_text.split("```", 1)[1].split("```", 1)[0].strip()
+
             logger.info(f"✅ Generated {diagram_type}")
-            return content
-            
+            return content_text
+
         except Exception as e:
-            logger.error(f"Mindmap error: {e}")
-            return f"Error: {str(e)}"
+            logger.error(f"Mindmap error: {e}", exc_info=True)
+            # Return a helpful error string rather than raising to keep UI feedback simple
+            raise
     
     async def generate_flashcards(
         self,

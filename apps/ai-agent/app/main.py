@@ -7,6 +7,7 @@ from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 import traceback
+import asyncio
 
 # Print startup information
 print("=" * 80)
@@ -27,18 +28,18 @@ logger = logging.getLogger(__name__)
 
 try:
     from app.core.config import settings, validate_settings
-    
+
     # Validate configuration
     validate_settings()
     logger.info("✅ Configuration loaded and validated successfully")
-    
+
     # Note: Database is deprecated - using LangChain services
     logger.info("ℹ️  Using LangChain for all storage (vector stores + file-based history)")
-    
+
 except Exception as e:
-    logger.error(f"❌ Startup Error: {e}")
+    logger.error(f"❌ Startup Error (config): {e}")
     traceback.print_exc()
-    raise
+    # Do not re-raise here; allow app to start in degraded mode
 
 # Create FastAPI app
 app = FastAPI(
@@ -177,41 +178,47 @@ async def health_check():
 
 @app.on_event("startup")
 async def startup_event():
-    """Log startup information and registered routes"""
-    logger.info("=" * 80)
-    logger.info("🎉 ENTROPY AI AGENT STARTED SUCCESSFULLY!")
-    logger.info("=" * 80)
-    logger.info(f"📍 Server: http://{settings.host}:{settings.port}")
-    logger.info(f"📚 API Docs: http://{settings.host}:{settings.port}/docs")
-    logger.info(f"📚 Registered Routes:")
-    
-    # Log all routes
-    for route in app.routes:
-        if hasattr(route, 'path') and hasattr(route, 'methods'):
-            methods = ','.join(sorted(route.methods)) if route.methods else 'ANY'
-            logger.info(f"   {methods:8} {route.path}")
-    
-    logger.info(f"")
-    logger.info(f"🎯 Primary Endpoints:")
-    logger.info(f"   GET  /api/qa/greeting - Get Spark greeting")
-    logger.info(f"   POST /api/qa - Ask questions (RAG + fallback)")
-    logger.info(f"   POST /api/documents/upload - Upload docs for RAG")
-    logger.info(f"   POST /api/quiz - Generate quiz")
-    logger.info(f"   POST /api/mindmap - Generate diagrams")
-    logger.info(f"   POST /api/flashcards - Generate flashcards")
-    logger.info(f"")
-    logger.info(f"🔧 Configuration:")
-    logger.info(f"   Groq Model: {settings.groq_model}")
-    logger.info(f"   Embeddings: GPT4All (local & free)")
-    logger.info(f"   Storage: LangChain Chroma + file-based Q&A history")
-    logger.info("=" * 80)
+    """
+    Log startup information and registered routes.
+    Any initialization that may raise should be caught here to avoid cancelling the
+    ASGI lifespan. We catch asyncio.CancelledError explicitly and also log other exceptions.
+    """
+    try:
+        logger.info("=" * 80)
+        logger.info("🎉 ENTROPY AI AGENT STARTING UP...")
+        logger.info("=" * 80)
+        logger.info(f"📍 Server: http://{getattr(settings, 'host', 'localhost')}:{getattr(settings, 'port', 8000)}")
+        # If you need to run any async init, do it here and catch exceptions
+        # Example: await some_async_init()  (wrap in try/except inside)
+        # Log registered routes (best-effort - do not fail startup if something breaks)
+        logger.info(f"📚 Registered Routes (pre-mount):")
+        for route in app.routes:
+            try:
+                methods = ','.join(sorted(route.methods)) if getattr(route, 'methods', None) else 'ANY'
+                path = getattr(route, 'path', getattr(route, 'name', str(route)))
+                logger.info(f"   {methods:8} {path}")
+            except Exception:
+                logger.debug("Failed to inspect route", exc_info=True)
+
+        logger.info("✅ Startup checks complete")
+        logger.info("=" * 80)
+
+    except asyncio.CancelledError:
+        # Lifespan cancelled: log and return (do not re-raise)
+        logger.warning("🚨 Startup cancelled (asyncio.CancelledError). Continuing in degraded mode.")
+        return
+    except Exception as e:
+        # Catch unexpected errors — log stack trace and continue with app in degraded mode.
+        logger.error(f"❌ Uncaught exception during startup: {e}", exc_info=True)
+        # Do not raise; allow the ASGI server to continue so endpoints can report degraded status.
 
 
 if __name__ == "__main__":
     import uvicorn
+    port = int(os.getenv("PORT", 8000))
     uvicorn.run(
         "app.main:app",
-        host=settings.host,
-        port=settings.port,
+        host=getattr(settings, "host", "0.0.0.0"),
+        port=getattr(settings, "port", port),
         reload=True
     )

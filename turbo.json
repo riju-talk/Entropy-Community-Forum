@@ -2,32 +2,10 @@
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
   "tasks": {
-    "build": {
-      "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
-      "env": ["NODE_ENV"]
-    },
     "dev": {
-      "cache": false,
-      "persistent": true
-    },
-    "lint": {
-      "dependsOn": ["^lint"],
-      "outputs": []
-    },
-    "type-check": {
-      "dependsOn": ["^type-check"],
-      "outputs": []
-    },
-    "clean": {
+      "dependsOn": ["^dev"],
       "cache": false
     },
-    "test": {
-      "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
-    }
-  },
-  "pipeline": {
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["apps/app/.next/**"],
@@ -49,6 +27,22 @@
         "SKIP_AI_AGENT_HEALTH_CHECK",
         "SKIP_DB"
       ]
+    },
+    "lint": {
+      "dependsOn": ["^lint"],
+      "outputs": []
+    },
+    "type-check": {
+      "dependsOn": ["^type-check"],
+      "outputs": []
+    },
+    "clean": {
+      "cache": false,
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
     }
   }
 }

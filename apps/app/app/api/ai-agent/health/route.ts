@@ -1,50 +1,67 @@
 import { NextResponse } from "next/server"
+import { PrismaClient } from "@prisma/client"
 
-const AI_AGENT_URL = process.env.AI_AGENT_URL || "http://localhost:8000"
+const prisma = new PrismaClient()
+const AI_AGENT_URL = process.env.AI_AGENT_URL || ""
 
 export async function GET() {
-	// Avoid network calls during static export / build
-	if (process.env.VERCEL || process.env.SKIP_AI_AGENT_HEALTH_CHECK === "true") {
-		return new Response(
-			JSON.stringify({
-				skipped: true,
-				status: "degraded",
-				reason: "Skipped agent health check during build",
-				aiAgentUrlConfigured: !!process.env.AI_AGENT_URL,
-			}),
-			{ status: 200, headers: { "content-type": "application/json" } }
-		)
-	}
-
-	const base = process.env.AI_AGENT_URL
-	if (!base) {
-		return new Response(
-			JSON.stringify({
-				status: "degraded",
-				error: "AI_AGENT_URL not set",
-			}),
-			{ status: 200, headers: { "content-type": "application/json" } }
-		)
-	}
-
 	try {
-		const r = await fetch(`${base.replace(/\/+$/, "")}/health`, { timeout: 4000 })
-		const data = await r.json().catch(() => ({}))
-		return new Response(
-			JSON.stringify({
-				status: r.ok ? "ok" : "error",
-				upstream: data,
-			}),
-			{ status: 200, headers: { "content-type": "application/json" } }
-		)
-	} catch (err: any) {
-		return new Response(
-			JSON.stringify({
-				status: "degraded",
-				error: "agent unreachable",
-				message: err?.message,
-			}),
-			{ status: 200, headers: { "content-type": "application/json" } }
-		)
+		// If AI_AGENT_URL is configured, proxy its /health for accurate backend status
+		if (AI_AGENT_URL) {
+			try {
+				const resp = await fetch(`${AI_AGENT_URL}/health`, { method: "GET" })
+				const data = await resp.json().catch(() => null)
+				// attach local timestamp and DB check
+				const diagnostics: any = {
+					upstream: {
+						url: `${AI_AGENT_URL}/health`,
+						status: resp.status,
+						body: data ?? null,
+					},
+					timestamp: new Date().toISOString(),
+				}
+
+				// check DB connectivity quickly (non-blocking if no DB)
+				try {
+					await prisma.$queryRaw`SELECT 1`
+					diagnostics.db = { ok: true, message: "ok" }
+				} catch (dbErr: any) {
+					diagnostics.db = { ok: false, message: dbErr?.message || String(dbErr) }
+				}
+
+				const ok = resp.ok && diagnostics.db?.ok !== false
+				return NextResponse.json({ ok, diagnostics }, { status: resp.status })
+			} catch (upErr) {
+				console.warn("[AI-AGENT][HEALTH] Upstream health check failed:", upErr)
+				// fall through to local checks
+			}
+		}
+
+		// Fallback local diagnostic (no AI_AGENT_URL available)
+		const diagnostics: any = {
+			ok: true,
+			env: {
+				AI_AGENT_URL: AI_AGENT_URL ? "configured" : "missing",
+			},
+			db: { ok: false, message: null },
+			timestamp: new Date().toISOString(),
+		}
+
+		try {
+			await prisma.$queryRaw`SELECT 1`
+			diagnostics.db.ok = true
+			diagnostics.db.message = "ok"
+		} catch (dbErr: any) {
+			diagnostics.db.ok = false
+			diagnostics.db.message = dbErr?.message || String(dbErr)
+			diagnostics.ok = false
+		}
+
+		return NextResponse.json(diagnostics)
+	} catch (err) {
+		console.error("[AI-AGENT][HEALTH] Unexpected error:", err)
+		return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
+	} finally {
+		// don't disconnect prisma here
 	}
 }

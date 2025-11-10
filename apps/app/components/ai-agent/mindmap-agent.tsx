@@ -3,264 +3,650 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Download, RefreshCw } from "lucide-react"
+import { Loader2, RefreshCw, ZoomIn, ZoomOut } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export function MindMapAgent() {
   const [topic, setTopic] = useState("")
+  const [systemPrompt, setSystemPrompt] = useState("")
   const [diagramType, setDiagramType] = useState("mindmap")
   const [depth, setDepth] = useState<number>(3)
   const [loading, setLoading] = useState(false)
-  const [mermaidCode, setMermaidCode] = useState("")
-  const [customPrompt, setCustomPrompt] = useState("")
-  const [showAdvanced, setShowAdvanced] = useState(false)
-  const [parseError, setParseError] = useState<string | null>(null)
-  const [colorScheme, setColorScheme] = useState<string>("auto")
-  const [studentLevel, setStudentLevel] = useState<string>("beginner")
-  const [themeVars, setThemeVars] = useState<Record<string,string> | null>(null)
+  const [mermaidCode, setMermaidCode] = useState<string | null>(null)
+  const [svg, setSvg] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [view, setView] = useState<"preview" | "code" | "both">("both")
+  const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState({ x: 0, y: 0 })
+  const draggingRef = useRef(false)
+  const lastPosRef = useRef<{ x: number; y: number } | null>(null)
+  const renderIdRef = useRef(0)
+  const svgContainerRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
-  const mermaidContainerRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!mermaidCode) {
+      setSvg(null)
+      return
+    }
+
+    if (typeof window === "undefined") {
+      return
+    }
+
+    let cancelled = false
+    const id = `mermaid-${++renderIdRef.current}`
+
+    const renderMermaidCompat = async (code: string) => {
+      // dynamic import and compatibility handling for different mermaid builds
+      const mod: any = await import("mermaid").catch((err) => {
+        throw new Error(`Failed to load mermaid: ${err?.message || err}`)
+      })
+      const mer = mod.default ?? mod
+
+      // If DOM not usable, warn and return the source as fallback (no render)
+      const canUseDOM = typeof document !== "undefined" && typeof document.createElementNS === "function" && typeof window !== "undefined"
+      if (!canUseDOM) {
+        try {
+          toast({
+            title: "Render unavailable",
+            description: "Diagram preview not available in this environment. Showing source instead (alpha).",
+            variant: "warning",
+          })
+        } catch (_) {}
+        // return the source so caller can display it instead of crashing
+        return code
+      }
+
+      // Initialize mermaid (try multiple entry points)
+      const initOptions = {
+        startOnLoad: false,
+        theme: "default",
+        securityLevel: "loose",
+        flowchart: { useMaxWidth: false },
+        mindmap: { useMaxWidth: false },
+      }
+      try {
+        if (typeof mer.initialize === "function") {
+          mer.initialize(initOptions)
+        } else if (mer.mermaidAPI && typeof mer.mermaidAPI.initialize === "function") {
+          mer.mermaidAPI.initialize(initOptions)
+        } else if (typeof mer.init === "function") {
+          mer.init()
+        }
+      } catch (initErr) {
+        console.warn("[MINDMAP] mermaid init warning:", initErr)
+      }
+
+      // Render via available API
+      if (mer.mermaidAPI && typeof mer.mermaidAPI.render === "function") {
+        // Try promise/returning form first, then callback form.
+        try {
+          const maybe = mer.mermaidAPI.render(id, code)
+          if (maybe && typeof maybe.then === "function") {
+            const svg = await maybe
+            return typeof svg === "string" ? svg : svg?.svg ?? String(svg)
+          }
+          if (typeof maybe === "string") return maybe
+          if (maybe && maybe.svg) return maybe.svg
+
+          // fallback to callback-style, wrapped in try/catch to avoid unhandled exceptions
+          return await new Promise<string>((resolve) => {
+            try {
+              mer.mermaidAPI.render(id, code, (svgCode: string) => resolve(svgCode))
+            } catch (e) {
+              // If callback form fails, show a gentle alpha warning and fallback to source
+              try {
+                toast({
+                  title: "Alpha warning",
+                  description: "Some mindmaps may not render correctly — showing source instead.",
+                  variant: "warning",
+                })
+              } catch (_) {}
+              resolve(code)
+            }
+          })
+        } catch (e) {
+          // Top-level render error: show warning and fallback to source
+          try {
+            toast({
+              title: "Alpha warning",
+              description: "Some mindmaps may not render correctly — showing source instead.",
+              variant: "warning",
+            })
+          } catch (_) {}
+          return code
+        }
+      }
+
+      // Next fallback: mer.render (older/newer builds)
+      if (typeof mer.render === "function") {
+        try {
+          const out = mer.render(id, code)
+          if (typeof out === "string") return out
+          if (out && typeof out.then === "function") {
+            const res = await out
+            if (typeof res === "string") return res
+            return res?.svg ?? String(res)
+          }
+          if (out && out.svg) return out.svg
+          return String(out)
+        } catch (e) {
+          try {
+            toast({
+              title: "Alpha warning",
+              description: "Some mindmaps may not render correctly — showing source instead.",
+              variant: "warning",
+            })
+          } catch (_) {}
+          return code
+        }
+      }
+
+      // No render API found — return the source as fallback
+      try {
+        toast({
+          title: "Render unsupported",
+          description: "Cannot render diagrams with the installed mermaid build. Showing source.",
+          variant: "warning",
+        })
+      } catch (_) {}
+      return code
+    }
+
+    ;(async () => {
+      try {
+        const svgResult = await renderMermaidCompat(mermaidCode!)
+        if (!cancelled) {
+          // If result looks like raw source (not svg), show source instead of setting svg
+          const looksLikeSvg = typeof svgResult === "string" && svgResult.trim().startsWith("<svg")
+          if (looksLikeSvg) {
+            setSvg(svgResult)
+          } else {
+            // treat as source fallback — render will not be available, keep svg null and keep mermaidCode for code view
+            setSvg(null)
+          }
+          setError(null)
+        }
+      } catch (err: any) {
+        console.error("[MINDMAP] mermaid render error:", err)
+        if (!cancelled) {
+          setError(`Failed to render diagram: ${err?.message ?? err}`)
+          try {
+            toast({
+              title: "Render Error",
+              description: "Failed to render the diagram. Please check the Mermaid syntax.",
+              variant: "destructive",
+            })
+          } catch (_) {}
+        }
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [mermaidCode, toast])
 
   const handleGenerate = async () => {
+    setError(null)
+    setSvg(null)
+    setMermaidCode(null)
+    setZoom(1) // Reset zoom on new generation
+
     if (!topic.trim()) {
-      toast({
-        title: "Topic required",
-        description: "Please enter a topic to generate a mindmap",
-        variant: "destructive",
+      toast({ 
+        title: "Topic required", 
+        description: "Please enter a topic for the diagram", 
+        variant: "destructive" 
       })
       return
     }
 
     setLoading(true)
-    setParseError(null)
-
     try {
-      const response = await fetch("/api/ai-agent/mindmap", {
+      const res = await fetch("/api/ai-agent/mindmap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           topic: topic.trim(),
-          depth: parseInt(depth),
+          systemPrompt: systemPrompt.trim() || undefined,
           diagram_type: diagramType,
-          custom_prompt: customPrompt || undefined,
-          color_scheme: colorScheme,
-          student_level: studentLevel,
+          depth,
         }),
       })
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.detail || "Failed to generate mindmap")
+      if (!res.ok) {
+        const errorText = await res.text()
+        throw new Error(errorText || `HTTP error! status: ${res.status}`)
       }
 
-      const data = await response.json()
-      setMermaidCode(data.mermaidCode || data.mermaid || "")
+      const data = await res.json()
       
-      toast({
-        title: "Success!",
-        description: "Mindmap generated successfully",
-      })
-
-      // Deduct 5 credits for mindmap generation
-      try {
-        await fetch("/api/credits/deduct", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            amount: 5,
-            operation: "mindmap",
-            metadata: { topic, depth, diagramType }
-          })
-        })
-      } catch (creditError) {
-        console.warn("Failed to deduct credits:", creditError)
+      if (!data.mermaid_code) {
+        throw new Error("No Mermaid code returned from server")
       }
 
-    } catch (error: any) {
-      console.error("Mindmap generation error:", error)
-      setParseError(error.message || "Failed to generate mindmap")
-      toast({
-        title: "Error",
-        description: error.message || "Failed to generate mindmap",
-        variant: "destructive",
+      setMermaidCode(data.mermaid_code)
+      
+      toast({ 
+        title: "Success", 
+        description: `${getDiagramTypeName(diagramType)} generated successfully` 
+      })
+    } catch (err: any) {
+      console.error("[DIAGRAM] Error generating diagram:", err)
+      const errorMessage = err.message || "Failed to generate diagram"
+      setError(errorMessage)
+      toast({ 
+        title: "Generation Error", 
+        description: errorMessage, 
+        variant: "destructive" 
       })
     } finally {
       setLoading(false)
     }
   }
 
-  // ✅ Correct Mermaid rendering logic
-  useEffect(() => {
-    if (!mermaidCode) {
-      if (mermaidContainerRef.current) mermaidContainerRef.current.innerHTML = ""
-      setParseError(null)
-      return
+  const getDiagramTypeName = (type: string) => {
+    const names: { [key: string]: string } = {
+      mindmap: "Mind Map",
+      flowchart: "Flowchart",
+      er: "ER Diagram",
+      sequence: "Sequence Diagram",
+      class: "UML Class Diagram",
+      state: "System State Diagram"
     }
-
-    let cancelled = false
-    let timer: any
-
-    timer = setTimeout(async () => {
-      try {
-        const mermaidModule: any = await import("mermaid")
-        await import("@mermaid-js/mermaid-mindmap")
-        const mermaid = mermaidModule.default || mermaidModule
-
-        const themeVariables = {
-          background: "transparent",
-          fontFamily: "Inter, system-ui, sans-serif",
-          primaryTextColor: "#e6edf3",
-          lineColor: "#e6edf3",
-          ...(themeVars || {})
-        }
-
-        mermaid.initialize({
-          startOnLoad: false,
-          securityLevel: "antiscript",
-          theme: "default",
-          themeVariables
-        })
-
-        try {
-          if (mermaid.parse) mermaid.parse(mermaidCode)
-          setParseError(null)
-        } catch (err: any) {
-          setParseError(err?.message ?? String(err))
-        }
-
-        if (!mermaidContainerRef.current) return
-        mermaidContainerRef.current.innerHTML = ""
-
-        const id = "mm-" + Math.random().toString(36).slice(2, 9)
-        const { svg, bindFunctions } = await mermaid.render(id, mermaidCode)
-
-        if (cancelled) return
-        mermaidContainerRef.current.innerHTML = svg
-        bindFunctions?.(mermaidContainerRef.current)
-
-        const svgEl = mermaidContainerRef.current.querySelector("svg")
-        if (svgEl) {
-          svgEl.setAttribute("width", "100%")
-          svgEl.setAttribute("height", "auto")
-          svgEl.setAttribute("preserveAspectRatio", "xMidYMid meet")
-        }
-      } catch (err) {
-        setParseError(String(err))
-      }
-    }, 200)
-
-    return () => {
-      cancelled = true
-      clearTimeout(timer)
-    }
-  }, [mermaidCode, themeVars])
-
-  const handleDownload = () => {
-    const blob = new Blob([mermaidCode], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `${topic.substring(0, 20)}-diagram.mmd`
-    a.click()
-    URL.revokeObjectURL(url)
+    return names[type] || "Diagram"
   }
 
+  const handleZoomIn = () => {
+    setZoom(prev => Math.min(prev + 0.25, 3))
+  }
+
+  const handleZoomOut = () => {
+    setZoom(prev => Math.max(prev - 0.25, 0.5))
+  }
+
+  const handleResetZoom = () => {
+    setZoom(1)
+  }
+
+  const copyToClipboard = async () => {
+    if (!mermaidCode) return
+    
+    try {
+      await navigator.clipboard.writeText(mermaidCode)
+      toast({
+        title: "Copied!",
+        description: "Mermaid code copied to clipboard"
+      })
+    } catch (err) {
+      toast({
+        title: "Copy Failed",
+        description: "Failed to copy code to clipboard",
+        variant: "destructive"
+      })
+    }
+  }
+
+  // new: download rendered SVG
+  const downloadSvg = async () => {
+    if (!svg) {
+      toast({ title: "No diagram", description: "There is no rendered diagram to download.", variant: "destructive" })
+      return
+    }
+    try {
+      const filename = (topic && topic.trim() ? topic.trim().replace(/\s+/g, "_") : "diagram") + ".svg"
+      const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      toast({ title: "Downloaded", description: "SVG downloaded to your device." })
+    } catch (err) {
+      console.error("[MINDMAP] downloadSvg error:", err)
+      toast({ title: "Download failed", description: "Could not download SVG.", variant: "destructive" })
+    }
+  }
+
+  // --- New: pan/drag handlers ---
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!draggingRef.current) return
+      e.preventDefault()
+      const lp = lastPosRef.current
+      if (!lp) return
+      const x = e.clientX
+      const y = e.clientY
+      const dx = x - lp.x
+      const dy = y - lp.y
+      lastPosRef.current = { x, y }
+      setPan((p) => ({ x: p.x + dx, y: p.y + dy }))
+    }
+    const onUp = () => {
+      draggingRef.current = false
+      lastPosRef.current = null
+      document.body.style.cursor = ""
+    }
+    window.addEventListener("mousemove", onMove)
+    window.addEventListener("mouseup", onUp)
+    return () => {
+      window.removeEventListener("mousemove", onMove)
+      window.removeEventListener("mouseup", onUp)
+    }
+  }, [])
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    // only start drag on primary button
+    if (e.button !== 0) return
+    draggingRef.current = true
+    lastPosRef.current = { x: e.clientX, y: e.clientY }
+    document.body.style.cursor = "grabbing"
+  }
+
+  const onDoubleClick = () => {
+    // reset pan & zoom
+    setZoom(1)
+    setPan({ x: 0, y: 0 })
+  }
+
+  // touch support
+  useEffect(() => {
+    const onTouchMove = (e: TouchEvent) => {
+      if (!draggingRef.current) return
+      const t = e.touches[0]
+      const lp = lastPosRef.current
+      if (!lp || !t) return
+      const dx = t.clientX - lp.x
+      const dy = t.clientY - lp.y
+      lastPosRef.current = { x: t.clientX, y: t.clientY }
+      setPan((p) => ({ x: p.x + dx, y: p.y + dy }))
+    }
+    const onTouchEnd = () => {
+      draggingRef.current = false
+      lastPosRef.current = null
+    }
+    window.addEventListener("touchmove", onTouchMove, { passive: false })
+    window.addEventListener("touchend", onTouchEnd)
+    return () => {
+      window.removeEventListener("touchmove", onTouchMove)
+      window.removeEventListener("touchend", onTouchEnd)
+    }
+  }, [])
+
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Topic / Concept</Label>
-          <Textarea value={topic} onChange={(e) => setTopic(e.target.value)} rows={3} />
+    <Card>
+      <CardHeader>
+        <CardTitle>AI Diagram Generator</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <Label htmlFor="topic">Topic or Description</Label>
+          <Textarea 
+            id="topic"
+            value={topic} 
+            onChange={(e) => setTopic(e.target.value)} 
+            rows={2} 
+            placeholder="Describe what you want to diagram, e.g., 'Machine Learning workflow' or 'User authentication system'"
+          />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="diagram-type">Diagram Type</Label>
-          <Select value={diagramType} onValueChange={setDiagramType}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="mindmap">Mind Map</SelectItem>
-              <SelectItem value="flowchart">Flowchart</SelectItem>
-              <SelectItem value="erDiagram">ER Diagram</SelectItem>
-              <SelectItem value="sequenceDiagram">Sequence Diagram</SelectItem>
-              <SelectItem value="classDiagram">Class Diagram</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <Label htmlFor="diagram-type">Diagram Type</Label>
+            <Select value={diagramType} onValueChange={setDiagramType}>
+              <SelectTrigger id="diagram-type" className="w-full">
+                <SelectValue placeholder="Select diagram type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="mindmap">Mind Map</SelectItem>
+                <SelectItem value="flowchart">Flowchart</SelectItem>
+                <SelectItem value="er">ER Diagram</SelectItem>
+                <SelectItem value="sequence">Sequence Diagram</SelectItem>
+                <SelectItem value="class">UML Class Diagram</SelectItem>
+                <SelectItem value="state">System State Diagram</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <div className="mt-2 flex items-center gap-3">
-            <Label htmlFor="depth" className="text-sm">Depth</Label>
-            <input
-              id="depth"
-              type="number"
-              min={1}
-              max={6}
-              value={depth}
-              onChange={(e) => setDepth(Number(e.target.value))}
-              className="w-20 rounded-md border border-input bg-transparent px-2 py-1 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          <div>
+            <Label htmlFor="depth">Detail Level</Label>
+            <Select value={depth.toString()} onValueChange={(v) => setDepth(Number(v))}>
+              <SelectTrigger id="depth" className="w-full">
+                <SelectValue placeholder="Select depth" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">Basic</SelectItem>
+                <SelectItem value="2">Simple</SelectItem>
+                <SelectItem value="3">Detailed</SelectItem>
+                <SelectItem value="4">Comprehensive</SelectItem>
+                <SelectItem value="5">Very Detailed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="system-prompt">Custom Instructions (optional)</Label>
+            <Textarea 
+              id="system-prompt"
+              value={systemPrompt} 
+              onChange={(e) => setSystemPrompt(e.target.value)} 
+              rows={1} 
+              placeholder="Optional: Add specific formatting requirements or focus areas"
             />
           </div>
-
-          <div className="mt-2 grid grid-cols-1 gap-2">
-            <Label className="text-sm">Color Scheme</Label>
-            <Select value={colorScheme} onValueChange={setColorScheme}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="auto">Auto (backend chooses)</SelectItem>
-                <SelectItem value="light">Light</SelectItem>
-                <SelectItem value="dark">Dark</SelectItem>
-                <SelectItem value="ocean">Ocean (blue)</SelectItem>
-                <SelectItem value="sunset">Sunset (warm)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="mt-2 grid grid-cols-1 gap-2">
-            <Label className="text-sm">Student level</Label>
-            <Select value={studentLevel} onValueChange={setStudentLevel}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="beginner">Beginner</SelectItem>
-                <SelectItem value="intermediate">Intermediate</SelectItem>
-                <SelectItem value="advanced">Advanced</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Button onClick={handleGenerate} className="w-full" disabled={loading}>
-            {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...</> : <><RefreshCw className="mr-2 h-4 w-4" /> Generate Diagram</>}
-          </Button>
         </div>
-      </div>
 
-      {mermaidCode && (
-        <Card className="p-4">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-semibold">Generated Diagram</h3>
-            <Button variant="outline" size="sm" onClick={handleDownload}><Download className="mr-2 h-4 w-4" />Download</Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleGenerate} disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" /> Generate {getDiagramTypeName(diagramType)}
+              </>
+            )}
+          </Button>
+
+          <div className="ml-auto flex gap-2">
+            <Button 
+              variant={view === "preview" ? "default" : "ghost"} 
+              size="sm" 
+              onClick={() => setView("preview")}
+            >
+              Preview
+            </Button>
+            <Button 
+              variant={view === "code" ? "default" : "ghost"} 
+              size="sm" 
+              onClick={() => setView("code")}
+            >
+              Code
+            </Button>
+            <Button 
+              variant={view === "both" ? "default" : "ghost"} 
+              size="sm" 
+              onClick={() => setView("both")}
+            >
+              Both
+            </Button>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label>Mermaid Source</Label>
-              <Textarea value={mermaidCode} onChange={(e) => setMermaidCode(e.target.value)} rows={20} className="font-mono text-xs" />
-              {parseError && <div className="text-sm text-red-400 mt-2"><strong>Error:</strong> {parseError}</div>}
-            </div>
+        {error && (
+          <div className="p-4 border border-destructive bg-destructive/10 rounded-md">
+            <div className="text-sm text-destructive font-medium">Error: {error}</div>
+          </div>
+        )}
 
-            <div>
-              <Label>Rendered Diagram</Label>
-              <div className="bg-muted rounded-lg p-4 overflow-auto" style={{ minHeight: 320 }}>
-                <div ref={mermaidContainerRef} />
+        {/* Render area: Preview / Code / Both */}
+        <div>
+          {view === "preview" && (
+            <div className="border rounded-lg bg-white dark:bg-slate-900 p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Diagram Preview</h3>
+                {svg && (
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={handleZoomIn}>
+                      <ZoomIn className="mr-2 h-4 w-4" /> Zoom In
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleZoomOut}>
+                      <ZoomOut className="mr-2 h-4 w-4" /> Zoom Out
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleResetZoom}>
+                      Reset Zoom
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={downloadSvg} disabled={!svg}>
+                      Download SVG
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Preview container */}
+              <div 
+                ref={svgContainerRef}
+                className="overflow-auto border rounded bg-white dark:bg-slate-800 min-h-[280px] max-h-[420px] flex items-center justify-center"
+                onDoubleClick={onDoubleClick}
+                // pointer handlers for starting drag
+                onMouseDown={onMouseDown}
+                onTouchStart={(e) => {
+                  const t = e.touches[0]
+                  if (!t) return
+                  draggingRef.current = true
+                  lastPosRef.current = { x: t.clientX, y: t.clientY }
+                }}
+                style={{ touchAction: "none", cursor: draggingRef.current ? "grabbing" : "grab" }}
+              >
+                {svg ? (
+                  <div
+                    // apply translate + scale so pan + zoom work together
+                    style={{
+                      transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                      transformOrigin: "center center",
+                      display: "inline-block",
+                    }}
+                    dangerouslySetInnerHTML={{ __html: svg }}
+                  />
+                ) : (
+                  <div className="text-muted-foreground text-center p-8">
+                    <p>Your diagram preview will appear here</p>
+                    <p className="text-sm mt-2">Generate a diagram to see the visualization</p>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        </Card>
-      )}
-    </div>
+          )}
+
+          {view === "code" && (
+            <div className="border rounded-lg bg-muted/50 dark:bg-slate-800 p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Mermaid Source Code</h3>
+                <div className="flex items-center gap-2">
+                  {mermaidCode && (
+                    <Button variant="outline" size="sm" onClick={copyToClipboard}>
+                      Copy Code
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" onClick={downloadSvg} disabled={!svg}>
+                    Download SVG
+                  </Button>
+                </div>
+              </div>
+              <div className="bg-background dark:bg-slate-900 border rounded p-0 h-64 overflow-auto">
+                {mermaidCode ? (
+                  <pre className="text-sm whitespace-pre-wrap overflow-auto p-4 h-full">
+                    {mermaidCode}
+                  </pre>
+                ) : (
+                  <div className="text-muted-foreground text-center p-4">
+                    <p>Mermaid source code will appear here</p>
+                    <p className="text-sm mt-2">Generate a diagram to see the code</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {view === "both" && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="border rounded-lg bg-white dark:bg-slate-900 p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Diagram Preview</h3>
+                  {svg && (
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={handleZoomIn}>
+                        <ZoomIn className="mr-2 h-4 w-4" /> Zoom In
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={handleZoomOut}>
+                        <ZoomOut className="mr-2 h-4 w-4" /> Zoom Out
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={handleResetZoom}>
+                        Reset Zoom
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={downloadSvg} disabled={!svg}>
+                        Download SVG
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Preview container */}
+                <div className="overflow-auto border rounded bg-white dark:bg-slate-800 min-h-[280px] max-h-[420px] flex items-center justify-center"
+                  onDoubleClick={onDoubleClick}
+                  onMouseDown={onMouseDown}
+                  onTouchStart={(e) => {
+                    const t = e.touches[0]
+                    if (!t) return
+                    draggingRef.current = true
+                    lastPosRef.current = { x: t.clientX, y: t.clientY }
+                  }}
+                  style={{ touchAction: "none", cursor: draggingRef.current ? "grabbing" : "grab" }}
+                >
+                  {svg ? (
+                    <div
+                      style={{
+                        transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                        transformOrigin: "center center",
+                        display: "inline-block",
+                      }}
+                      dangerouslySetInnerHTML={{ __html: svg }}
+                    />
+                  ) : (
+                    <div className="text-muted-foreground text-center p-4">
+                      Diagram preview will appear here
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Source code panel remains unchanged and scrollable */}
+              <div className="border rounded-lg bg-muted/50 dark:bg-slate-900 p-4">
+                <div className="bg-background dark:bg-slate-900 border rounded h-64 overflow-auto p-0">
+                  {mermaidCode ? (
+                    <pre className="text-sm whitespace-pre-wrap overflow-auto p-4 h-full">
+                      {mermaidCode}
+                    </pre>
+                  ) : (
+                    <div className="text-muted-foreground text-center p-4">
+                      Mermaid source code will appear here
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   )
 }

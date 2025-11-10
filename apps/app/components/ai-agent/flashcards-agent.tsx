@@ -35,7 +35,7 @@ export function FlashcardsAgent() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          topic,
+          topic: topic.trim(),
           count,
           customPrompt: customPrompt.trim() || undefined
         })
@@ -46,63 +46,6 @@ export function FlashcardsAgent() {
     } catch (e) {
       console.error("Flashcard error:", e)
       toast({ title: "Error", description: "Failed to generate flashcards", variant: "destructive" })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const generateFlashcards = async () => {
-    if (!topic.trim()) {
-      toast({
-        title: "Topic required",
-        description: "Please enter a topic to generate flashcards",
-        variant: "destructive",
-      })
-      return
-    }
-
-    setLoading(true)
-    try {
-      const response = await fetch("http://localhost:8000/api/flashcards", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, count }),
-      })
-
-      if (!response.ok) throw new Error("Failed to generate flashcards")
-
-      const data = await response.json()
-      setCards(data.flashcards || [])
-      setCurrentIndex(0)
-      setIsFlipped(false)
-      
-      toast({
-        title: "Success!",
-        description: `Generated ${data.count || data.flashcards?.length || 0} flashcards`,
-      })
-
-      // Deduct 5 credits for flashcard generation
-      try {
-        await fetch("/api/credits/deduct", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            amount: 5,
-            operation: "flashcards",
-            metadata: { topic, count: data.flashcards?.length || count }
-          })
-        })
-      } catch (creditError) {
-        console.warn("Failed to deduct credits:", creditError)
-      }
-
-    } catch (error) {
-      console.error("Error:", error)
-      toast({
-        title: "Error",
-        description: "Failed to generate flashcards. Please try again.",
-        variant: "destructive",
-      })
     } finally {
       setLoading(false)
     }

@@ -17,24 +17,20 @@ class QuizRequest(BaseModel):
     customPrompt: Optional[str] = None
 
 
-# Try to import available generators (prefer groq_service, then langchain_service)
+# Import groq_service (primary generator)
 try:
-    from app.services.groq_service import groq_service as groq_gen
-except Exception:
-    groq_gen = None
-
-try:
-    from app.services.langchain_service import langchain_service as lc_gen
-except Exception:
-    lc_gen = None
+    from app.services.groq_service import groq_service
+    logger.info("✅ groq_service imported for quiz generation")
+except Exception as e:
+    logger.error(f"❌ Failed to import groq_service: {e}")
+    groq_service = None
 
 
-@router.post("/", response_model=Dict[str, List[Dict[str, Any]]])
+@router.post("/")
 async def generate_quiz(payload: QuizRequest):
     """
     Generate quiz questions and return JSON array.
-    Tries groq_service -> langchain_service -> fallback sample.
-    Response shape: { "questions": [ { question, options, correctAnswer, explanation }, ... ] }
+    Public endpoint (no shared-secret auth).
     """
     try:
         topic = payload.topic
@@ -42,13 +38,18 @@ async def generate_quiz(payload: QuizRequest):
         diff = payload.difficulty or "medium"
         prompt = payload.customPrompt
 
+        # LOG: resolved payload
+        logger.info(f"[API/quiz] Payload: topic={topic!r}, numQuestions={n}, difficulty={diff}, customPrompt_present={bool(prompt)}")
+
         questions = []
 
         # Prefer groq_service
-        if groq_gen and hasattr(groq_gen, "generate_quiz"):
+        if groq_service and hasattr(groq_service, "generate_quiz"):
             logger.info("Using groq_service.generate_quiz")
             try:
-                questions = await groq_gen.generate_quiz(topic, num_questions=n, difficulty=diff, custom_prompt=prompt)
+                questions = await groq_service.generate_quiz(topic, num_questions=n, difficulty=diff, custom_prompt=prompt)
+                # LOG: result summary (do not log secrets)
+                logger.info(f"[API/quiz] groq_service returned {len(questions) if questions else 0} items")
             except Exception as e:
                 logger.warning(f"groq_service failed: {e}")
                 questions = []
@@ -57,6 +58,7 @@ async def generate_quiz(payload: QuizRequest):
             logger.info("Using langchain_service.generate_quiz")
             try:
                 questions = await lc_gen.generate_quiz(topic, num_questions=n, difficulty=diff, custom_prompt=prompt)
+                logger.info(f"[API/quiz] langchain_service returned {len(questions) if questions else 0} items")
             except Exception as e:
                 logger.warning(f"langchain_service.generate_quiz failed: {e}")
                 questions = []
@@ -80,7 +82,6 @@ async def generate_quiz(payload: QuizRequest):
         normalized = []
         for q in questions:
             opts = q.get("options") or q.get("choices") or []
-            # normalize options to array of strings, pad or trim to 4
             opts = [str(o) for o in opts][:4]
             while len(opts) < 4:
                 opts.append("None of the above")
@@ -91,8 +92,15 @@ async def generate_quiz(payload: QuizRequest):
                 "explanation": str(q.get("explanation", "")),
             })
 
+        logger.info(f"[API/quiz] Returning {len(normalized)} normalized questions")
+        # LOG: sample of response (truncate for safety)
+        try:
+            logger.debug(f"[API/quiz] Response sample: {normalized[:2]}")
+        except Exception:
+            pass
+
         return {"questions": normalized}
 
     except Exception as e:
-        logger.error(f"Quiz generation error: {e}")
+        logger.error(f"Quiz generation error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
