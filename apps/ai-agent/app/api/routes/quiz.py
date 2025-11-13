@@ -25,6 +25,14 @@ except Exception as e:
     logger.error(f"❌ Failed to import groq_service: {e}")
     groq_service = None
 
+# Import langchain_service (fallback generator)
+try:
+    from app.services.langchain_service import langchain_service as lc_gen
+    logger.info("✅ langchain_service imported for quiz generation")
+except Exception as e:
+    logger.error(f"❌ Failed to import langchain_service: {e}")
+    lc_gen = None
+
 
 @router.post("/")
 async def generate_quiz(payload: QuizRequest):
