@@ -6,8 +6,8 @@
   },
   "rewrites": [
     {
-      "source": "/ai-agent/:path*",
-      "destination": "/api/ai_agent"
+      "source": "/(.*)",
+      "destination": "/api/main.py"
     }
   ]
 }
