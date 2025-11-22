@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "api/*.py": {
+      "runtime": "python3.13.5"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/ai-agent/:path*",
+      "destination": "/api/ai_agent"
+    }
+  ]
+}

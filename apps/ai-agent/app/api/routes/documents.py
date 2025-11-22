@@ -4,6 +4,7 @@ No vector store, no chunking, no persistence.
 """
 
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from app.core.config import settings
 from typing import Optional, List
 from pathlib import Path
 import uuid
@@ -84,6 +85,10 @@ async def upload_documents(
     Upload documents → convert directly to embeddings → return only count.
     No vector store. No persistence.
     """
+    # Reject uploads when persistence is disabled (no data directory / no storage)
+    if not getattr(settings, 'ENABLE_PERSISTENCE', False):
+        raise HTTPException(403, "Document upload is disabled in this deployment (persistence disabled).")
+
     try:
         if not files or len(files) == 0:
             raise HTTPException(400, "No files uploaded")

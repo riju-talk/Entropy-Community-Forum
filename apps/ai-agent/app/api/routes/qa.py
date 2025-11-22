@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 from pathlib import Path
+import os
 from datetime import datetime
 import logging
 import json
@@ -16,9 +17,12 @@ import aiofiles
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-# Local history storage
+from app.core.config import settings
+
+# Local history storage (disabled unless persistence is enabled)
 QA_STORAGE_PATH = Path("./data/qa_history")
-QA_STORAGE_PATH.mkdir(parents=True, exist_ok=True)
+if getattr(settings, 'ENABLE_PERSISTENCE', False):
+    QA_STORAGE_PATH.mkdir(parents=True, exist_ok=True)
 
 # ---- ONLY service we use now ---- #
 try:
@@ -53,11 +57,18 @@ async def qa_health():
 # ------------------------------------------------------------
 
 async def _save_upload_file(upload: UploadFile, dest_dir: Path) -> Path:
-    dest_dir.mkdir(parents=True, exist_ok=True)
-    target = dest_dir / upload.filename
-    async with aiofiles.open(target, "wb") as out_f:
-        await out_f.write(await upload.read())
-    return target
+    import tempfile
+    # If persistence is enabled, store under the configured directory; otherwise reject uploads.
+    if getattr(settings, 'ENABLE_PERSISTENCE', False):
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        target = dest_dir / upload.filename
+        async with aiofiles.open(target, "wb") as out_f:
+            await out_f.write(await upload.read())
+        return target
+
+    # Persistence disabled → reject uploads entirely
+    from fastapi import HTTPException
+    raise HTTPException(403, "File uploads are disabled in this deployment (persistence disabled).")
 
 
 async def _process_uploaded_files(file_paths: List[Path], collection_name: str):
@@ -143,25 +154,33 @@ async def post_qa(payload: QAInput, request: Request):
         answer = result.response
         followups = result.follow_up_questions
 
-        # Save
-        qa_id = f"qa_{int(datetime.now().timestamp() * 1000)}"
-        record = {
-            "id": qa_id,
-            "user_prompt": user_prompt,
-            "system_prompt": system_prompt,
-            "answer": answer,
-            "followups": followups,
-            "timestamp": datetime.now().isoformat(),
-        }
+        # Save only if persistence is enabled. Otherwise return response without storing.
+        qa_id = None
+        if getattr(settings, 'ENABLE_PERSISTENCE', False):
+            qa_id = f"qa_{int(datetime.now().timestamp() * 1000)}"
+            record = {
+                "id": qa_id,
+                "user_prompt": user_prompt,
+                "system_prompt": system_prompt,
+                "answer": answer,
+                "followups": followups,
+                "timestamp": datetime.now().isoformat(),
+            }
 
-        with open(QA_STORAGE_PATH / f"{qa_id}.json", "w", encoding="utf-8") as f:
-            json.dump(record, f, indent=2)
+            try:
+                with open(QA_STORAGE_PATH / f"{qa_id}.json", "w", encoding="utf-8") as f:
+                    json.dump(record, f, indent=2)
+            except Exception:
+                logger.exception("Failed to write QA history; continuing without persistence.")
 
-        return {
+        response = {
             "answer": answer,
             "follow_up_questions": followups,
-            "qaId": qa_id
         }
+        if qa_id:
+            response["qaId"] = qa_id
+
+        return response
 
     except HTTPException:
         raise

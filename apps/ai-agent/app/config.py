@@ -69,6 +69,9 @@ class Settings(BaseSettings):
     CHUNK_SIZE: int = 1000
     CHUNK_OVERLAP: int = 200
 
+    # Persistence toggle: set to true to enable creating data dirs and saving history
+    ENABLE_PERSISTENCE: bool = False
+
     @field_validator('ALLOWED_FILE_TYPES', mode='before')
     @classmethod
     def parse_file_types(cls, v):
@@ -118,6 +121,8 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# Create necessary directories
-os.makedirs(settings.CHROMA_PERSIST_DIR, exist_ok=True)
-os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+# Create necessary directories only if persistence is explicitly enabled.
+# Default is disabled to avoid creating local data dirs in ephemeral/serverless environments.
+if getattr(settings, 'ENABLE_PERSISTENCE', False):
+    os.makedirs(settings.CHROMA_PERSIST_DIR, exist_ok=True)
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
