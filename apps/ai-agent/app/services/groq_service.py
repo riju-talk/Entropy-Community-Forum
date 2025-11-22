@@ -4,8 +4,12 @@ Groq AI service using LangChain framework
 import json
 from typing import List, Dict, Any, Optional
 import logging
-from langchain.messages import HumanMessage, SystemMessage, AIMessage
-from app.services.langchain_service import langchain_service
+
+# Prefer newer langchain_core.messages when available; fall back gracefully to avoid import errors
+try:
+    from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+except Exception:
+    HumanMessage = SystemMessage = AIMessage = None  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -28,10 +32,19 @@ class GroqService:
     """Service for educational content generation using LangChain"""
     
     def __init__(self):
-        if not langchain_service:
-            raise RuntimeError("LangChain service not initialized")
-        self.langchain = langchain_service
-        logger.info("✅ Groq service initialized with LangChain")
+        # Lazily import the langchain_service to avoid import-time failures
+        try:
+            import importlib
+            mod = importlib.import_module("app.services.langchain_service")
+            lc = getattr(mod, "langchain_service", None)
+            if not lc:
+                raise RuntimeError("LangChain service not initialized")
+            self.langchain = lc
+            logger.info("✅ Groq service initialized with LangChain (lazy import)")
+        except Exception as e:
+            logger.error("LangChain not available for GroqService: %s", e)
+            # Re-raise so module-level creation can decide how to handle absence
+            raise
     
     async def generate_quiz(
         self,

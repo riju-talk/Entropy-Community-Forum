@@ -55,7 +55,7 @@ if _allowed_origins_env:
     allowed_origins = [o.strip() for o in _allowed_origins_env.split(",") if o.strip()]
 else:
     # fallback for development only - keep localhosts
-    allowed_origins = ["http://localhost:3000", "http://localhost:5000", "https://entropy-communtiy.netlify.app"]
+    allowed_origins = ["http://localhost:3000", "http://localhost:5000", "https://entropy-community-forum.vercel.app"]
 
 # If a single asterisk present, treat as wildcard
 if any(o == "*" for o in allowed_origins):
@@ -125,14 +125,6 @@ try:
 except Exception as e:
     logger.error(f"❌ Failed to load mindmap routes: {e}")
     traceback.print_exc()
-
-# Chat routes (DEPRECATED - kept for compatibility)
-try:
-    from app.api.routes.chat import router as chat_router
-    api_router.include_router(chat_router, prefix="/chat", tags=["chat (deprecated)"])
-    logger.info("⚠️  Chat routes loaded (DEPRECATED - use /api/qa)")
-except Exception as e:
-    logger.error(f"❌ Failed to load chat routes: {e}")
 
 # Include the API router with /api prefix
 app.include_router(api_router, prefix="/api")

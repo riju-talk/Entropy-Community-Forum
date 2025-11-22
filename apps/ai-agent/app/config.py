@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     GROQ_API_KEY: Optional[str] = None
 
     # LLM Configuration
-    LLM_MODEL: str = "llama3-8b-8192"
+    LLM_MODEL: str = os.getenv("GROQ_MODEL", "qwen/qwen3-32b")
     LLM_TEMPERATURE: float = 0.7
     LLM_MAX_TOKENS: int = 2000
 

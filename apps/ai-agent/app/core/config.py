@@ -61,12 +61,6 @@ class Settings(BaseSettings):
     # CORS
     allowed_origins: str = "http://localhost:3000,http://localhost:3001"
     
-    # AI Backend Secret (shared with Next.js frontend)
-    ai_backend_secret: str = Field(
-        default="",
-        description="Shared secret for authenticating requests from frontend"
-    )
-    
     @field_validator('allowed_origins', mode='before')
     @classmethod
     def parse_allowed_origins(cls, v):
@@ -92,19 +86,6 @@ class Settings(BaseSettings):
 print(f"📦 Loading environment variables from: {ENV_FILE_PATH}")
 settings = Settings()
 
-# Ensure ai_backend_secret is populated from env fallbacks if empty
-import os
-if not (settings.ai_backend_secret or "").strip():
-	# try common env names used by frontend/backends
-	fallback_secret = (
-		os.environ.get("AI_BACKEND_SECRET", "") or
-		os.environ.get("AI_BACKEND_TOKEN", "") or
-		os.environ.get("NEXT_PUBLIC_AI_BACKEND_TOKEN", "")
-	).strip()
-	if fallback_secret:
-		settings.ai_backend_secret = fallback_secret
-		print("⚙️  ai_backend_secret loaded from environment fallback")
-
 # Print loaded configuration (without sensitive data)
 print(f"⚙️  Loaded Configuration:")
 print(f"   - GROQ_API_KEY: {'✅ Set' if settings.groq_api_key and settings.groq_api_key != 'your_groq_api_key_here' else '❌ Not set'}")
@@ -128,9 +109,6 @@ def validate_settings():
     
     if not settings.groq_api_key or settings.groq_api_key == "your_groq_api_key_here":
         issues.append("⚠️  GROQ_API_KEY not set - LLM features will fail")
-    
-    if not settings.ai_backend_secret:
-        issues.append("⚠️  AI_BACKEND_SECRET not set - authentication disabled (security risk)")
     
     if not settings.database_url:
         issues.append("⚠️  DATABASE_URL is not set. Chat history will not be persisted.")

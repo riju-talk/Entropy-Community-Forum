@@ -1,110 +1,123 @@
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_classic.chains import create_history_aware_retriever
-from app.core.vector_store import get_vector_store
-from app.core.llm import get_llm
+"""
+Unified Chat Service — strict, stateless, predictable.
+Respects external system_prompt. No hidden instructions.
+"""
+
+from __future__ import annotations
+from datetime import datetime
+import re
+from typing import List
+
+from app.core.llm import generate_response
+from app.schemas.chat import ChatResponse
 from app.utils.logger import setup_logger
-# from app.db.session_store import fetch_messages, save_message  # hypothetical persistence - commented out for now
 
 logger = setup_logger(__name__)
 
+FOLLOWUP_PROMPT = """
+Generate exactly 3 highly relevant follow-up questions strictly based on the assistant's answer.
+
+Rules:
+- Each question must be short (max 15 words)
+- No repeating content from the assistant's answer
+- No fluff, no commentary
+- Output ONLY:
+1. ...
+2. ...
+3. ...
+"""
+
+
 class ChatService:
     def __init__(self):
-        self.llm = get_llm()  # Runnable-compatible (supports ainvoke)
-        self.vector_store = get_vector_store()
+        pass  # No hidden state, no LLM stored globally.
 
-        self.system_prompt = "You are Spark, an intelligent study assistant..."
+    async def chat(self, user_id: str, message: str, system_prompt: str) -> ChatResponse:
+        """
+        Core chat:
+        - Uses the provided system_prompt strictly (no injection of extra personality)
+        - Generates answer
+        - Generates 3 follow-up questions
+        """
 
-        # Prompts
-        self.condense_prompt = ChatPromptTemplate.from_template(
-            """Given the following conversation history and a follow-up question, 
-condense the user's last message into a standalone question for retrieval.
-
-Chat history:
-{chat_history}
-
-Follow up question:
-{question}
-
-Standalone question:"""
+        # ----- 1. Generate answer deterministically -----
+        answer_prompt = (
+            f"{system_prompt.strip()}\n\n"
+            f"User: {message.strip()}\n"
+            "Assistant:"
         )
 
-        self.answer_prompt = ChatPromptTemplate.from_template(
-            f"""{self.system_prompt}
+        answer_raw = await generate_response(answer_prompt)
+        answer = getattr(answer_raw, "content", str(answer_raw))
 
-Context from documents:
-{{context}}
+        # ----- 2. Generate follow-ups -----
+        followups = await self._generate_followups(answer)
 
-Chat history:
-{{chat_history}}
-
-Question:
-{{question}}
-
-Answer thoroughly and suggest 3 follow-up questions (numbered)."""
+        # ----- 3. Build response -----
+        return ChatResponse(
+            session_id=user_id,
+            response=answer,
+            follow_up_questions=followups,
+            credits_used=0.0,
+            timestamp=datetime.now(),
         )
 
-    async def chat(self, user_id: str, message: str, session_id: str):
-        """
-        Stateless conversational retrieval chain with external persistence.
-        """
-        try:
-            # --- Step 1: Load history from persistent store ---
-            # conversation_history = fetch_messages(session_id, limit=8)  # Not implemented yet
-            conversation_history = []
-            chat_history_text = "\n".join(
-                f"{m['role'].capitalize()}: {m['content']}" for m in conversation_history
-            )
+    # -------------------------------------------------------------
+    # FOLLOW-UP GENERATION
+    # -------------------------------------------------------------
+    async def _generate_followups(self, assistant_answer: str) -> List[str]:
+        prompt = (
+            f"Assistant’s Answer:\n{assistant_answer}\n\n"
+            f"{FOLLOWUP_PROMPT}"
+        )
 
-            # --- Step 2: Build retriever ---
-            base_retriever = self.vector_store.as_retriever(search_kwargs={"k": 3})
-            history_aware_retriever = create_history_aware_retriever(
-                llm=self.llm,
-                retriever=base_retriever,
-                prompt=self.condense_prompt
-            )
+        raw = await generate_response(prompt)
+        text = getattr(raw, "content", str(raw)).strip()
+        # Robust parsing: accept numbered forms like '1. ...', '1) ...', '1 - ...'
+        followups = []
+        for line in text.split("\n"):
+            line = line.strip()
+            if not line:
+                continue
+            m = re.match(r"^\s*\d+\s*[\.)\-:]\s*(.+)$", line)
+            if m:
+                q = m.group(1).strip()
+                if q:
+                    followups.append(q)
+                continue
 
-            runnable_input = {
-                "query": message,
-                "chat_history": chat_history_text,
-                "configurable": {"session_id": session_id},
-            }
+            # Fallback: if the line looks like a short question (ends with '?'), accept it
+            if line.endswith("?") and len(line.split()) <= 15:
+                followups.append(line)
 
-            # --- Step 3: Retrieve context ---
-            docs = await history_aware_retriever.ainvoke(runnable_input)
+        # If we didn't get 3, ask the LLM again, but only once, for the missing count.
+        if len(followups) < 3:
+            missing = 3 - len(followups)
+            try:
+                follow_prompt = (
+                    f"The assistant's answer:\n{assistant_answer}\n\n"
+                    f"You previously returned {len(followups)} follow-up questions. Please now produce exactly {missing} additional concise follow-up questions (max 15 words each), numbered starting at 1, and output ONLY the numbered list."
+                )
+                raw2 = await generate_response(follow_prompt)
+                text2 = getattr(raw2, "content", str(raw2)).strip()
+                for line in text2.split("\n"):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    m = re.match(r"^\s*\d+\s*[\.)\-:]\s*(.+)$", line)
+                    if m:
+                        q = m.group(1).strip()
+                        if q:
+                            followups.append(q)
+                    elif line.endswith("?"):
+                        followups.append(line)
+                    if len(followups) >= 3:
+                        break
+            except Exception:
+                logger.exception("Follow-up regeneration failed")
 
-            # --- Step 4: Format context ---
-            context_parts = [
-                f"Source: {d.metadata.get('source', '')}\n{d.page_content}"
-                for d in docs
-            ]
-            context_text = "\n\n---\n\n".join(context_parts) or "No relevant documents found."
+        # Final safety: pad with generic clarifying questions if still short
+        while len(followups) < 3:
+            followups.append("Can you clarify your goal?")
 
-            # --- Step 5: Build prompt and invoke LLM ---
-            prompt_inputs = {
-                "context": context_text,
-                "chat_history": chat_history_text,
-                "question": message,
-            }
-
-            formatted_prompt = self.answer_prompt.format_prompt(**prompt_inputs)
-
-            if hasattr(self.llm, "ainvoke"):
-                output = await self.llm.ainvoke(formatted_prompt.to_messages())
-                answer_text = getattr(output, "content", str(output))
-            else:
-                answer_text = self.llm.predict(formatted_prompt.to_string())
-
-            # --- Step 6: Persist interaction ---
-            save_message(user_id, session_id, "user", message)
-            save_message(user_id, session_id, "assistant", answer_text)
-
-            # --- Step 7: Build response ---
-            return {
-                "response": answer_text,
-                "follow_up_questions": [],
-                "sources": [d.metadata.get("source", "") for d in docs],
-            }
-
-        except Exception as e:
-            logger.error("Modern ChatService error: %s", e, exc_info=True)
-            raise
+        return followups[:3]

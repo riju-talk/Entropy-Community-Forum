@@ -1,6 +1,5 @@
 """
 AI Agent Backend - FastAPI Application
-Uses ChatGroq (free), GPT4All embeddings (free), and ChromaDB (local)
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,19 +8,22 @@ import os
 from datetime import datetime
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
-# Import routers from app.api.routes
-from app.api.routes import documents, qa, mindmap, quiz, flashcards
+# CORRECT ROUTER IMPORTS
+from app.api.routes.documents import router as documents_router
+from app.api.routes.qa import router as qa_router
+from app.api.routes.mindmap import router as mindmap_router
+from app.api.routes.quiz import router as quiz_router
+from app.api.routes.flashcards import router as flashcards_router
 
 app = FastAPI(
     title="Entropy AI Agent",
     description="AI-powered learning tools backend",
-    version="1.0.0"
+    version="1.0.0",
 )
 
-# CORS configuration - Allow all origins for development (use strict list in prod)
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -30,12 +32,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers under /api
-app.include_router(documents.router, prefix="/api", tags=["Documents"])
-app.include_router(qa.router, prefix="/api", tags=["Q&A"])
-app.include_router(mindmap.router, prefix="/api", tags=["Mind Mapping"])
-app.include_router(quiz.router, prefix="/api", tags=["Quiz"])
-app.include_router(flashcards.router, prefix="/api", tags=["Flashcards"])
+# ROUTES
+app.include_router(documents_router,  prefix="/api/documents", tags=["Documents"])
+app.include_router(qa_router,         prefix="/api/qa",        tags=["Q&A"])
+app.include_router(mindmap_router,    prefix="/api/mindmap",   tags=["Mind Mapping"])
+app.include_router(quiz_router,       prefix="/api/quiz",      tags=["Quiz"])
+app.include_router(flashcards_router, prefix="/api/flashcards",tags=["Flashcards"])
 
 @app.get("/")
 async def root():
@@ -49,15 +51,13 @@ async def root():
             "documents_upload": "/api/documents/upload",
             "mindmap": "/api/mindmap",
             "quiz": "/api/quiz",
-            "flashcards": "/api/flashcards"
-        }
+            "flashcards": "/api/flashcards",
+        },
     }
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint for frontend"""
     groq_key = os.getenv("GROQ_API_KEY")
-    
     return {
         "status": "healthy" if groq_key else "degraded",
         "version": "1.0.0",
@@ -65,17 +65,10 @@ async def health_check():
         "services": {
             "groq": bool(groq_key),
             "embeddings": "gpt4all",
-            "vector_store": "chromadb"
+            "vector_store": "chromadb",
         },
-        "message": "AI Agent is operational" if groq_key else "GROQ_API_KEY not configured"
+        "message": "AI Agent is operational" if groq_key else "GROQ_API_KEY not configured",
     }
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=port,
-        reload=True,
-        log_level="info"
-    )
+    uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", 8000)), reload=True)

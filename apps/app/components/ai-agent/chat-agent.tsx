@@ -34,6 +34,31 @@ export function ChatAgent() {
   const [showPromptDialog, setShowPromptDialog] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
+  const [followups, setFollowups] = useState<string[]>([])
+
+  const loadGreeting = async () => {
+    try {
+      const response = await fetch("/api/ai-agent/qa")
+      if (response.ok) {
+        const data = await response.json()
+        setMessages([{ role: "assistant", content: sanitizeContent(data.greeting) }])
+      }
+    } catch (error) {
+      console.error("Failed to load greeting:", error)
+      setMessages([
+        {
+          role: "assistant",
+          content: sanitizeContent("Hi! I'm Spark ⚡ - Ask me anything or upload documents!"),
+        },
+      ])
+    }
+  }
+
+  function sanitizeContent(input: string | undefined) {
+    if (!input) return ""
+    // Remove any <think>...</think> blocks (multiline-safe)
+    return input.replace(/<think>[\s\S]*?<\/think>/gi, "").trim()
+  }
 
   // Load greeting on mount
   useEffect(() => {
@@ -42,47 +67,18 @@ export function ChatAgent() {
     setEditingPrompt("Hi! I'm Spark ⚡ - your AI study buddy!")
   }, [])
 
-  // Auto-scroll
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
-  }, [messages])
+  // Core send function, accepts an optional override message (used by follow-up clicks)
+  const sendMessage = async (overrideMessage?: string) => {
+    const raw = overrideMessage !== undefined ? overrideMessage : input
+    const userMessage = (raw || "").toString().trim()
+    if (!userMessage) return
 
-  const loadGreeting = async () => {
-    try {
-      const response = await fetch("/api/ai-agent/qa")
-      if (response.ok) {
-        const data = await response.json()
-        setMessages([{ role: "assistant", content: data.greeting }])
-      }
-    } catch (error) {
-      console.error("Failed to load greeting:", error)
-      setMessages([
-        {
-          role: "assistant",
-          content: "Hi! I'm Spark ⚡ - Ask me anything or upload documents!",
-        },
-      ])
-    }
-  }
+    // If user typed the message (no override), clear the input box
+    if (overrideMessage === undefined) setInput("")
 
-  const handleSaveSystemPrompt = () => {
-    setSystemPrompt(editingPrompt)
-    setShowPromptDialog(false)
-    toast({
-      title: "System prompt saved",
-      description: "Spark's personality has been updated!",
-    })
-  }
-
-  const handleSend = async () => {
-    if (!input.trim()) return
-
-    const userMessage = input.trim()
-    setInput("")
     setMessages((prev) => [...prev, { role: "user", content: userMessage }])
     setLoading(true)
+    setFollowups([])
 
     try {
       const conversationHistory = messages.map((msg) => ({
@@ -107,28 +103,48 @@ export function ChatAgent() {
       if (!response.ok) throw new Error("Failed to get response")
 
       const data = await response.json()
-      
+
       console.log("✅ Received response:", {
         mode: data.mode,
         sourcesCount: data.sources?.length || 0,
-        qaId: data.qaId
+        qaId: data.qaId,
+        followups: data.follow_up_questions?.length ?? data.followUps?.length ?? 0,
       })
-      
-      let responseText = data.answer
-      
+
+      let responseText = data.answer || ""
+
       if (data.sources && data.sources.length > 0) {
         responseText += `\n\n---\n**📚 ${data.sources.length} source(s) used**`
       }
-      
+
       responseText += `\n\n*Response mode: ${data.mode === 'rag' ? '📖 RAG (Document-based)' : '💬 Direct Chat'}*`
-      
-      setMessages((prev) => [...prev, { role: "assistant", content: responseText }])
+
+      // Capture follow-ups separately so we can render clickable buttons
+      const receivedFollowups = data.follow_up_questions || data.followUps || []
+      if (Array.isArray(receivedFollowups) && receivedFollowups.length > 0) {
+        setFollowups(receivedFollowups.map((f: string) => sanitizeContent(f)))
+      }
+
+      // Custom friendly greeting for "hi"
+      if (userMessage.toLowerCase().trim() === "hi") {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: sanitizeContent(
+              "Hi Spark! ⚡ How can I help you study today? Need notes explained, tricky concepts broken down, or practice questions? Just let me know! 📚✨\n\nResponse mode: 💬 Direct Chat"
+            ),
+          },
+        ])
+      } else {
+        setMessages((prev) => [...prev, { role: "assistant", content: sanitizeContent(responseText) }])
+      }
 
       // Deduct credits after successful response (token-based calculation)
       // Estimate tokens: ~4 chars per token (rough approximation)
-      const estimatedTokens = Math.ceil(data.answer.length / 4)
+      const estimatedTokens = Math.ceil((data.answer || "").length / 4)
       const creditsToDeduct = Math.max(1, Math.ceil(estimatedTokens / 100)) // 1 credit per 100 tokens, min 1
-      
+
       try {
         await fetch("/api/credits/deduct", {
           method: "POST",
@@ -143,7 +159,7 @@ export function ChatAgent() {
         console.warn("Failed to deduct credits:", creditError)
         // Don't block user experience if credit deduction fails
       }
-      
+
     } catch (error) {
       console.error("❌ Chat error:", error)
       toast({
@@ -154,6 +170,14 @@ export function ChatAgent() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Keep handleSend for existing keypress and button bindings
+  const handleSend = () => sendMessage()
+
+  const handleFollowupClick = (question: string) => {
+    // Immediately send the follow-up as a new query
+    sendMessage(question)
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -194,6 +218,15 @@ export function ChatAgent() {
         })
       }
     }
+  }
+
+  const handleSaveSystemPrompt = () => {
+    setSystemPrompt(editingPrompt)
+    setShowPromptDialog(false)
+    toast({
+      title: "System prompt saved",
+      description: "Spark's personality has been updated!",
+    })
   }
 
   return (
@@ -295,6 +328,15 @@ export function ChatAgent() {
                 <div className="rounded-lg px-4 py-2 bg-muted">
                   <Loader2 className="h-4 w-4 animate-spin" />
                 </div>
+              </div>
+            )}
+            {followups.length > 0 && (
+              <div className="mt-2 flex gap-2 flex-wrap">
+                {followups.map((q, idx) => (
+                  <Button key={idx} variant="outline" size="sm" onClick={() => handleFollowupClick(q)}>
+                    {q}
+                  </Button>
+                ))}
               </div>
             )}
           </div>

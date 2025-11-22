@@ -31,6 +31,7 @@ export async function GET(request: Request) {
 // POST /api/users/me/credits - Redeem credits for actions
 export async function POST(request: Request) {
   try {
+    console.log("[API][AI-AGENT] POST request received");
     const session = await getServerSession();
     
     if (!session?.user?.id) {

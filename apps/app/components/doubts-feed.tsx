@@ -39,6 +39,7 @@ export function DoubtsFeed({ initialDoubts, currentPage, totalPages, hasMore }: 
   const [filter, setFilter] = useState<"all" | "trending" | "unanswered">("all")
   const router = useRouter()
   const searchParams = useSearchParams()
+  const DOUBTS_PER_PAGE = 10
 
   const loadMore = async () => {
     if (!hasMore || loading) return
@@ -58,6 +59,12 @@ export function DoubtsFeed({ initialDoubts, currentPage, totalPages, hasMore }: 
     } finally {
       setLoading(false)
     }
+  }
+
+  // Check if we need to show load more button
+  const shouldShowLoadMore = () => {
+    const displayedCount = doubts.length
+    return hasMore && displayedCount % DOUBTS_PER_PAGE === 0 && filter === "all"
   }
 
   const getFilteredDoubts = () => {
@@ -135,7 +142,7 @@ export function DoubtsFeed({ initialDoubts, currentPage, totalPages, hasMore }: 
       </div>
 
       {/* Load More */}
-      {hasMore && filter === "all" && (
+      {shouldShowLoadMore() && (
         <div className="flex justify-center pt-6">
           <Button onClick={loadMore} disabled={loading} variant="outline">
             {loading ? (

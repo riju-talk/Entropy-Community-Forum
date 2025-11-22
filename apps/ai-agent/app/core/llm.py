@@ -1,7 +1,4 @@
-"""
-LLM Client Wrapper using Groq (FREE)
-"""
-from groq import Groq
+from langchain_groq import ChatGroq
 from typing import Optional
 import os
 
@@ -10,9 +7,10 @@ from app.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
-_llm_instance: Optional[Groq] = None
+_llm_instance: Optional[ChatGroq] = None
 
-def get_llm() -> Groq:
+
+def get_llm() -> ChatGroq:
     """
     Get LLM instance (Groq client)
     """
@@ -22,14 +20,14 @@ def get_llm() -> Groq:
         logger.info(f"Initializing Groq LLM: {settings.LLM_MODEL}")
         
         api_key = settings.GROQ_API_KEY or os.getenv("GROQ_API_KEY")
-        if not api_key:
-            raise ValueError("GROQ_API_KEY not found in environment variables")
+        if not api_key or not settings.LLM_MODEL:
+            raise ValueError("GROQ_API_KEY or LLM_MODEL is missing in the configuration")
 
-        _llm_instance = Groq(api_key=api_key)
-
+        _llm_instance = ChatGroq(api_key=api_key, model=settings.LLM_MODEL)
         logger.info("Groq LLM initialized successfully")
 
     return _llm_instance
+
 
 async def generate_response(
     prompt: str,
@@ -37,26 +35,23 @@ async def generate_response(
     max_tokens: int = None,
     temperature: float = None
 ) -> str:
-    """Generate response using Groq"""
-    llm = get_llm()
-    
-    max_tokens = max_tokens or settings.LLM_MAX_TOKENS
-    temperature = temperature or settings.LLM_TEMPERATURE
-    
+    llm = get_llm()  # ChatGroq instance configured earlier
+
+    # Build messages list
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": prompt}
+    ]
+
     try:
-        chat_completion = llm.chat.completions.create(
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt}
-            ],
-            model=settings.LLM_MODEL,
-            max_tokens=max_tokens,
-            temperature=temperature
-        )
-        return chat_completion.choices[0].message.content.strip()
+        output = await llm.ainvoke(messages)   # <-- THE ONLY VALID METHOD CALL
+        return output.content.strip()
+
     except Exception as e:
         logger.error(f"Groq API error: {e}")
         raise Exception(f"Failed to generate response: {str(e)}")
+
+
 
 async def generate_with_context(
     question: str,

@@ -1,74 +1,57 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
 
 const AI_AGENT_URL = process.env.AI_AGENT_URL || "http://localhost:8000"
-// keep reading secret but do not require or send it
-const AI_BACKEND_SECRET =
-  process.env.AI_BACKEND_SECRET ||
-  process.env.AI_BACKEND_TOKEN ||
-  process.env.NEXT_PUBLIC_AI_BACKEND_TOKEN ||
-  ""
+
+// Helper function for proxying requests
+async function proxyRequest(endpoint: string, options: RequestInit) {
+  const url = `${AI_AGENT_URL}${endpoint}`
+  console.log("[PROXY]", options.method || "GET", url)
+  
+  const resp = await fetch(url, options)
+  const text = await resp.text()
+  
+  try {
+    return {
+      body: text ? JSON.parse(text) : null,
+      status: resp.status,
+      isText: false,
+    }
+  } catch {
+    return {
+      body: text,
+      status: resp.status,
+      isText: true,
+    }
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 })
-    }
-
-    if (!AI_AGENT_URL) {
-      console.error("[AI-AGENT][FLASHCARDS] AI_AGENT_URL not configured")
-      return NextResponse.json({ error: "Server misconfiguration" }, { status: 500 })
-    }
-
+    console.log("[API][FLASHCARDS] POST request received");
+    
     const body = await req.json().catch(() => null)
     if (!body) {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
     }
 
-    const topic = (body?.topic || "").toString().trim()
-    const count = Math.max(1, Math.min(Number(body?.count || 10), 50))
-    const customPrompt = typeof body?.customPrompt === "string" ? body.customPrompt : undefined
+    if (!AI_AGENT_URL) {
+      return NextResponse.json({ error: "AI_AGENT_URL not configured" }, { status: 500 })
+    }
 
-    console.log("[AI-AGENT][FLASHCARDS] Forwarding request (no auth header)", { topic, count, hasCustomPrompt: !!customPrompt })
+    console.log("[API][FLASHCARDS] Forwarding to backend:", JSON.stringify(body))
 
-    // Forward without Authorization header (public endpoint)
-    const flashcardsResp = await fetch(`${AI_AGENT_URL}/api/flashcards`, {
+    const resp = await proxyRequest("/api/flashcards", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        // Authorization intentionally omitted
-      },
-      body: JSON.stringify({
-        topic,
-        count,
-        customPrompt,
-        userId: (session.user as any).id,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
     })
 
-    const text = await flashcardsResp.text()
-    if (!flashcardsResp.ok) {
-      console.error("[AI-AGENT][FLASHCARDS] Backend error:", flashcardsResp.status, text)
-      return NextResponse.json({ error: "Flashcards generation failed", details: text }, { status: 502 })
+    if (resp.isText) {
+      return new NextResponse(String(resp.body), { status: resp.status, headers: { "Content-Type": "text/plain" } })
     }
-
-    try {
-      const result = JSON.parse(text)
-      const flashcards = Array.isArray(result.flashcards) ? result.flashcards : (result.data?.flashcards || [])
-      const normalized = (flashcards || []).map((c: any) => ({
-        front: String(c.front ?? c.question ?? ""),
-        back: String(c.back ?? c.answer ?? ""),
-      })).filter((f: any) => f.front && f.back)
-
-      return NextResponse.json({ flashcards: normalized, count: normalized.length, raw: result }, { status: flashcardsResp.status })
-    } catch (err) {
-      console.error("[AI-AGENT][FLASHCARDS] Failed to parse backend JSON:", err)
-      return new NextResponse(text, { status: flashcardsResp.status, headers: { "Content-Type": "text/plain" } })
-    }
+    return NextResponse.json(resp.body, { status: resp.status })
   } catch (err) {
-    console.error("[AI-AGENT][FLASHCARDS] Error:", err)
+    console.error("[API][FLASHCARDS] Error:", err)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
