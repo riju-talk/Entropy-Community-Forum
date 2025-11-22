@@ -16,14 +16,11 @@ class EmbeddingService:
     
     def _get_embeddings(self):
         """Lazy load embeddings model"""
+        # GPT4All support has been removed to avoid local dependency issues.
+        # Always use the lightweight fallback embedding implementation.
         if self._embeddings is None:
-            try:
-                from gpt4all import Embed4All
-                self._embeddings = Embed4All()
-                logger.info("✅ GPT4All embeddings model loaded")
-            except Exception as e:
-                logger.warning(f"Could not load GPT4All embeddings: {e}")
-                self._embeddings = "fallback"
+            logger.info("⚠️ GPT4All disabled: using fallback embeddings (deterministic hash-based)")
+            self._embeddings = "fallback"
         return self._embeddings
     
     async def embed_text(self, text: str) -> List[float]:

@@ -86,9 +86,42 @@ class LangChainService:
                     logger.warning("LLM test failed in debug: %s", e)
 
             # Initialize embeddings
-            logger.info("🔄 Initializing GPT4All embeddings...")
-            self.embeddings = GPT4AllEmbeddings()
-            logger.info("✅ Embeddings initialized")
+            # GPT4All local embeddings removed; use a deterministic local fallback embedding function
+            logger.info("🔄 Initializing local fallback embeddings (GPT4All removed)")
+            try:
+                from app.core.embeddings import get_embedding_service
+                svc = get_embedding_service()
+
+                def _embed_fn(texts):
+                    # Accept either a single string or an iterable of strings
+                    try:
+                        # If a single string is provided, return a single vector
+                        if isinstance(texts, str):
+                            return svc._simple_embed(texts)
+                        # Otherwise assume iterable of strings
+                        return [svc._simple_embed(t) for t in texts]
+                    except Exception:
+                        # Last resort deterministic fallback
+                        return [svc._simple_embed(str(texts))]
+
+                self.embeddings = _embed_fn
+                logger.info("✅ Local fallback embeddings initialized")
+            except Exception as e:
+                logger.warning(f"Failed to initialize local fallback embeddings: {e}")
+                # final fallback: use a tiny inline hash-based function
+                import hashlib
+                def _tiny_embed(texts):
+                    def one(t):
+                        h = hashlib.md5(t.encode()).digest()
+                        vec = []
+                        for _ in range(24):
+                            vec.extend([float(b) / 255.0 for b in h])
+                        return vec[:384]
+                    if isinstance(texts, str):
+                        return one(texts)
+                    return [one(str(t)) for t in texts]
+                self.embeddings = _tiny_embed
+                logger.info("✅ Tiny inline fallback embeddings initialized")
 
             # Initialize text splitter
             self.text_splitter = RecursiveCharacterTextSplitter(
