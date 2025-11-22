@@ -1,3 +1,5 @@
+// Full rewritten MindMapAgent component with improved UI/UX
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -7,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent } from "@/components/ui/select"
-import { Loader2, RefreshCw } from "lucide-react"
+import { Loader2, RefreshCw, ZoomIn, ZoomOut, Download, Copy, FileText } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export function MindMapAgent() {
@@ -17,21 +19,16 @@ export function MindMapAgent() {
   const [systemPrompt, setSystemPrompt] = useState("")
   const [mermaidCode, setMermaidCode] = useState<string>("")
   const [renderedSvg, setRenderedSvg] = useState<string>("")
+  const [zoom, setZoom] = useState<number>(1)
   const [loading, setLoading] = useState(false)
   const { toast } = useToast()
 
   useEffect(() => {
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: "default",
-      securityLevel: "loose",
-    })
+    mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "loose" })
   }, [])
 
-  // Re-render Mermaid when new code arrives
   useEffect(() => {
     if (!mermaidCode) return
-
     const render = async () => {
       try {
         const { svg } = await mermaid.render("generatedDiagram", mermaidCode)
@@ -41,34 +38,96 @@ export function MindMapAgent() {
         setRenderedSvg("")
       }
     }
-
     render()
   }, [mermaidCode])
 
+  const copyToClipboard = async (text: string, successMsg = "Copied to clipboard") => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast({ title: successMsg })
+    } catch (err) {
+      toast({ title: "Clipboard failed", variant: "destructive" })
+    }
+  }
+
+  const parseMermaidToCSV = (code: string) => {
+    if (!code) return ""
+    const lines = code
+      .split(/\r?\n/)
+      .map((l) => l.replace(/```/g, "").replace(/^\s+|\s+$/g, ""))
+      .filter((l) => l && !/^mindmap/i.test(l))
+
+    const rows: string[] = []
+    const stack: string[] = []
+
+    for (const raw of lines) {
+      const leading = raw.match(/^\s*/) ?. [0].length ?? 0
+      const level = Math.max(0, Math.floor(leading / 2))
+      let label = raw
+      const m = raw.match(/\(\((.*?)\)\)/)
+      if (m) label = m[1]
+      else label = raw.replace(/-->|->|<-|\[|\]|\(|\)|:/g, "").replace(/^\w+\s+/, "").trim()
+      stack[level] = label
+      stack.length = level + 1
+      const parent = level > 0 ? stack[level - 1] : ""
+      rows.push([parent, label, String(level)].map((v) => `"${v.replace(/"/g, '""')}"`).join(","))
+    }
+
+    return ["parent,child,level", ...rows].join("\n")
+  }
+
+  const handleCopyMermaid = () => mermaidCode ? copyToClipboard(mermaidCode, "Mermaid source copied") : toast({ title: "No code", variant: "destructive" })
+  const handleExportCSV = async () => {
+    if (!mermaidCode) return toast({ title: "No code", variant: "destructive" })
+    const csv = parseMermaidToCSV(mermaidCode)
+    await copyToClipboard(csv, "CSV copied")
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${(topic || "diagram").replace(/\s+/g, "_")}.csv`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleDownloadSVG = () => {
+    if (!renderedSvg) return toast({ title: "No SVG", variant: "destructive" })
+    try {
+      const blob = new Blob([renderedSvg], { type: "image/svg+xml;charset=utf-8" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${(topic || "diagram").replace(/\s+/g, "_")}.svg`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      toast({ title: "SVG downloaded" })
+    } catch (err) {
+      toast({ title: "Download failed", variant: "destructive" })
+    }
+  }
+
+  const zoomIn = () => setZoom((z) => Math.min(3, +(z + 0.1).toFixed(2)))
+  const zoomOut = () => setZoom((z) => Math.max(0.2, +(z - 0.1).toFixed(2)))
+  const resetZoom = () => setZoom(1)
+
   const generateDiagram = async () => {
     setLoading(true)
-
     try {
       const res = await fetch("/api/ai-agent/mindmap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          topic,
-          diagram_type: diagramType,
-          detail_level: depth,
-          systemPrompt,
-        }),
+        body: JSON.stringify({ topic, diagram_type: diagramType, detail_level: depth, systemPrompt })
       })
-
       const data = await res.json()
-
       if (!data.mermaid_code) throw new Error("No mermaid_code returned")
-
       setMermaidCode(data.mermaid_code)
-
-      toast({ title: "Diagram generated successfully" })
-    } catch (err) {
-      toast({ title: "Failed to generate", variant: "destructive" })
+      toast({ title: "Diagram generated" })
+    } catch {
+      toast({ title: "Generation failed", variant: "destructive" })
     } finally {
       setLoading(false)
     }
@@ -90,7 +149,7 @@ export function MindMapAgent() {
           <div>
             <Label>Diagram Type</Label>
             <Select value={diagramType} onValueChange={setDiagramType}>
-              <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="mindmap">Mindmap</SelectItem>
                 <SelectItem value="flowchart">Flowchart</SelectItem>
@@ -117,43 +176,96 @@ export function MindMapAgent() {
 
           <div>
             <Label>Custom Instructions</Label>
-            <Textarea value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)} rows={1} />
+            <Textarea rows={1} value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)} />
           </div>
         </div>
 
         <Button onClick={generateDiagram} disabled={loading}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-          Generate Diagram
+          {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}Generate
         </Button>
 
-        {/* Diagram + Code Side-by-Side */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          
-          {/* Left: VISUAL DIAGRAM */}
-          <div className="border rounded p-4 bg-white dark:bg-slate-900 min-h-[300px]">
-            <h3 className="font-semibold mb-2">Diagram Preview</h3>
-            {renderedSvg ? (
-              <div
-                className="overflow-auto"
-                dangerouslySetInnerHTML={{ __html: renderedSvg }}
-              />
-            ) : (
-              <div className="text-muted-foreground">No diagram generated yet</div>
-            )}
-          </div>
+          <Card className="flex flex-col">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Diagram Preview</CardTitle>
+            </CardHeader>
 
-          {/* Right: RAW CODE */}
-          <div className="border rounded p-4 bg-muted/40 dark:bg-slate-900 min-h-[300px]">
-            <h3 className="font-semibold mb-2">Mermaid Source Code</h3>
-            {mermaidCode ? (
-              <pre className="text-sm whitespace-pre-wrap overflow-auto p-2">
-                {mermaidCode}
-              </pre>
-            ) : (
-              <div className="text-muted-foreground">No code available</div>
-            )}
-          </div>
+            <CardContent className="relative p-0 flex-1">
 
+              {/* Floating buttons */}
+              <div className="absolute top-2 right-2 flex gap-2 z-20">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCopyMermaid}
+                    className="h-8"
+                    title="Copy Mermaid source"
+                    aria-label="Copy Mermaid source"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleExportCSV}
+                    className="h-8"
+                    title="Export as CSV"
+                    aria-label="Export as CSV"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                  </Button>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleDownloadSVG}
+                    className="h-8"
+                    title="Download SVG"
+                    aria-label="Download SVG"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                  </Button>
+              </div>
+
+              {/* Scrollable Diagram */}
+              <div className="h-80 overflow-auto p-4 bg-white dark:bg-slate-900">
+                {renderedSvg ? (
+                  <div
+                    className="flex items-center justify-center min-h-full"
+                    style={{ transform: `scale(${zoom})`, transformOrigin: "center" }}
+                    dangerouslySetInnerHTML={{ __html: renderedSvg }}
+                  />
+                ) : (
+                  <div className="h-full flex items-center justify-center text-muted-foreground">No diagram generated yet</div>
+                )}
+              </div>
+
+              {/* Zoom Controls */}
+              <div className="absolute bottom-2 left-2 flex gap-2 bg-white/80 dark:bg-slate-800/80 p-2 rounded-md z-20">
+                <Button size="sm" variant="outline" onClick={zoomOut} className="h-8 w-8 p-0"><ZoomOut className="h-4 w-4" /></Button>
+                <Button size="sm" variant="outline" onClick={resetZoom} className="h-8 text-xs">Reset</Button>
+                <Button size="sm" variant="outline" onClick={zoomIn} className="h-8 w-8 p-0"><ZoomIn className="h-4 w-4" /></Button>
+              </div>
+
+            </CardContent>
+          </Card>
+
+          <Card className="flex flex-col">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Mermaid Source Code</CardTitle>
+            </CardHeader>
+
+            <CardContent className="p-0 flex-1">
+              <div className="h-80 overflow-auto bg-muted/40 dark:bg-slate-900">
+                {mermaidCode ? (
+                  <pre className="p-4 text-xs font-mono whitespace-pre overflow-x-auto overflow-y-auto">{mermaidCode}</pre>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-muted-foreground">No code available</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </CardContent>
     </Card>

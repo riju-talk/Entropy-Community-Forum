@@ -192,6 +192,9 @@ export default function AIAgentPage() {
             <p className="text-sm text-blue-900 m-0">
               <strong>Coming in Beta:</strong> Premium subscriptions with unlimited credits, priority support, and exclusive features
             </p>
+                <p className="text-xs text-blue-800 m-0 ml-4">
+                  <strong>Beta features coming soon:</strong> Write, Document Upload, and RAG (retrieval-augmented generation).
+                </p>
           </div>
         </div>
       </div>
@@ -385,65 +388,15 @@ export default function AIAgentPage() {
                 {/* Test upload button for debugging */}
                 <div className="mt-4">
                   <button
-                    className="inline-flex items-center px-3 py-1.5 rounded-md bg-primary text-white text-sm"
-                    onClick={async () => {
-                      // Test upload with verbose logging
-                      try {
-                        console.groupCollapsed("📤 Test Document Upload")
-                        const start = Date.now()
-                        console.log("-> Preparing FormData with a small test file")
-                        const fd = new FormData()
-                        const blob = new Blob(["test file content"], { type: "text/plain" })
-                        fd.append("files", blob, "test.txt")
-                        fd.append("collection_name", "test_collection")
-
-                        console.log("-> Sending POST to /api/ai-agent/documents/upload")
-                        const resp = await fetch("/api/ai-agent/documents/upload", {
-                          method: "POST",
-                          body: fd,
-                        })
-
-                        const elapsed = Date.now() - start
-                        console.log(`<- Response received (${elapsed}ms)`)
-                        console.log("Status:", resp.status, resp.statusText)
-                        // Log response headers (some hosts hide headers; this will show what is available)
-                        try {
-                          const headers: Record<string,string> = {}
-                          resp.headers.forEach((v, k) => (headers[k] = v))
-                          console.log("Response headers:", headers)
-                        } catch (hErr) {
-                          console.warn("Could not read response headers:", hErr)
-                        }
-
-                        let textBody: string | null = null
-                        try {
-                          textBody = await resp.text()
-                          console.log("Response body (raw):", textBody)
-                          // try parse json
-                          try {
-                            const json = JSON.parse(textBody)
-                            console.log("Response body (json):", json)
-                          } catch (_) {
-                            // not json
-                          }
-                        } catch (bodyErr) {
-                          console.warn("Failed to read body:", bodyErr)
-                        }
-
-                        if (!resp.ok) {
-                          console.error("Upload failed: status not OK", resp.status)
-                        } else {
-                          console.log("Upload OK")
-                        }
-                        console.groupEnd()
-                      } catch (err) {
-                        console.error("❌ Test upload threw:", err)
-                      }
-                    }}
+                    className="inline-flex items-center px-3 py-1.5 rounded-md bg-muted text-muted-foreground text-sm cursor-not-allowed"
+                    title="Coming soon — Write, Document Upload, and RAG agent coming soon"
+                    aria-label="Coming soon — Write, Document Upload, and RAG agent coming soon"
+                    disabled
                   >
                     Test Document Upload
                   </button>
-                </div>
+                  {/* Disabled: feature coming soon (Write, Document Upload, RAG) */}
+                  </div>
               </CardContent>
             </Card>
           )}
