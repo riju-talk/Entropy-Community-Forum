@@ -13,7 +13,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Brain, Menu, X, User, LogOut, Settings, Search } from "lucide-react"
+import { Brain, Menu, X, User, LogOut, Settings, Search, Sun, Moon } from "lucide-react"
+import { useTheme } from "next-themes"
+import { useEffect } from "react"
 import { signOut, useSession } from "next-auth/react"
 import { useState } from "react"
 
@@ -23,6 +25,12 @@ export function Header() {
   const { data: session } = useSession()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const navigation = [
     { name: "Community", href: "/communities" },
@@ -41,7 +49,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <nav className="container flex h-16 items-center justify-between gap-4">
+      <nav className="mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between gap-4 max-w-7xl">
         <div className="flex items-center gap-6 md:gap-10">
           <Link href="/" className="flex items-center space-x-2">
             <Brain className="h-6 w-6" />
@@ -85,7 +93,7 @@ export function Header() {
           </div>
         </form>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {session ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -129,6 +137,17 @@ export function Header() {
             </Button>
           )}
 
+          {/* Theme toggle - visible on all sizes */}
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Toggle color theme"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          >
+            {mounted && (theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />)}
+          </Button>
+
+          {/* Mobile menu button */}
           <Button
             variant="ghost"
             className="md:hidden"
@@ -140,9 +159,9 @@ export function Header() {
         </div>
       </nav>
 
-      {mobileMenuOpen && (
+        {mobileMenuOpen && (
         <div className="md:hidden border-t">
-          <div className="container py-4 space-y-3">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-3">
             {/* Mobile Search */}
             <form onSubmit={handleSearch} className="pb-2">
               <div className="relative w-full">

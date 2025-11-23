@@ -1,23 +1,16 @@
 "use client"
 
-import Image from "next/image"
-import Link from "next/link"
 import { Card, CardContent, CardHeader } from "./ui/card"
 import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
-import { ArrowLeft, Share, Bookmark, Eye, CheckCircle, Clock, User, Share2, Flag, ThumbsUp, ThumbsDown, ArrowUp, ArrowDown, MessageSquare, Calendar, Send } from "lucide-react"
+import { Share2, Bookmark, Flag, ArrowUp, ArrowDown, Clock, User } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
-import { formatTimeAgo, getSubjectColor } from "@/lib/utils"
-import VoteButtons from "./VoteButtons"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
+import { getSubjectColor } from "@/lib/utils"
 import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { useSession } from "next-auth/react"
 import { AuthModal } from "@/components/auth-modal"
-import { Textarea } from "./ui/textarea"
-import { Separator } from "./ui/separator"
 
 interface Answer {
   id: string
@@ -57,8 +50,6 @@ export function DoubtDetail({ doubt, answers = [] }: DoubtDetailProps) {
   const [userVote, setUserVote] = useState<"UP" | "DOWN" | null>(null)
   const [loadingVote, setLoadingVote] = useState(true)
   const [showAuthModal, setShowAuthModal] = useState(false)
-  const [answer, setAnswer] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
 
   const netVotes = upvotes - downvotes
@@ -148,27 +139,7 @@ export function DoubtDetail({ doubt, answers = [] }: DoubtDetailProps) {
     }
   }
 
-  const handleSubmitAnswer = async () => {
-    if (!answer.trim()) return
-
-    setIsSubmitting(true)
-    try {
-      const response = await fetch(`/api/doubts/${doubt.id}/answers`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: answer }),
-      })
-
-      if (response.ok) {
-        setAnswer("")
-        window.location.reload()
-      }
-    } catch (error) {
-      console.error("Error submitting answer:", error)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+  // Answer submission is handled by the AnswersSection component on the page
 
   const getSubjectColor = (subject: string) => {
     const colors: Record<string, string> = {
@@ -184,9 +155,9 @@ export function DoubtDetail({ doubt, answers = [] }: DoubtDetailProps) {
   return (
     <>
       <div className="bg-card rounded-lg border">
-        <div className="flex gap-6 p-8">
+        <div className="flex flex-col sm:flex-row gap-6 p-4 sm:p-8">
           {/* Vote Column */}
-          <div className="flex flex-col items-center gap-2">
+          <div className="flex flex-row sm:flex-col items-center gap-2">
             <Button
               variant={userVote === "UP" ? "default" : "ghost"}
               size="sm"
@@ -280,64 +251,7 @@ export function DoubtDetail({ doubt, answers = [] }: DoubtDetailProps) {
         </div>
       </div>
 
-      {/* Answers Section */}
-      {answers.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">{answers.length} Answer{answers.length !== 1 ? 's' : ''}</h2>
-          {answers.map((ans) => (
-            <Card key={ans.id}>
-              <CardContent className="pt-6">
-                <div className="prose max-w-none dark:prose-invert mb-4">
-                  <p className="whitespace-pre-wrap">{ans.content}</p>
-                </div>
-                <Separator className="my-4" />
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Avatar className="h-6 w-6">
-                    <AvatarImage src={ans.author.image || ""} />
-                    <AvatarFallback>{ans.author.name?.[0] || "U"}</AvatarFallback>
-                  </Avatar>
-                  <span>{ans.author.name}</span>
-                  <span>•</span>
-                  <span>{formatDistanceToNow(new Date(ans.createdAt), { addSuffix: true })}</span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Answer Form */}
-      <Card>
-        <CardHeader>
-          <h2 className="text-xl font-semibold">Your Answer</h2>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Textarea
-            placeholder="Write your answer here..."
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-            rows={6}
-            className="resize-none"
-          />
-          <Button 
-            onClick={handleSubmitAnswer} 
-            disabled={isSubmitting || !answer.trim()}
-            className="w-full sm:w-auto"
-          >
-            {isSubmitting ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Submitting...
-              </>
-            ) : (
-              <>
-                <Send className="h-4 w-4 mr-2" />
-                Submit Answer
-              </>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
+      {/* Answers list is handled by `AnswersSection` on the page to avoid duplicate forms. */}
 
       <AuthModal open={showAuthModal} onOpenChange={setShowAuthModal} />
     </>

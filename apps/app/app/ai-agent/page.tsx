@@ -256,7 +256,7 @@ export default function AIAgentPage() {
             </CardHeader>
             <CardContent className="pt-6">
               <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="flex w-full gap-2 overflow-x-auto no-scrollbar [&>&button]:min-w-32 [&>&button]:whitespace-nowrap [&>&button]:px-3 [&>&button]:py-1.5">
                   <TabsTrigger value="qa">Q&A + Chat</TabsTrigger>
                   <TabsTrigger value="mindmap">Mind Mapping</TabsTrigger>
                   <TabsTrigger value="quiz">Quiz Generator</TabsTrigger>

@@ -7,11 +7,13 @@ import { Sidebar } from "@/components/sidebar"
 export function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
-      <div className="flex flex-col h-screen bg-background">
+      <div className="flex flex-col min-h-screen bg-background">
         <Header />
         <div className="flex flex-1 overflow-hidden">
-          <Sidebar />
-          <div className="flex-1 overflow-y-auto px-12 py-8">
+          <div className="hidden md:block">
+            <Sidebar />
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-12 py-6 sm:py-8">
             {children}
           </div>
         </div>
