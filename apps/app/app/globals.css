@@ -202,3 +202,47 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* Scrollbar styling (WebKit + Firefox) */
+:root {
+  --scrollbar-track: hsl(var(--card));
+  --scrollbar-thumb: hsl(var(--border));
+  --scrollbar-thumb-hover: hsl(var(--primary));
+}
+
+.dark {
+  --scrollbar-track: hsl(var(--card));
+  --scrollbar-thumb: hsl(var(--muted));
+  --scrollbar-thumb-hover: hsl(var(--primary));
+}
+
+/* WebKit browsers */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 9999px;
+  border: 2px solid transparent; /* creates padding effect */
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* Utility class to apply the consistent scrollbar to specific containers if needed */
+.scrollbar-consistent {
+  scrollbar-width: thin;
+}
+

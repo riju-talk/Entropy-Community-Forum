@@ -13,7 +13,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
           <div className="hidden md:block">
             <Sidebar />
           </div>
-          <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-12 py-6 sm:py-8">
+          <div className="flex-1 px-4 sm:px-6 lg:px-12 py-6 sm:py-8 overflow-hidden">
             {children}
           </div>
         </div>

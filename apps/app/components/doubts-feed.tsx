@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { DoubtCard } from "@/components/doubt-card"
 import { Button } from "@/components/ui/button"
@@ -39,10 +39,12 @@ export function DoubtsFeed({ initialDoubts, currentPage, totalPages, hasMore }: 
   const [filter, setFilter] = useState<"all" | "trending" | "unanswered">("all")
   const router = useRouter()
   const searchParams = useSearchParams()
-  const DOUBTS_PER_PAGE = 10
+  const DOUBTS_PER_PAGE = 7
+  const [localHasMore, setLocalHasMore] = useState(hasMore)
+  const sentinelRef = React.useRef<HTMLDivElement | null>(null)
 
   const loadMore = async () => {
-    if (!hasMore || loading) return
+    if (!localHasMore || loading) return
 
     setLoading(true)
     try {
@@ -54,6 +56,8 @@ export function DoubtsFeed({ initialDoubts, currentPage, totalPages, hasMore }: 
 
       setDoubts([...doubts, ...data.doubts])
       setPage(page + 1)
+      // update local hasMore if backend returns it
+      if (typeof data.hasMore === "boolean") setLocalHasMore(data.hasMore)
     } catch (error) {
       console.error("Error loading more doubts:", error)
     } finally {
@@ -79,6 +83,24 @@ export function DoubtsFeed({ initialDoubts, currentPage, totalPages, hasMore }: 
   }
 
   const filteredDoubts = getFilteredDoubts()
+
+  // IntersectionObserver for infinite scroll
+  React.useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !loading && localHasMore) {
+            loadMore()
+          }
+        })
+      },
+      { root: null, rootMargin: "300px", threshold: 0.1 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [loading, localHasMore])
 
   if (doubts.length === 0) {
     return (
@@ -140,6 +162,9 @@ export function DoubtsFeed({ initialDoubts, currentPage, totalPages, hasMore }: 
           ))
         )}
       </div>
+
+      {/* sentinel for intersection observer */}
+      <div ref={sentinelRef} className="h-2" aria-hidden />
 
       {/* Load More */}
       {shouldShowLoadMore() && (

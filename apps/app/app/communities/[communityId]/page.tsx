@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -60,9 +60,21 @@ export default function CommunityPage({ params }: { params: { communityId: strin
   const { toast } = useToast()
   
   const [community, setCommunity] = useState<Community | null>(null)
-  const [posts, setPosts] = useState<Post[]>([])
+  // legacy posts state removed in favor of paginated `postsItems`
+  // paginated posts state
+  const [postsPage, setPostsPage] = useState(1)
+  const [postsItems, setPostsItems] = useState<Post[]>([])
+  const [postsHasMore, setPostsHasMore] = useState(false)
+  const [postsLoadingMore, setPostsLoadingMore] = useState(false)
+  const postsSentinelRef = useRef<HTMLDivElement | null>(null)
   const [selectedPost, setSelectedPost] = useState<Post | null>(null)
   const [comments, setComments] = useState<Comment[]>([])
+  // paginated comments state for selected post
+  const [commentsPage, setCommentsPage] = useState(1)
+  const [commentsItems, setCommentsItems] = useState<Comment[]>([])
+  const [commentsHasMore, setCommentsHasMore] = useState(false)
+  const [commentsLoadingMore, setCommentsLoadingMore] = useState(false)
+  const commentsSentinelRef = useRef<HTMLDivElement | null>(null)
   const [loading, setLoading] = useState(true)
   const [showNewPost, setShowNewPost] = useState(false)
   
@@ -76,7 +88,10 @@ export default function CommunityPage({ params }: { params: { communityId: strin
 
   useEffect(() => {
     fetchCommunity()
-    fetchPosts()
+    // initialize posts paginated
+    setPostsPage(1)
+    setPostsItems([])
+    loadPostsPage(1)
     fetchMembershipStatus()
   }, [params.communityId])
 
@@ -97,13 +112,17 @@ export default function CommunityPage({ params }: { params: { communityId: strin
     }
   }
 
-  const fetchPosts = async () => {
-    setLoading(true)
+  async function loadPostsPage(page: number) {
+    if (postsLoadingMore) return
+    setPostsLoadingMore(true)
     try {
-      const response = await fetch(`/api/communities/${params.communityId}/posts`)
-      if (response.ok) {
-        const data = await response.json()
-        setPosts(data.posts)
+      const res = await fetch(`/api/communities/${params.communityId}/posts?limit=5&page=${page}`)
+      if (res.ok) {
+        const json = await res.json()
+        const items = json.posts || []
+        setPostsItems((prev) => (page === 1 ? items : [...prev, ...items]))
+        setPostsHasMore(json.hasMore ?? false)
+        setPostsPage(page)
       }
     } catch (error) {
       toast({
@@ -112,16 +131,22 @@ export default function CommunityPage({ params }: { params: { communityId: strin
         variant: "destructive",
       })
     } finally {
+      setPostsLoadingMore(false)
       setLoading(false)
     }
   }
 
-  const fetchComments = async (postId: string) => {
+  async function loadCommentsPage(postId: string, page: number) {
+    if (commentsLoadingMore) return
+    setCommentsLoadingMore(true)
     try {
-      const response = await fetch(`/api/communities/${params.communityId}/posts/${postId}/comments`)
-      if (response.ok) {
-        const data = await response.json()
-        setComments(data.comments)
+      const res = await fetch(`/api/communities/${params.communityId}/posts/${postId}/comments?limit=7&page=${page}`)
+      if (res.ok) {
+        const json = await res.json()
+        const items = json.comments || []
+        setCommentsItems((prev) => (page === 1 ? items : [...prev, ...items]))
+        setCommentsHasMore(json.hasMore ?? false)
+        setCommentsPage(page)
       }
     } catch (error) {
       toast({
@@ -129,8 +154,40 @@ export default function CommunityPage({ params }: { params: { communityId: strin
         description: "Failed to load comments",
         variant: "destructive",
       })
+    } finally {
+      setCommentsLoadingMore(false)
     }
   }
+
+  // observe posts sentinel for lazy-loading
+  useEffect(() => {
+    const node = postsSentinelRef.current
+    if (!node) return
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting && postsHasMore && !postsLoadingMore) {
+          loadPostsPage(postsPage + 1)
+        }
+      })
+    }, { root: null, rootMargin: "200px", threshold: 0.1 })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [postsHasMore, postsLoadingMore, postsPage])
+
+  // observe comments sentinel for lazy-loading
+  useEffect(() => {
+    const node = commentsSentinelRef.current
+    if (!node || !selectedPost) return
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting && commentsHasMore && !commentsLoadingMore) {
+          loadCommentsPage(selectedPost.id, commentsPage + 1)
+        }
+      })
+    }, { root: null, rootMargin: "200px", threshold: 0.1 })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [commentsHasMore, commentsLoadingMore, commentsPage, selectedPost])
 
   const fetchMembershipStatus = async () => {
     if (!isAuthenticated) return
@@ -188,7 +245,9 @@ export default function CommunityPage({ params }: { params: { communityId: strin
       setNewPostTitle("")
       setNewPostContent("")
       setShowNewPost(false)
-      fetchPosts()
+      // refresh posts (reload first page)
+      setPostsPage(1)
+      loadPostsPage(1)
     } catch (error) {
       console.error("Error creating post:", error)
       toast({
@@ -217,10 +276,13 @@ export default function CommunityPage({ params }: { params: { communityId: strin
         body: JSON.stringify({ content: newComment }),
       })
 
-      if (response.ok) {
+        if (response.ok) {
         setNewComment("")
-        fetchComments(postId)
-        fetchPosts()
+        // reload comments and refresh posts
+        setCommentsPage(1)
+        loadCommentsPage(postId, 1)
+        setPostsPage(1)
+        loadPostsPage(1)
       }
     } catch (error) {
       toast({
@@ -243,7 +305,9 @@ export default function CommunityPage({ params }: { params: { communityId: strin
       await fetch(`/api/communities/${params.communityId}/posts/${postId}/like`, {
         method: "POST",
       })
-      fetchPosts()
+      // refresh posts view
+      setPostsPage(1)
+      loadPostsPage(1)
     } catch (error) {
       console.error("Failed to like post")
     }
@@ -251,7 +315,10 @@ export default function CommunityPage({ params }: { params: { communityId: strin
 
   const handleViewPost = (post: Post) => {
     setSelectedPost(post)
-    fetchComments(post.id)
+    // initialize comments for selected post
+    setCommentsPage(1)
+    setCommentsItems([])
+    loadCommentsPage(post.id, 1)
   }
 
   const handleJoinCommunity = async () => {
@@ -423,7 +490,7 @@ export default function CommunityPage({ params }: { params: { communityId: strin
             </Card>
           )}
 
-          {posts.map((post) => (
+          {postsItems.map((post) => (
             <Card key={post.id} className="cursor-pointer hover:shadow-md transition-shadow">
               <CardHeader onClick={() => handleViewPost(post)}>
                 <div className="flex items-start gap-3">
@@ -465,13 +532,15 @@ export default function CommunityPage({ params }: { params: { communityId: strin
             </Card>
           ))}
 
-          {posts.length === 0 && (
+          {postsItems.length === 0 && (
             <Card>
               <CardContent className="text-center py-12">
                 <p className="text-muted-foreground">No posts yet. Be the first to post!</p>
               </CardContent>
             </Card>
           )}
+          {/* sentinel for posts lazy-loading */}
+          <div ref={postsSentinelRef} className="h-2" aria-hidden />
         </div>
 
         {/* Thread View */}
@@ -493,7 +562,7 @@ export default function CommunityPage({ params }: { params: { communityId: strin
                 <Separator />
 
                 <div className="space-y-3">
-                  {comments.map((comment) => (
+                  {commentsItems.map((comment) => (
                     <div key={comment.id} className="space-y-2">
                       <div className="flex items-start gap-2">
                         <Avatar className="h-8 w-8">
@@ -514,9 +583,12 @@ export default function CommunityPage({ params }: { params: { communityId: strin
                   ))}
                 </div>
 
-                {comments.length === 0 && (
+                {commentsItems.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4">No comments yet</p>
                 )}
+
+                {/* sentinel for comments lazy-loading */}
+                <div ref={commentsSentinelRef} className="h-2" aria-hidden />
 
                 <div className="space-y-2">
                   <Textarea

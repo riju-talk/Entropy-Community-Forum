@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -74,6 +74,20 @@ export default function ProfilePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [user, setUser] = useState<UserProfile | null>(null)
+  const [recentDoubts, setRecentDoubts] = useState<UserProfile["doubts"] | null>(null)
+  const [recentAnswers, setRecentAnswers] = useState<UserProfile["answers"] | null>(null)
+  // lazy-loading state for doubts
+  const [doubtsPage, setDoubtsPage] = useState(1)
+  const [doubtsItems, setDoubtsItems] = useState<UserProfile["doubts"]>([])
+  const [doubtsHasMore, setDoubtsHasMore] = useState(false)
+  const [doubtsLoadingMore, setDoubtsLoadingMore] = useState(false)
+  const doubtsSentinelRef = useRef<HTMLDivElement | null>(null)
+  // lazy-loading state for answers
+  const [answersPage, setAnswersPage] = useState(1)
+  const [answersItems, setAnswersItems] = useState<UserProfile["answers"]>([])
+  const [answersHasMore, setAnswersHasMore] = useState(false)
+  const [answersLoadingMore, setAnswersLoadingMore] = useState(false)
+  const answersSentinelRef = useRef<HTMLDivElement | null>(null)
   const [loading, setLoading] = useState(true)
   const [editModalOpen, setEditModalOpen] = useState(false)
 
@@ -100,12 +114,115 @@ export default function ProfilePage() {
 
       const data = await response.json()
       setUser(data)
+      // initialize lazy-loaded lists (page 1, show 3 items)
+      try {
+        setDoubtsPage(1)
+        setDoubtsItems([])
+        await loadDoubtsPage(1)
+      } catch (e) {
+        console.error("Failed to fetch recent doubts:", e)
+        // fallback to any server-provided data
+        try {
+          const dRes = await fetch(`/api/users/me/doubts?limit=3`)
+          if (dRes.ok) {
+            const djson = await dRes.json()
+            setDoubtsItems(djson.doubts || [])
+            setDoubtsHasMore(djson.hasMore ?? false)
+          }
+        } catch (err) {
+          console.error(err)
+        }
+      }
+
+      try {
+        setAnswersPage(1)
+        setAnswersItems([])
+        await loadAnswersPage(1)
+      } catch (e) {
+        console.error("Failed to fetch recent answers:", e)
+        try {
+          const aRes = await fetch(`/api/users/me/answers?limit=3`)
+          if (aRes.ok) {
+            const ajson = await aRes.json()
+            setAnswersItems(ajson.answers || [])
+            setAnswersHasMore(ajson.hasMore ?? false)
+          }
+        } catch (err) {
+          console.error(err)
+        }
+      }
     } catch (error) {
       console.error("[Profile] Error fetching profile:", error)
     } finally {
       setLoading(false)
     }
   }
+
+  async function loadDoubtsPage(page: number) {
+    setDoubtsLoadingMore(true)
+    try {
+      const res = await fetch(`/api/users/me/doubts?limit=3&page=${page}`)
+      if (res.ok) {
+        const json = await res.json()
+        const items = json.doubts || []
+        setDoubtsItems((prev) => (page === 1 ? items : [...prev, ...items]))
+        setDoubtsHasMore(json.hasMore ?? false)
+        setDoubtsPage(page)
+      }
+    } catch (err) {
+      console.error("loadDoubtsPage error:", err)
+    } finally {
+      setDoubtsLoadingMore(false)
+    }
+  }
+
+  async function loadAnswersPage(page: number) {
+    setAnswersLoadingMore(true)
+    try {
+      const res = await fetch(`/api/users/me/answers?limit=3&page=${page}`)
+      if (res.ok) {
+        const json = await res.json()
+        const items = json.answers || []
+        setAnswersItems((prev) => (page === 1 ? items : [...prev, ...items]))
+        setAnswersHasMore(json.hasMore ?? false)
+        setAnswersPage(page)
+      }
+    } catch (err) {
+      console.error("loadAnswersPage error:", err)
+    } finally {
+      setAnswersLoadingMore(false)
+    }
+  }
+
+  // observe sentinel for doubts lazy-loading
+  useEffect(() => {
+    const node = doubtsSentinelRef.current
+    if (!node) return
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting && doubtsHasMore && !doubtsLoadingMore) {
+          loadDoubtsPage(doubtsPage + 1)
+        }
+      })
+    })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [doubtsHasMore, doubtsLoadingMore, doubtsPage])
+
+  // observe sentinel for answers lazy-loading
+  useEffect(() => {
+    const node = answersSentinelRef.current
+    if (!node) return
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting && answersHasMore && !answersLoadingMore) {
+          loadAnswersPage(answersPage + 1)
+        }
+      })
+    })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [answersHasMore, answersLoadingMore, answersPage])
 
   const handleProfileUpdate = () => {
     if (session?.user?.email) {
@@ -216,8 +333,8 @@ export default function ProfilePage() {
             <CardContent className="pt-6">
               <div className="flex flex-col items-center text-center">
                 <Award className="h-8 w-8 mb-2 text-primary" />
-                <div className="text-3xl font-bold">{user.reputation}</div>
-                <div className="text-xs text-muted-foreground mt-1">Reputation</div>
+                <div className="text-base font-medium">Gamification & rewards</div>
+                <div className="text-xs text-muted-foreground mt-1">Badges & rewards coming soon</div>
               </div>
             </CardContent>
           </Card>
@@ -254,28 +371,30 @@ export default function ProfilePage() {
               <CardTitle>Recent Questions</CardTitle>
             </CardHeader>
             <CardContent>
-              {user.doubts.length === 0 ? (
-                <div className="py-12 text-center">
-                  <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <p className="text-muted-foreground mb-4">No questions asked yet</p>
-                  <Button onClick={() => router.push("/ask")}>Ask Your First Question</Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {user.doubts.map((doubt) => (
-                    <Link key={doubt.id} href={`/doubt/${doubt.id}`}>
-                      <div className="p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
-                        <h3 className="font-semibold mb-2 line-clamp-2">{doubt.title}</h3>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span>{doubt._count.answers} answers</span>
-                          <span>{doubt._count.votes} votes</span>
-                          <span>{formatDistanceToNow(new Date(doubt.createdAt), { addSuffix: true })}</span>
+                {((doubtsItems.length ?? 0) === 0 && (recentDoubts?.length ?? 0) === 0 && (user.doubts?.length ?? 0) === 0) ? (
+                  <div className="py-12 text-center">
+                    <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                    <p className="text-muted-foreground mb-4">No questions asked yet</p>
+                    <Button onClick={() => router.push("/ask")}>Ask Your First Question</Button>
+                  </div>
+                ) : (
+                    <div className="space-y-4 h-80 overflow-auto">
+                    {(doubtsItems.length > 0 ? doubtsItems : (recentDoubts ?? user.doubts ?? [])).map((doubt) => (
+                      <Link key={doubt.id} href={`/doubt/${doubt.id}`}>
+                        <div className="p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                          <h3 className="font-semibold mb-2 line-clamp-2">{doubt.title}</h3>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <span>{doubt._count.answers} answers</span>
+                            <span>{doubt._count.votes} votes</span>
+                            <span>{formatDistanceToNow(new Date(doubt.createdAt), { addSuffix: true })}</span>
+                          </div>
                         </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
+                      </Link>
+                    ))}
+                    <div ref={doubtsSentinelRef as any} />
+                    {doubtsLoadingMore && <div className="py-2 text-center text-sm text-muted-foreground">Loading more...</div>}
+                  </div>
+                )}
             </CardContent>
           </Card>
 
@@ -285,41 +404,43 @@ export default function ProfilePage() {
               <CardTitle>Recent Answers</CardTitle>
             </CardHeader>
             <CardContent>
-              {user.answers.length === 0 ? (
-                <div className="py-12 text-center">
-                  <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <p className="text-muted-foreground">No answers yet</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {user.answers.map((answer) => (
-                    <Link key={answer.id} href={`/doubt/${answer.doubt.id}`}>
-                      <div className="p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
-                        <p className="text-sm text-muted-foreground mb-2">
-                          Answered: {answer.doubt.title}
-                        </p>
-                        <p className="text-sm line-clamp-2">{answer.content}</p>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          {formatDistanceToNow(new Date(answer.createdAt), { addSuffix: true })}
-                        </p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </CardContent>
+                {((answersItems.length ?? 0) === 0 && (recentAnswers?.length ?? 0) === 0 && (user.answers?.length ?? 0) === 0) ? (
+                  <div className="py-12 text-center">
+                    <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                    <p className="text-muted-foreground">No answers yet</p>
+                  </div>
+                ) : (
+                    <div className="space-y-4 h-80 overflow-auto">
+                    {(answersItems.length > 0 ? answersItems : (recentAnswers ?? user.answers ?? [])).map((answer) => (
+                      <Link key={answer.id} href={`/doubt/${answer.doubt.id}`}>
+                        <div className="p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
+                          <p className="text-sm text-muted-foreground mb-2">
+                            Answered: {answer.doubt.title}
+                          </p>
+                          <p className="text-sm line-clamp-2">{answer.content}</p>
+                          <p className="text-xs text-muted-foreground mt-2">
+                            {formatDistanceToNow(new Date(answer.createdAt), { addSuffix: true })}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
+                    <div ref={answersSentinelRef as any} />
+                    {answersLoadingMore && <div className="py-2 text-center text-sm text-muted-foreground">Loading more...</div>}
+                  </div>
+                )}
+              </CardContent>
           </Card>
         </div>
 
         {/* Communities */}
-        {user.communityMemberships.length > 0 && (
+        {(user.communityMemberships?.length ?? 0) > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Communities</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {user.communityMemberships.map(({ community }) => (
+                {(user.communityMemberships ?? []).map(({ community }) => (
                   <Link key={community.id} href={`/communities/${community.id}`}>
                     <div className="p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
                       <div className="flex items-center gap-2 mb-2">

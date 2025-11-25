@@ -55,11 +55,13 @@ export function AnswersSection({
   })
 
   const handleAnswerAdded = async () => {
-    // Fetch fresh answers
-    const response = await fetch(`/api/doubts/${doubtId}/answers`)
-    const data = await response.json()
-    setAnswers(data.answers)
-    setCount(data.answers.length)
+    // Fetch fresh first page of answers (7 per page)
+    const response = await fetch(`/api/doubts/${doubtId}/answers?limit=7&page=1`)
+    if (response.ok) {
+      const data = await response.json()
+      setAnswers(data.answers || [])
+      setCount(data.total ?? (data.answers || []).length)
+    }
   }
 
   return (

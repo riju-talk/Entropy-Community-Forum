@@ -68,7 +68,8 @@ async function safeGetDoubts() {
     return { doubts: [], total: 0, totalPages: 0, hasMore: false }
   }
   try {
-    return await getDoubts({ page: 1, limit: 15 })
+    // load first page with 7 items for initial feed
+    return await getDoubts({ page: 1, limit: 7 })
   } catch (e) {
     console.error("safeGetDoubts error:", e)
     return { doubts: [], total: 0, totalPages: 0, hasMore: false }
@@ -116,12 +117,14 @@ export default async function HomePage() {
         {/* Main Feed */}
         <div className="lg:col-span-2">
           <h2 className="text-lg font-semibold mb-4">All Questions</h2>
-          <DoubtsFeed
-            initialDoubts={doubts}
-            currentPage={1}
-            totalPages={totalPages}
-            hasMore={hasMore}
-          />
+          <div className="max-h-[calc(100vh-4rem)] overflow-y-auto">
+            <DoubtsFeed
+              initialDoubts={doubts}
+              currentPage={1}
+              totalPages={totalPages}
+              hasMore={hasMore}
+            />
+          </div>
         </div>
 
         {/* Sidebar - New Communities */}

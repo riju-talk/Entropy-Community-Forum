@@ -29,7 +29,6 @@ export async function GET() {
         email: true,
         image: true,
         credits: true,
-        freeQueriesUsed: true,
         createdAt: true,
         _count: {
           select: {
@@ -44,7 +43,14 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    return NextResponse.json(user);
+    // Ensure backward compatibility: if the DB doesn't expose `freeQueriesUsed`,
+    // provide a default value so clients expecting it don't crash.
+    const result = {
+      ...user,
+      freeQueriesUsed: (user as any)?.freeQueriesUsed ?? 0,
+    }
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Error fetching user profile:", error);
     return NextResponse.json(

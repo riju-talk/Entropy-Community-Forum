@@ -22,8 +22,7 @@ export async function GET(_req: NextRequest) {
     const user = await getPrisma().user.findUnique({
       where: { email: session.user.email },
       select: { 
-        credits: true,
-        freeQueriesUsed: true 
+        credits: true
       }
     })
 
@@ -31,9 +30,10 @@ export async function GET(_req: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
+    // Provide default for freeQueriesUsed to remain compatible with clients
     return NextResponse.json({
       credits: user.credits,
-      freeQueriesUsed: user.freeQueriesUsed
+      freeQueriesUsed: (user as any)?.freeQueriesUsed ?? 0,
     })
   } catch (error) {
     console.error("Error fetching credits:", error)

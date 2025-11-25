@@ -12,7 +12,14 @@ export async function GET(
   try {
     const session = await getServerSession(authOptions)
 
-    // Fetch answers (comments) for the doubt (post)
+    // Support pagination: ?limit=&page=
+    const url = new URL(req.url)
+    const limit = Math.min(parseInt(url.searchParams.get("limit") || "7", 10) || 7, 100)
+    const page = Math.max(parseInt(url.searchParams.get("page") || "1", 10) || 1, 1)
+    const skip = (page - 1) * limit
+
+    const total = await prisma.answer.count({ where: { doubtId: params.postId } })
+
     const comments = await prisma.answer.findMany({
       where: { doubtId: params.postId },
       orderBy: { createdAt: "asc" },
@@ -24,8 +31,12 @@ export async function GET(
           select: { votes: true }
         }
       },
-      take: 100 // Limit comments
+      skip,
+      take: limit
     })
+
+    const totalPages = Math.ceil(total / limit)
+    const hasMore = page < totalPages
 
     return NextResponse.json({
       comments: comments.map(comment => ({
@@ -34,8 +45,12 @@ export async function GET(
         author: comment.author,
         createdAt: comment.createdAt,
         likes: comment._count.votes,
-        isLiked: false // TODO: Implement user-specific like status
-      }))
+        isLiked: false
+      })),
+      total,
+      page,
+      totalPages,
+      hasMore
     })
   } catch (error) {
     console.error("Error fetching comments:", error)

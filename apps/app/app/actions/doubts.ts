@@ -68,7 +68,7 @@ export async function getDoubts(params?: {
 }) {
   try {
     const page = params?.page || 1
-    const limit = params?.limit || 10
+    const limit = params?.limit || 7
     const skip = (page - 1) * limit
 
     // Get all doubtIds that are in ANY community

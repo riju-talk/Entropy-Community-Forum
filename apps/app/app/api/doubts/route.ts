@@ -120,42 +120,55 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const doubts = await getPrisma().doubt.findMany({
-      where: {
-        isInCommunity: false,
-      },
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        subject: true,
-        tags: true,
-        isAnonymous: true,
-        createdAt: true, // This will be automatically serialized to ISO string
-        upvotes: true,
-        downvotes: true,
-        author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-          },
-        },
-        _count: {
-          select: {
-            answers: true,
-            votes: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: 20,
-    });
+    // Parse pagination params from the query string
+    const url = new URL(req.url);
+    const page = parseInt(url.searchParams.get("page") || "1", 10) || 1;
+    const limit = Math.min(parseInt(url.searchParams.get("limit") || "7", 10) || 7, 50);
+    const skip = (page - 1) * limit;
 
-    return NextResponse.json({ doubts });
+    // Build base where clause
+    const where = { isInCommunity: false } as any;
+
+    // Get total count and paginated results in parallel
+    const [total, doubts] = await Promise.all([
+      getPrisma().doubt.count({ where }),
+      getPrisma().doubt.findMany({
+        where,
+        select: {
+          id: true,
+          title: true,
+          content: true,
+          subject: true,
+          tags: true,
+          isAnonymous: true,
+          createdAt: true,
+          upvotes: true,
+          downvotes: true,
+          author: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            },
+          },
+          _count: {
+            select: {
+              answers: true,
+              votes: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        skip,
+      }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+    const hasMore = page < totalPages;
+
+    return NextResponse.json({ doubts, total, page, totalPages, hasMore });
   } catch (error) {
     console.error("Error fetching doubts:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

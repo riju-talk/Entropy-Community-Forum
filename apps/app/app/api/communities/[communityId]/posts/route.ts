@@ -17,27 +17,34 @@ export async function GET(
   { params }: { params: { communityId: string } }
 ) {
   try {
+    // Support pagination via query params: ?limit=&page=
+    const url = new URL(req.url)
+    const limit = Math.min(parseInt(url.searchParams.get("limit") || "5", 10) || 5, 50)
+    const page = Math.max(parseInt(url.searchParams.get("page") || "1", 10) || 1, 1)
+    const skip = (page - 1) * limit
+
     // Step 1: Get all doubtIds linked to this community
     const communityDoubts = await getPrisma().communityDoubt.findMany({
       where: { communityId: params.communityId },
       select: { doubtId: true },
+      orderBy: { id: "asc" }
     })
 
     const doubtIds = communityDoubts.map(cd => cd.doubtId)
 
-    console.log(`[Community ${params.communityId}] Found ${doubtIds.length} linked doubts:`, doubtIds)
-
-    // Step 2: If no doubts, return empty array
-    if (doubtIds.length === 0) {
-      return NextResponse.json({ posts: [] })
+    const total = doubtIds.length
+    if (total === 0) {
+      return NextResponse.json({ posts: [], total: 0, page, totalPages: 0, hasMore: false })
     }
 
-    // Step 3: Fetch the actual doubts
+    // Step 3: Fetch the actual doubts (paged)
     const posts = await getPrisma().doubt.findMany({
       where: {
         id: { in: doubtIds },
       },
       orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
       include: {
         author: {
           select: { id: true, name: true, image: true }
@@ -51,17 +58,17 @@ export async function GET(
       },
     })
 
-    console.log(`[Community ${params.communityId}] Fetched ${posts.length} posts`)
-
-    // Step 4: Update isInCommunity flag for these doubts if needed
-    const postsToUpdate = posts.filter(p => !p.isInCommunity).map(p => p.id)
+    // Step 4: Update isInCommunity flag for these doubts if needed (best-effort)
+    const postsToUpdate = posts.filter((p: any) => !p.isInCommunity).map((p: any) => p.id)
     if (postsToUpdate.length > 0) {
-      console.log(`[Community ${params.communityId}] Updating ${postsToUpdate.length} posts to set isInCommunity=true`)
       await getPrisma().doubt.updateMany({
         where: { id: { in: postsToUpdate } },
         data: { isInCommunity: true }
       })
     }
+
+    const totalPages = Math.ceil(total / limit)
+    const hasMore = page < totalPages
 
     return NextResponse.json({
       posts: posts.map(post => ({
@@ -74,7 +81,11 @@ export async function GET(
         downvotes: post.downvotes,
         commentCount: post._count.answers,
         isLiked: false,
-      }))
+      })),
+      total,
+      page,
+      totalPages,
+      hasMore
     })
   } catch (error) {
     console.error("Error fetching posts:", error)
