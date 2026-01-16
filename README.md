@@ -1,88 +1,69 @@
+<h1 align="center">Entropy — Agentic Study Buddy & Academic Community</h1>
+<p align="center">
+	<img src="https://img.shields.io/badge/Frontend-Vercel-000?logo=vercel" />
+	<img src="https://img.shields.io/badge/Backend-Render-3A3?logo=render" />
+	<img src="https://img.shields.io/badge/TypeScript-Frontend-3178c6?logo=typescript" />
+	<img src="https://img.shields.io/badge/Python-Backend-3776ab?logo=python" />
+	<img src="https://img.shields.io/badge/Status-Alpha-yellow" />
+</p>
+<hr>
 
+<h2>🚀 Project Overview</h2>
+<p>
+<b>Entropy</b> is a modern academic platform that blends collaborative Q&amp;A, AI-powered study tools, and gamified community engagement into a single unified experience. Built for students and educators, Entropy makes learning more interactive, organized, and motivating by combining human collaboration with intelligent AI assistance.
+</p>
 
-# Entropy — Agentic Study Buddy & Academic Community
+<h2>🌟 Key Features</h2>
+<ul>
+	<li><b>Collaborative Q&amp;A:</b> Ask questions, write answers, and engage in meaningful academic discussions within focused communities.</li>
+	<li><b>Document Intelligence:</b> Upload study materials (PDF, DOCX, TXT) and receive context-aware answers grounded in your own content.</li>
+	<li><b>AI Study Tools:</b> Automatically generate mind maps, quizzes, and flashcards from uploaded documents to accelerate learning.</li>
+	<li><b>Gamification:</b> Earn credits, unlock achievements, and climb leaderboards to stay motivated and consistent.</li>
+	<li><b>Community Management:</b> Create or join communities, participate in mentorship programs, and track individual and group achievements.</li>
+	<li><b>Security &amp; Scalability:</b> Cloud-native design with API tokens, environment variables, and containerized deployment for secure, scalable operations.</li>
+</ul>
 
-![Vercel](https://img.shields.io/badge/Frontend-Vercel-000?logo=vercel)
-![Render](https://img.shields.io/badge/Backend-Render-3A3?logo=render)
-![TypeScript](https://img.shields.io/badge/TypeScript-Frontend-3178c6?logo=typescript)
-![Python](https://img.shields.io/badge/Python-Backend-3776ab?logo=python)
-![Status](https://img.shields.io/badge/Status-Alpha-yellow)
+<h2>🛠️ Tech Stack & Architecture</h2>
+<ul>
+	<li><b>Frontend:</b> Next.js (deployed on Vercel) — Handles UI, authentication flows, community interactions, and AI feature integration.</li>
+	<li><b>Backend:</b> FastAPI (deployed on Render) — Powers document ingestion, retrieval-augmented generation (RAG), Q&amp;A logic, and study tool generation.</li>
+	<li><b>Monorepo:</b> Turborepo for managing multiple applications and shared packages; Docker Compose for local development.</li>
+	<li><b>Database:</b> PostgreSQL (managed by Render) — Stores users, posts, documents, achievements, leaderboards, and community metadata.</li>
+	<li><b>Authentication:</b> JWT-based authentication with OAuth support (Google, GitHub). Role-based permissions are enforced at the API and database levels.</li>
+	<li><b>API Security:</b> Protected endpoints using API tokens and RBAC; sensitive configuration managed through environment variables.</li>
+</ul>
 
----
+<details>
+	<summary><b>📁 Directory Structure</b></summary>
+	<ul>
+		<li><code>apps/app</code> — Next.js frontend application</li>
+		<li><code>apps/ai-agent</code> — Python FastAPI backend for AI and document intelligence</li>
+		<li><code>packages/</code> — Shared UI components, configs, and utilities</li>
+		<li><code>docs/</code> — Project documentation and architecture notes</li>
+	</ul>
+</details>
 
-## Problem Statement
+<h2>🔗 API Endpoints</h2>
+<ul>
+	<li><code>POST /api/ai-agent/qa</code> — Collaborative Q&amp;A with optional document grounding</li>
+	<li><code>POST /api/ai-agent/documents/upload</code> — Upload and process study materials</li>
+	<li><code>POST /api/ai-agent/mindmap</code> — Generate AI-powered mind maps</li>
+	<li><code>POST /api/ai-agent/quiz</code> — Auto-generate quizzes from content</li>
+	<li><code>POST /api/ai-agent/flashcards</code> — Create flashcards for active recall</li>
+</ul>
 
-Modern learners face fragmented study experiences: Q&A forums lack intelligent context, AI tools are siloed, and community engagement is often shallow. Students struggle to find reliable answers, organize study materials, and stay motivated in their learning journey.
+<h2>💡 Why Use Entropy?</h2>
+<ul>
+	<li><b>Unified Learning Experience:</b> Q&amp;A, AI study tools, and community features in one platform.</li>
+	<li><b>Extensible by Design:</b> Modular architecture allows rapid addition of new tools, agents, and gamification mechanics.</li>
+	<li><b>Cloud Native:</b> Built on Vercel and Render for reliability, scalability, and fast iteration.</li>
+</ul>
 
----
+<h2>🌐 Live Demo</h2>
+<ul>
+	<li><b>Main App:</b> <a href="https://entropy-community-forum.vercel.app" target="_blank">entropy-community-forum.vercel.app</a></li>
+	<li><b>AI Agent API:</b> <a href="https://entropy-community-forum.onrender.com" target="_blank">entropy-community-forum.onrender.com</a></li>
+</ul>
 
-## Solution: Entropy Community Forum
-
-Entropy unifies collaborative Q&A, AI-powered study tools, and gamified community features into a single seamless platform. It empowers students and educators to:
-
-- **Ask and answer questions** in a vibrant, supportive community
-- **Upload study materials** (PDF, DOCX, TXT) and get context-aware answers
-- **Visualize knowledge** with AI-generated mind maps
-- **Practice and revise** using quizzes and flashcards created from real content
-- **Earn credits and climb leaderboards** for active participation
-- **Join or create communities** for focused learning and mentorship
-
----
-
-## Product Overview
-
-**Entropy** is a next-generation academic platform designed for engagement, productivity, and deep learning. It combines:
-
-- **Modern UI:** Fast, responsive, and accessible interface built with Next.js and Tailwind CSS
-- **AI Agent:** Python FastAPI backend (deployed on Render) for document intelligence, RAG, and study tool APIs
-- **Gamification:** Credits, achievements, and leaderboards to motivate and reward users
-- **Community-first:** Tools for group learning, mentorship, and knowledge sharing
-
----
-
-## Architecture
-
-- **Frontend:** Next.js (Vercel) — user interface, authentication, community features, and AI integration
-- **Backend:** FastAPI (Render) — document processing, Retrieval-Augmented Generation (RAG), and study tool APIs
-- **Orchestration:** Turborepo for monorepo management, Docker Compose for local development
-
-### Directory Structure
-- `apps/app` — Next.js frontend
-- `apps/ai-agent` — Python FastAPI AI backend
-- `packages/` — Shared configs and UI components
-- `docs/` — All documentation
-
----
-
-## Key Features
-
-- **Collaborative Q&A:** Post questions, answer peers, and engage in community-driven discussions
-- **AI-Powered Study Tools:** Document-aware Q&A, mind maps, quizzes, and flashcards
-- **Gamified Learning:** Earn credits, unlock achievements, and compete on leaderboards
-- **Community Management:** Create/join communities, mentorship, and track achievements
-- **Secure & Scalable:** API tokens, environment variables, and containerized deployment
-
----
-
-## API Highlights
-
-- `POST /api/ai-agent/qa` — Q&A with or without uploaded documents
-- `POST /api/ai-agent/documents/upload` — Upload and process study materials
-- `POST /api/ai-agent/mindmap`, `/quiz`, `/flashcards` — Generate study tools
-
----
-
-## Live Demo
-
-- **Main App:** https://entropy-community-forum.vercel.app
-- **AI Agent API:** https://entropy-community-forum.onrender.com
-
----
-
-## For Product Stakeholders
-
-- **Unified Experience:** All-in-one platform for collaborative learning and AI-powered productivity
-- **Rapid Extensibility:** Modular design for adding new study tools, community features, or gamification mechanics
-- **Cloud Native:** Deployed on Vercel (frontend) and Render (backend) for reliability and scale
-
----
+<hr>
+<p align="center"><i>Entropy is modular, scalable, and designed for real academic collaboration — explore, contribute, and learn together.</i></p>
