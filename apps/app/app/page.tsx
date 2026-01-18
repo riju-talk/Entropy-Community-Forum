@@ -89,27 +89,59 @@ export default async function HomePage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">Top Questions</h1>
-        <p className="text-sm text-muted-foreground">
-          The most active questions from the community
-        </p>
-      </div>
-
-      {/* Stats */}
-      <div className="flex items-center gap-6 text-sm mb-6">
-        <div>
-          <span className="font-semibold">{total}</span>
-          <span className="text-muted-foreground ml-1">questions</span>
+      {/* Hero Section */}
+      {/* Hero Section */}
+      <div className="relative mb-12 py-10">
+        <div className="absolute top-0 right-0 -z-10 opacity-60 pointer-events-none hidden dark:block">
+          <div className="w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[120px] animate-pulse"></div>
         </div>
-        <div>
-          <span className="font-semibold">
-            {Array.isArray(doubts)
-              ? doubts.reduce((acc, d) => acc + (d._count?.answers || 0), 0)
-              : 0}
-          </span>
-          <span className="text-muted-foreground ml-1">answers</span>
+        <div className="absolute bottom-0 left-0 -z-10 opacity-40 pointer-events-none hidden dark:block">
+          <div className="w-[300px] h-[300px] bg-blue-600/10 rounded-full blur-[100px]"></div>
+        </div>
+
+        <div className="space-y-6 max-w-3xl">
+          <h1 className="text-6xl md:text-8xl font-bold tracking-tight leading-[0.9]">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 animate-gradient-x contrast-125">
+              Entropy.
+            </span>
+            <br />
+            <span className="text-foreground text-5xl md:text-7xl tracking-normal font-semibold">Learn without limits.</span>
+          </h1>
+
+          <p className="text-xl text-muted-foreground/80 font-medium leading-relaxed max-w-lg">
+            The distinct urban space for academic discourse. Join {total}+ students and experts pushing the boundaries of knowledge.
+          </p>
+
+          <div className="flex flex-wrap items-center gap-4 pt-2">
+            <Button size="lg" className="h-14 rounded-2xl px-8 text-lg font-bold shadow-[0_0_25px_rgba(6,182,212,0.4)] hover:shadow-[0_0_40px_rgba(6,182,212,0.6)] transition-all bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white border-0" asChild>
+              <Link href="/ask">Ask a Question</Link>
+            </Button>
+            <Button size="lg" variant="outline" className="h-14 rounded-2xl px-8 text-lg border-white/10 bg-white/5 hover:bg-white/10 hover:text-cyan-400 transition-all font-semibold" asChild>
+              <Link href="/communities">Explore Hubs</Link>
+            </Button>
+          </div>
+
+          {/* Stats Bar */}
+          <div className="flex items-center gap-8 pt-4">
+            <div className="flex flex-col">
+              <span className="text-2xl font-bold font-mono text-foreground">{total}</span>
+              <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Questions</span>
+            </div>
+            <div className="w-px h-8 bg-border"></div>
+            <div className="flex flex-col">
+              <span className="text-2xl font-bold font-mono text-foreground">
+                {Array.isArray(doubts)
+                  ? doubts.reduce((acc, d) => acc + (d._count?.answers || 0), 0)
+                  : 0}
+              </span>
+              <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Answers</span>
+            </div>
+            <div className="w-px h-8 bg-border"></div>
+            <div className="flex flex-col">
+              <span className="text-2xl font-bold font-mono text-green-500">Active</span>
+              <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Community</span>
+            </div>
+          </div>
         </div>
       </div>
 

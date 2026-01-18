@@ -121,7 +121,7 @@ export function DoubtsFeed({ initialDoubts, currentPage, totalPages, hasMore }: 
           {filter === "trending" && "Trending questions"}
           {filter === "unanswered" && `${doubts.filter((d) => (d._count?.answers || 0) === 0).length} unanswered questions`}
         </h2>
-        
+
         <div className="flex gap-1 border rounded-lg p-1">
           <Button
             variant={filter === "all" ? "secondary" : "ghost"}
@@ -151,9 +151,9 @@ export function DoubtsFeed({ initialDoubts, currentPage, totalPages, hasMore }: 
       </div>
 
       {/* Questions List */}
-      <div className="border rounded-lg bg-card overflow-hidden">
+      <div className="space-y-4">
         {filteredDoubts.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
+          <div className="text-center py-12 text-muted-foreground border rounded-xl bg-card/40 backdrop-blur-sm">
             No questions found
           </div>
         ) : (

@@ -48,19 +48,21 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/40">
       <nav className="mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between gap-4 max-w-7xl">
         <div className="flex items-center gap-6 md:gap-10">
-          <Link href="/" className="flex items-center space-x-2">
-            <Brain className="h-6 w-6" />
-            <span className="font-bold text-xl flex items-center gap-2">
-              Entropy
+          <Link href="/" className="flex items-center space-x-3 group">
+            <div className="bg-gradient-to-br from-cyan-400 to-blue-600 p-2 rounded-xl shadow-[0_0_15px_rgba(6,182,212,0.3)] group-hover:shadow-[0_0_25px_rgba(6,182,212,0.5)] transition-all duration-300 transform group-hover:scale-105 group-hover:rotate-3">
+              <Brain className="h-5 w-5 text-white" />
+            </div>
+            <span className="font-semibold text-2xl tracking-tight flex items-center gap-2">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/80 group-hover:from-cyan-400 group-hover:to-purple-500 transition-all duration-500">
+                Entropy
+              </span>
               <span
-                title="Alpha phase of development"
-                className="inline-flex items-center px-2 py-0.5 rounded-full bg-yellow-200 text-yellow-800 text-xs font-semibold"
-                aria-label="Alpha"
+                className="inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-bold tracking-widest bg-cyan-500/10 text-cyan-500 border border-cyan-500/20 uppercase"
               >
-                ALPHA
+                BETA
               </span>
             </span>
           </Link>
@@ -69,9 +71,8 @@ export function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  pathname === item.href ? "text-primary" : "text-muted-foreground"
-                }`}
+                className={`text-sm font-medium transition-all hover:text-primary hover:drop-shadow-[0_0_8px_rgba(var(--primary),0.5)] ${pathname === item.href ? "text-primary drop-shadow-[0_0_8px_rgba(var(--primary),0.5)]" : "text-muted-foreground"
+                  }`}
               >
                 {item.name}
               </Link>
@@ -81,14 +82,14 @@ export function Header() {
 
         {/* Search Bar */}
         <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-sm">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="relative w-full group">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
             <Input
               type="search"
               placeholder="Search questions, topics..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4"
+              className="pl-10 pr-4 bg-white dark:bg-secondary/50 border border-slate-200 dark:border-transparent focus:border-cyan-500 focus:bg-white dark:focus:bg-background transition-all duration-300 rounded-full shadow-sm text-slate-900 dark:text-foreground placeholder:text-slate-400 dark:placeholder:text-muted-foreground"
             />
           </div>
         </form>
@@ -159,7 +160,7 @@ export function Header() {
         </div>
       </nav>
 
-        {mobileMenuOpen && (
+      {mobileMenuOpen && (
         <div className="md:hidden border-t">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-3">
             {/* Mobile Search */}
@@ -181,11 +182,10 @@ export function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`block px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                  pathname === item.href
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-muted"
-                }`}
+                className={`block px-4 py-2 text-sm font-medium rounded-md transition-colors ${pathname === item.href
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted"
+                  }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {item.name}
