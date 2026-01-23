@@ -5,8 +5,11 @@ import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Send, Lock } from "lucide-react"
+import { Loader2, Send, Lock, Sparkles } from "lucide-react"
 import { AuthModal } from "@/components/auth-modal"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 
 interface AnswerFormProps {
   doubtId: string
@@ -18,6 +21,7 @@ export function AnswerForm({ doubtId, onAnswerAdded }: AnswerFormProps) {
   const [content, setContent] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [isAiAssisted, setIsAiAssisted] = useState(false)
   const { toast } = useToast()
 
   const isAuthenticated = status === "authenticated"
@@ -51,6 +55,7 @@ export function AnswerForm({ doubtId, onAnswerAdded }: AnswerFormProps) {
         body: JSON.stringify({
           doubtId,
           content: content.trim(),
+          isAiAssisted,
         }),
       })
 
@@ -66,6 +71,7 @@ export function AnswerForm({ doubtId, onAnswerAdded }: AnswerFormProps) {
       })
 
       setContent("")
+      setIsAiAssisted(false)
       onAnswerAdded()
     } catch (error) {
       toast({
@@ -100,6 +106,30 @@ export function AnswerForm({ doubtId, onAnswerAdded }: AnswerFormProps) {
           className="resize-none"
           disabled={!isAuthenticated}
         />
+        <div className="flex items-center space-x-4 p-4 rounded-xl bg-secondary/20 border border-white/5">
+          <div className="flex-1 space-y-1">
+            <Label htmlFor="ai-assist" className="text-sm font-bold flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-cyan-400" />
+              AI Assistance
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Did you use AI to help generate this answer?
+            </p>
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <Switch
+              id="ai-assist"
+              checked={isAiAssisted}
+              onCheckedChange={setIsAiAssisted}
+              disabled={!isAuthenticated || isSubmitting}
+            />
+            {!isAiAssisted && isAuthenticated && (
+              <Badge variant="outline" className="text-[10px] font-bold bg-green-500/10 text-green-500 border-green-500/20 animate-pulse">
+                1.5x XP RIGOR BONUS
+              </Badge>
+            )}
+          </div>
+        </div>
 
         <div className="flex justify-between items-center">
           <p className="text-sm text-muted-foreground">

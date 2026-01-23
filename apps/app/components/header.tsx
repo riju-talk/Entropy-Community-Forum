@@ -13,11 +13,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Brain, Menu, X, User, LogOut, Settings, Search, Sun, Moon } from "lucide-react"
+import { Brain, Menu, X, User, LogOut, Settings, Search, Sun, Moon, Flame, Trophy, Coins } from "lucide-react"
 import { useTheme } from "next-themes"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { signOut, useSession } from "next-auth/react"
-import { useState } from "react"
 
 export function Header() {
   const pathname = usePathname()
@@ -27,10 +26,17 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState("")
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const [stats, setStats] = useState<any>(null)
 
   useEffect(() => {
     setMounted(true)
-  }, [])
+    if (session) {
+      fetch("/api/users/me/stats")
+        .then((res) => res.json())
+        .then((data) => setStats(data))
+        .catch(console.error)
+    }
+  }, [session])
 
   const navigation = [
     { name: "Community", href: "/communities" },
@@ -96,42 +102,65 @@ export function Header() {
 
         <div className="flex items-center gap-3">
           {session ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={session.user?.image || ""} alt={session.user?.name || ""} />
-                    <AvatarFallback>{session.user?.name?.[0] || "U"}</AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{session.user?.name}</p>
-                    <p className="text-xs leading-none text-muted-foreground">{session.user?.email}</p>
+            <>
+              <div className="hidden lg:flex items-center gap-4 px-4 py-1.5 bg-secondary/30 rounded-full border border-white/10 shadow-[0_0_15px_rgba(34,211,238,0.1)] hover:shadow-[0_0_20px_rgba(34,211,238,0.2)] transition-all duration-500">
+                <div className="flex items-center gap-2 group/coins" title="Entropy Coins">
+                  <Coins className="h-4 w-4 text-yellow-500 group-hover/coins:scale-125 transition-transform" />
+                  <span className="text-xs font-black tabular-nums">{stats?.user?.credits ?? 0}</span>
+                </div>
+                <div className="w-px h-3 bg-white/10" />
+                <div className="flex flex-col items-center gap-0.5" title={`${stats?.user?.tier ?? "Initiate"} - Level ${stats?.currentLevel ?? 1}`}>
+                  <div className="flex items-center gap-1.5">
+                    <Trophy className="h-4 w-4 text-cyan-400 animate-pulse" />
+                    <span className="text-[10px] font-black uppercase tracking-tighter text-cyan-400">
+                      {stats?.user?.tier ?? "Initiate"}
+                    </span>
                   </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/profile">
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/profile/settings">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => signOut()}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </div>
+                <div className="w-px h-3 bg-white/10" />
+                <div className="flex items-center gap-1.5 group/streak" title="Daily Streak">
+                  <Flame className={`h-4 w-4 ${stats?.user?.streaks?.currentStreak > 0 ? "text-orange-500 animate-bounce" : "text-muted-foreground"}`} />
+                  <span className="text-xs font-black tabular-nums">{stats?.user?.streaks?.currentStreak ?? 0}</span>
+                </div>
+              </div>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={session.user?.image || ""} alt={session.user?.name || ""} />
+                      <AvatarFallback>{session.user?.name?.[0] || "U"}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{session.user?.name}</p>
+                      <p className="text-xs leading-none text-muted-foreground">{session.user?.email}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile/settings">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Settings</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => signOut()}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           ) : (
             <Button asChild>
               <Link href="/auth/signin">Sign In</Link>

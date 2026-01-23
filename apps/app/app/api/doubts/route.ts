@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, PointEventType } from "@prisma/client";
 import { awardCredits } from "@/app/actions/credits";
+import { awardXP, checkAchievements } from "@/lib/gamification";
 
 let __prisma__: PrismaClient | undefined;
 function getPrisma() {
@@ -94,9 +95,12 @@ export async function POST(req: NextRequest) {
 
     console.log("Doubt created successfully:", doubt.id);
 
-    // Award 1 credit
+    // Award XP and check achievements
     if (!isAnonymous) {
-      await awardCredits(user.id, "DOUBT_CREATED", 1, `Asked: ${title}`);
+      await awardXP(user.id, PointEventType.DOUBT_CREATED, {
+        description: `Asked: ${title}`
+      });
+      await checkAchievements(user.id, PointEventType.DOUBT_CREATED);
     }
 
     return NextResponse.json(doubt, { status: id ? 200 : 201 });

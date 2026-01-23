@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { PrismaClient } from "@prisma/client"
+import { PrismaClient, PointEventType } from "@prisma/client"
+import { awardXP } from "@/lib/gamification"
 
 let __prisma__: PrismaClient | undefined;
 function getPrisma() {
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { doubtId, content } = body
+    const { doubtId, content, isAiAssisted } = body
 
     // Validation
     if (!content?.trim()) {
@@ -66,6 +67,7 @@ export async function POST(req: NextRequest) {
         content: content.trim(),
         doubtId,
         authorId: user.id,
+        isAiAssisted: !!isAiAssisted,
       },
       include: {
         author: {
@@ -79,11 +81,17 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    // Award XP after successful creation
+    await awardXP(user.id, PointEventType.COMMENT_CREATED, {
+      isAiAssisted: !!isAiAssisted,
+      description: `Answered doubt ${doubtId}`
+    });
+
     return NextResponse.json(answer, { status: 201 })
   } catch (error) {
     console.error("Error creating answer:", error)
     return NextResponse.json(
-      { 
+      {
         error: "Failed to create answer",
         details: error instanceof Error ? error.message : "Unknown error"
       },
