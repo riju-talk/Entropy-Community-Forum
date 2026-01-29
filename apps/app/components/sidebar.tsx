@@ -67,19 +67,16 @@ export function Sidebar() {
       href: "/mentorship",
       label: "Mentorship",
       icon: Users,
-      comingSoon: true,
     },
     {
       href: "/leaderboard",
       label: "Leaderboard",
       icon: Trophy,
-      comingSoon: true,
     },
     {
       href: "/happenings",
       label: "Happenings",
       icon: Calendar,
-      comingSoon: true,
     },
   ]
 

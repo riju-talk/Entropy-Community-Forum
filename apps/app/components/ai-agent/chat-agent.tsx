@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Send, Sparkles, Upload, FileText, X, Settings, Save } from "lucide-react"
+import { Loader2, Send, Sparkles, Upload, FileText, X, Settings, Save, Image as ImageIcon } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
@@ -29,6 +29,7 @@ export function ChatAgent() {
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([])
+  const [uploadedImages, setUploadedImages] = useState<Array<{name: string, dataUrl: string}>>([])
   const [systemPrompt, setSystemPrompt] = useState("")
   const [editingPrompt, setEditingPrompt] = useState("")
   const [showPromptDialog, setShowPromptDialog] = useState(false)
@@ -192,30 +193,46 @@ export function ChatAgent() {
     if (!files) return
 
     for (const file of Array.from(files)) {
-      const formData = new FormData()
-      formData.append("file", file)
-      formData.append("collection_name", "default")
-
-      try {
-        const response = await fetch("/api/ai-agent/documents/upload", {
-          method: "POST",
-          body: formData,
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          setUploadedFiles((prev) => [...prev, file.name])
+      // Check if it's an image
+      if (file.type.startsWith('image/')) {
+        // Handle image upload
+        const reader = new FileReader()
+        reader.onload = (event) => {
+          const dataUrl = event.target?.result as string
+          setUploadedImages((prev) => [...prev, { name: file.name, dataUrl }])
           toast({
-            title: "Document uploaded",
-            description: data.message,
+            title: "Image uploaded",
+            description: `${file.name} ready for analysis`,
           })
         }
-      } catch (error) {
-        toast({
-          title: "Upload failed",
-          description: `Failed to upload ${file.name}`,
-          variant: "destructive",
-        })
+        reader.readAsDataURL(file)
+      } else {
+        // Handle document upload
+        const formData = new FormData()
+        formData.append("file", file)
+        formData.append("collection_name", "default")
+
+        try {
+          const response = await fetch("/api/ai-agent/documents/upload", {
+            method: "POST",
+            body: formData,
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            setUploadedFiles((prev) => [...prev, file.name])
+            toast({
+              title: "Document uploaded",
+              description: data.message,
+            })
+          }
+        } catch (error) {
+          toast({
+            title: "Upload failed",
+            description: `Failed to upload ${file.name}`,
+            variant: "destructive",
+          })
+        }
       }
     }
   }
@@ -238,8 +255,8 @@ export function ChatAgent() {
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <div className="flex-1">
-              <CardTitle className="text-lg">Chat with Spark</CardTitle>
-              <p className="text-xs text-muted-foreground">RAG-powered Q&A assistant</p>
+              <CardTitle className="text-lg">Chat with Spark ⚡</CardTitle>
+              <p className="text-xs text-muted-foreground">RAG-powered chat with image analysis</p>
             </div>
             
             <Dialog open={showPromptDialog} onOpenChange={setShowPromptDialog}>
@@ -343,11 +360,11 @@ export function ChatAgent() {
         </ScrollArea>
 
         <CardContent className="border-t p-4">
-          {uploadedFiles.length > 0 && (
+          {(uploadedFiles.length > 0 || uploadedImages.length > 0) && (
             <div className="mb-2 flex flex-wrap gap-2">
               {uploadedFiles.map((file, idx) => (
                 <div
-                  key={idx}
+                  key={`file-${idx}`}
                   className="flex items-center gap-1 bg-muted rounded px-2 py-1 text-xs"
                 >
                   <FileText className="h-3 w-3" />
@@ -356,6 +373,21 @@ export function ChatAgent() {
                     onClick={() => setUploadedFiles((prev) => prev.filter((_, i) => i !== idx))}
                     className="ml-1 hover:text-destructive"
                   >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+              {uploadedImages.map((img, idx) => (
+                <div
+                  key={`img-${idx}`}
+                  className="flex items-center gap-1 bg-blue-500/10 border border-blue-500/20 rounded px-2 py-1 text-xs"
+                >
+                  <ImageIcon className="h-3 w-3 text-blue-500" />
+                  <span>{img.name}</span>
+                  <button
+                    onClick={() => setUploadedImages((prev) => prev.filter((_, i) => i !== idx))}
+                    className="ml-1 hover:text-destructive"
+                  >,.png,.jpg,.jpeg,.gif,.webp
                     <X className="h-3 w-3" />
                   </button>
                 </div>
@@ -378,7 +410,7 @@ export function ChatAgent() {
               onClick={() => document.getElementById("file-upload")?.click()}
               title="Upload documents"
             >
-              <Upload className="h-4 w-4" />
+              <Upload className="h-4 w-4" />/images for RAG + vision analysi
             </Button>
             <Textarea
               placeholder="Ask me anything..."

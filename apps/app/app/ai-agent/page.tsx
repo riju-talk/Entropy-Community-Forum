@@ -6,10 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Sparkles, AlertCircle, CheckCircle2 } from "lucide-react"
-import { QuizAgent } from "@/components/ai-agent/quiz-agent"
+import { AssessmentsAgent } from "@/components/ai-agent/assessments-agent"
 import { MindMapAgent } from "@/components/ai-agent/mindmap-agent"
 import { ChatAgent } from "@/components/ai-agent/chat-agent"
-import { FlashcardsAgent } from "@/components/ai-agent/flashcards-agent"
 import { useSession, signIn } from "next-auth/react"
 import { useToast } from "@/hooks/use-toast"
 
@@ -193,7 +192,7 @@ export default function AIAgentPage() {
               <strong>Coming in Beta:</strong> Premium subscriptions with unlimited credits, priority support, and exclusive features
             </p>
                 <p className="text-xs text-blue-800 m-0 ml-4">
-                  <strong>Beta features coming soon:</strong> Write, Document Upload, and RAG (retrieval-augmented generation).
+                  <strong>Now Available:</strong> RAG Chat with document understanding & image analysis!
                 </p>
           </div>
         </div>
@@ -257,10 +256,9 @@ export default function AIAgentPage() {
             <CardContent className="pt-6">
               <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                 <TabsList className="flex w-full gap-2 overflow-x-auto no-scrollbar [&>&button]:min-w-32 [&>&button]:whitespace-nowrap [&>&button]:px-3 [&>&button]:py-1.5">
-                  <TabsTrigger value="qa">Q&A + Chat</TabsTrigger>
+                  <TabsTrigger value="qa">RAG Chat + Q&A</TabsTrigger>
                   <TabsTrigger value="mindmap">Mind Mapping</TabsTrigger>
-                  <TabsTrigger value="quiz">Quiz Generator</TabsTrigger>
-                  <TabsTrigger value="flashcards">Flashcards</TabsTrigger>
+                  <TabsTrigger value="assessments">AI Assessments</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="qa" className="space-y-4">
@@ -328,13 +326,13 @@ export default function AIAgentPage() {
                   )}
                 </TabsContent>
 
-                <TabsContent value="quiz" className="space-y-4">
+                <TabsContent value="assessments" className="space-y-4">
                   {agentStatus === "available" ? (
                     sessionStatus === "authenticated" ? (
-                      <QuizAgent />
+                      <AssessmentsAgent />
                     ) : (
                       <div className="p-6 text-center border-2 border-dashed rounded-lg">
-                        <p className="text-sm text-muted-foreground mb-3">Quiz generation costs {COSTS.quiz} credits. Sign in to use.</p>
+                        <p className="text-sm text-muted-foreground mb-3">AI Assessments (Quizzes & Flashcards) require credits. Sign in to use.</p>
                         <div className="flex justify-center gap-2">
                           <button className="btn btn-primary" onClick={() => signIn()}>Sign in</button>
                         </div>
@@ -343,27 +341,7 @@ export default function AIAgentPage() {
                   ) : (
                     <div className="p-8 text-center border-2 border-dashed rounded-lg">
                       <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                      <p className="text-muted-foreground">Quiz generator is unavailable. Please try again later.</p>
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="flashcards" className="space-y-4">
-                  {agentStatus === "available" ? (
-                    sessionStatus === "authenticated" ? (
-                      <FlashcardsAgent />
-                    ) : (
-                      <div className="p-6 text-center border-2 border-dashed rounded-lg">
-                        <p className="text-sm text-muted-foreground mb-3">Flashcards cost {COSTS.flashcards} credits. Sign in to use.</p>
-                        <div className="flex justify-center gap-2">
-                          <button className="btn btn-primary" onClick={() => signIn()}>Sign in</button>
-                        </div>
-                      </div>
-                    )
-                  ) : (
-                    <div className="p-8 text-center border-2 border-dashed rounded-lg">
-                      <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                      <p className="text-muted-foreground">Flashcard service is unavailable. Please try again later.</p>
+                      <p className="text-muted-foreground">AI Assessments are unavailable. Please try again later.</p>
                     </div>
                   )}
                 </TabsContent>
