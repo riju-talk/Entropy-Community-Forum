@@ -93,7 +93,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     // Middleware handles auth redirect, so just wait for session
-    if (status === \"loading\") return
+    if (status === "loading") return
 
     if (status === "authenticated" && session?.user?.email) {
       checkProfileAndFetch(session.user.email)
