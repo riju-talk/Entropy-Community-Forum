@@ -3,6 +3,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
+import { cn } from "@/lib/utils"
 import mermaid from "mermaid"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -17,6 +19,7 @@ interface MindMapAgentProps {
 }
 
 export function MindMapAgent({ contextDoc }: MindMapAgentProps) {
+  const { data: session } = useSession()
   const [topic, setTopic] = useState(contextDoc?.title || "")
   const [diagramType, setDiagramType] = useState("mindmap")
   const [depth, setDepth] = useState(3)
@@ -136,7 +139,7 @@ export function MindMapAgent({ contextDoc }: MindMapAgentProps) {
           detail_level: depth,
           systemPrompt,
           collection_name: contextDoc?.id ? contextDoc.id : "default",
-          userId: "user123" // TODO: get from session
+          userId: session?.user?.id || "anonymous"
         })
       })
       const data = await res.json()
@@ -151,9 +154,12 @@ export function MindMapAgent({ contextDoc }: MindMapAgentProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>AI Diagram Generator</CardTitle>
+    <Card className="border-none shadow-none bg-transparent">
+      <CardHeader className="px-0 pt-0 pb-4">
+        <CardTitle className="text-xl font-bold flex items-center gap-2">
+          <RefreshCw className={`h-5 w-5 text-purple-400 ${loading ? "animate-spin" : ""}`} />
+          AI Diagram Generator
+        </CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-4">
@@ -179,7 +185,7 @@ export function MindMapAgent({ contextDoc }: MindMapAgentProps) {
 
           <div>
             <Label>Depth</Label>
-            <Select value={String(depth)} onValueChange={(v) => setDepth(Number(v))}>
+            <Select value={String(depth)} onValueChange={(v: string) => setDepth(Number(v))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="1">1</SelectItem>
@@ -197,14 +203,19 @@ export function MindMapAgent({ contextDoc }: MindMapAgentProps) {
           </div>
         </div>
 
-        <Button onClick={generateDiagram} disabled={loading}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}Generate
+        <Button
+          onClick={generateDiagram}
+          disabled={loading}
+          className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-purple-500/20 transition-all"
+        >
+          {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+          Generate Diagram
         </Button>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          <Card className="flex flex-col">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Diagram Preview</CardTitle>
+          <Card className="flex flex-col border-border/50 bg-background/50 overflow-hidden">
+            <CardHeader className="pb-2 border-b border-border/10">
+              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Diagram Preview</CardTitle>
             </CardHeader>
 
             <CardContent className="relative p-0 flex-1">
@@ -246,7 +257,7 @@ export function MindMapAgent({ contextDoc }: MindMapAgentProps) {
               </div>
 
               {/* Scrollable Diagram */}
-              <div className="h-80 overflow-auto p-4 bg-white dark:bg-slate-900">
+              <div className="h-80 overflow-auto p-4 bg-muted/20 dark:bg-slate-900/50">
                 {renderedSvg ? (
                   <div
                     className="flex items-center justify-center min-h-full"
@@ -259,7 +270,7 @@ export function MindMapAgent({ contextDoc }: MindMapAgentProps) {
               </div>
 
               {/* Zoom Controls */}
-              <div className="absolute bottom-2 left-2 flex gap-2 bg-white/80 dark:bg-slate-800/80 p-2 rounded-md z-20">
+              <div className="absolute bottom-2 left-2 flex gap-2 bg-background/80 backdrop-blur-sm p-2 rounded-md z-20">
                 <Button size="sm" variant="outline" onClick={zoomOut} className="h-8 w-8 p-0"><ZoomOut className="h-4 w-4" /></Button>
                 <Button size="sm" variant="outline" onClick={resetZoom} className="h-8 text-xs">Reset</Button>
                 <Button size="sm" variant="outline" onClick={zoomIn} className="h-8 w-8 p-0"><ZoomIn className="h-4 w-4" /></Button>
@@ -268,17 +279,17 @@ export function MindMapAgent({ contextDoc }: MindMapAgentProps) {
             </CardContent>
           </Card>
 
-          <Card className="flex flex-col">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Mermaid Source Code</CardTitle>
+          <Card className="flex flex-col border-border/50 bg-background/50 overflow-hidden">
+            <CardHeader className="pb-2 border-b border-border/10">
+              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Mermaid Source Code</CardTitle>
             </CardHeader>
 
             <CardContent className="p-0 flex-1">
-              <div className="h-80 overflow-auto bg-muted/40 dark:bg-slate-900">
+              <div className="h-80 overflow-auto bg-muted/20 dark:bg-slate-900/50">
                 {mermaidCode ? (
-                  <pre className="p-4 text-xs font-mono whitespace-pre overflow-x-auto overflow-y-auto">{mermaidCode}</pre>
+                  <pre className="p-4 text-[10px] font-mono whitespace-pre text-muted-foreground">{mermaidCode}</pre>
                 ) : (
-                  <div className="h-full flex items-center justify-center text-muted-foreground">No code available</div>
+                  <div className="h-full flex items-center justify-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-50">No code available</div>
                 )}
               </div>
             </CardContent>

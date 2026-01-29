@@ -67,21 +67,21 @@ export function DocumentList({ userId, selectedDocId, onSelect }: DocumentListPr
                     className={cn(
                         "group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all cursor-pointer border border-transparent",
                         selectedDocId === doc.id
-                            ? "bg-white border-indigo-100 shadow-sm ring-1 ring-indigo-500/10"
-                            : "hover:bg-white/50 hover:shadow-sm"
+                            ? "bg-cyan-500/10 border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.1)] ring-1 ring-cyan-500/20"
+                            : "hover:bg-muted/50 hover:shadow-sm"
                     )}
                 >
                     <div className={cn(
                         "h-8 w-8 rounded flex items-center justify-center shrink-0",
-                        selectedDocId === doc.id ? "bg-indigo-100 text-indigo-600" : "bg-slate-100 text-slate-500"
+                        selectedDocId === doc.id ? "bg-cyan-500/20 text-cyan-400" : "bg-muted text-muted-foreground"
                     )}>
                         <FileText className="h-4 w-4" />
                     </div>
 
                     <div className="flex-1 min-w-0">
                         <p className={cn(
-                            "font-medium truncate",
-                            selectedDocId === doc.id ? "text-indigo-900" : "text-slate-700"
+                            "font-bold truncate",
+                            selectedDocId === doc.id ? "text-cyan-400" : "text-foreground"
                         )}>
                             {doc.title}
                         </p>

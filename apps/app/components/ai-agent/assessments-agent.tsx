@@ -1,6 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,6 +31,7 @@ interface AssessmentsAgentProps {
 }
 
 export function AssessmentsAgent({ contextDoc }: AssessmentsAgentProps) {
+  const { data: session } = useSession()
   const [activeTab, setActiveTab] = useState("quiz")
 
   // Quiz state
@@ -88,7 +91,7 @@ export function AssessmentsAgent({ contextDoc }: AssessmentsAgentProps) {
           difficulty,
           customPrompt: customQuizPrompt.trim() || undefined,
           collection_name: contextDoc?.id || "default",
-          userId: "user123"
+          userId: session?.user?.id || "anonymous"
         }),
       })
 
@@ -154,7 +157,7 @@ export function AssessmentsAgent({ contextDoc }: AssessmentsAgentProps) {
           count: flashcardsCount,
           customPrompt: customFlashcardsPrompt.trim() || undefined,
           collection_name: contextDoc?.id || "default",
-          userId: "user123"
+          userId: session?.user?.id || "anonymous"
         })
       })
 
@@ -214,12 +217,15 @@ export function AssessmentsAgent({ contextDoc }: AssessmentsAgentProps) {
 
   return (
     <div className="space-y-4">
-      <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-lg p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <GraduationCap className="h-5 w-5 text-blue-400" />
-          <h3 className="font-semibold text-blue-400">AI Assessments</h3>
+      <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-2xl p-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 p-4 opacity-10">
+          <GraduationCap className="h-24 w-24 text-cyan-500" />
         </div>
-        <p className="text-sm text-muted-foreground">
+        <div className="flex items-center gap-3 mb-2">
+          <GraduationCap className="h-6 w-6 text-cyan-400" />
+          <h3 className="text-xl font-bold text-foreground">AI Assessments</h3>
+        </div>
+        <p className="text-sm text-muted-foreground max-w-xl font-medium">
           Test your knowledge with AI-generated quizzes or study with interactive flashcards
         </p>
       </div>
@@ -298,8 +304,8 @@ export function AssessmentsAgent({ contextDoc }: AssessmentsAgentProps) {
                   </Button>
 
                   {showAdvanced && (
-                    <div className="space-y-2 p-4 border rounded-lg bg-muted/50">
-                      <Label htmlFor="custom-prompt" className="text-sm font-medium">
+                    <div className="space-y-2 p-4 border border-border/50 rounded-xl bg-muted/30 backdrop-blur-md">
+                      <Label htmlFor="custom-prompt" className="text-sm font-bold uppercase tracking-wider text-muted-foreground opacity-70">
                         Custom System Prompt (Optional)
                       </Label>
                       <Textarea
@@ -391,9 +397,9 @@ export function AssessmentsAgent({ contextDoc }: AssessmentsAgentProps) {
                     </RadioGroup>
 
                     {showResults && (
-                      <div className="bg-muted p-4 rounded-lg">
-                        <p className="text-sm font-semibold mb-2">Explanation:</p>
-                        <p className="text-sm">{currentQuestionData.explanation}</p>
+                      <div className="bg-muted/50 backdrop-blur-md p-4 rounded-xl border border-border/50">
+                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Explanation</p>
+                        <p className="text-sm font-medium">{currentQuestionData.explanation}</p>
                       </div>
                     )}
 
