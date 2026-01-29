@@ -15,14 +15,23 @@ export async function middleware(request: NextRequest) {
   const protectedRoutes = ['/create-community', '/profile']
   
   if (protectedRoutes.some(route => pathname.startsWith(route))) {
-    // Check for NextAuth JWT token
-    const token = await getToken({ 
-      req: request as any, 
-      secret: process.env.NEXTAUTH_SECRET 
-    })
-    
-    if (!token) {
-      // Store the attempted URL to redirect back after login
+    try {
+      // Check for NextAuth JWT token with proper secret
+      const token = await getToken({ 
+        req: request as any,
+        secret: process.env.NEXTAUTH_SECRET,
+        secureCookie: process.env.NODE_ENV === "production",
+      })
+      
+      if (!token) {
+        // Store the attempted URL to redirect back after login
+        const signInUrl = new URL('/auth/signin', request.url)
+        signInUrl.searchParams.set('callbackUrl', pathname)
+        return NextResponse.redirect(signInUrl)
+      }
+    } catch (error) {
+      console.error('Middleware auth check error:', error)
+      // On error, redirect to signin to be safe
       const signInUrl = new URL('/auth/signin', request.url)
       signInUrl.searchParams.set('callbackUrl', pathname)
       return NextResponse.redirect(signInUrl)

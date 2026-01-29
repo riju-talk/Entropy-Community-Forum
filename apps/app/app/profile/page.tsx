@@ -92,10 +92,8 @@ export default function ProfilePage() {
   const [editModalOpen, setEditModalOpen] = useState(false)
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/auth/signin")
-      return
-    }
+    // Middleware handles auth redirect, so just wait for session
+    if (status === \"loading\") return
 
     if (status === "authenticated" && session?.user?.email) {
       checkProfileAndFetch(session.user.email)

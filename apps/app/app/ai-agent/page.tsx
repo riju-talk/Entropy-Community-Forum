@@ -166,34 +166,31 @@ export default function AIAgentPage() {
 
   return (
     <div>
-      {/* Alpha banner */}
-      <div className="w-full bg-yellow-50 border-b border-yellow-200">
+      {/* Beta Success banner */}
+      <div className="w-full bg-gradient-to-r from-green-50 to-blue-50 border-b border-green-200">
         <div className="container mx-auto px-4 py-2 max-w-6xl">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-yellow-200 text-yellow-800 text-xs font-semibold">
-                ALPHA
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-green-200 text-green-800 text-xs font-semibold">
+                BETA
               </span>
-              <p className="text-sm text-yellow-900 m-0">
-                This is an experimental alpha. Many features may be missing or unstable — your feedback is crucial.
+              <p className="text-sm text-green-900 m-0">
+                🎉 Beta features now live! RAG-powered chat, document uploads, image analysis & AI assessments.
               </p>
             </div>
-            <div className="text-xs text-yellow-800">Your feedback helps shape development</div>
+            <div className="text-xs text-green-800">Your feedback continues to shape development</div>
           </div>
         </div>
       </div>
 
-      {/* Subscription info banner */}
+      {/* Premium features banner */}
       <div className="w-full bg-blue-50 border-b border-blue-200">
         <div className="container mx-auto px-4 py-2 max-w-6xl">
           <div className="flex items-center justify-center gap-3">
             <Sparkles className="h-4 w-4 text-blue-600" />
             <p className="text-sm text-blue-900 m-0">
-              <strong>Coming in Beta:</strong> Premium subscriptions with unlimited credits, priority support, and exclusive features
+              <strong>Coming Soon:</strong> Premium subscriptions with unlimited credits, priority support, and exclusive features
             </p>
-                <p className="text-xs text-blue-800 m-0 ml-4">
-                  <strong>Now Available:</strong> RAG Chat with document understanding & image analysis!
-                </p>
           </div>
         </div>
       </div>
@@ -210,10 +207,10 @@ export default function AIAgentPage() {
                 <h1 className="text-3xl font-bold flex items-center gap-2">
                   Spark AI Agent
                   <span
-                    title="Alpha phase of development"
-                    className="inline-flex items-center px-2 py-0.5 rounded-full bg-yellow-200 text-yellow-800 text-xs font-semibold"
+                    title="Beta - Advanced features now available"
+                    className="inline-flex items-center px-2 py-0.5 rounded-full bg-green-200 text-green-800 text-xs font-semibold"
                   >
-                    ALPHA
+                    BETA
                   </span>
                 </h1>
                 <p className="text-muted-foreground">Your intelligent learning companion</p>
@@ -251,7 +248,7 @@ export default function AIAgentPage() {
           <Card>
             <CardHeader className="border-b">
               <CardTitle>AI-Powered Learning Tools</CardTitle>
-              <CardDescription>Enhance your learning with advanced AI capabilities</CardDescription>
+              <CardDescription>Beta features: RAG-powered chat, document & image analysis, smart assessments, and mind mapping</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
               <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
@@ -349,32 +346,49 @@ export default function AIAgentPage() {
             </CardContent>
           </Card>
 
-          {/* System Prompt Info */}
+          {/* Beta Features Info */}
           {agentStatus === "available" && (
-            <Card className="bg-muted/50">
+            <Card className="bg-gradient-to-r from-green-500/5 to-blue-500/5 border-green-500/20">
               <CardHeader>
-                <CardTitle className="text-base">System Prompt (Customize AI Behavior)</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+                  Beta Features Now Available
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  You are a helpful AI tutor. Provide clear, concise, and educational responses.
-                </p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  💡 Use the &quot;Advanced Options&quot; in each tool to customize how the AI responds
-                </p>
-
-                {/* Test upload button for debugging */}
-                <div className="mt-4">
-                  <button
-                    className="inline-flex items-center px-3 py-1.5 rounded-md bg-muted text-muted-foreground text-sm cursor-not-allowed"
-                    title="Coming soon — Write, Document Upload, and RAG agent coming soon"
-                    aria-label="Coming soon — Write, Document Upload, and RAG agent coming soon"
-                    disabled
-                  >
-                    Test Document Upload
-                  </button>
-                  {/* Disabled: feature coming soon (Write, Document Upload, RAG) */}
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold">RAG-Powered Chat</p>
+                      <p className="text-xs text-muted-foreground">Upload documents for context-aware responses</p>
+                    </div>
                   </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold">Image Analysis</p>
+                      <p className="text-xs text-muted-foreground">Upload images for AI-powered visual understanding</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold">AI Assessments</p>
+                      <p className="text-xs text-muted-foreground">Interactive quizzes and flashcards for studying</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold">Mind Mapping</p>
+                      <p className="text-xs text-muted-foreground">Visual knowledge organization and learning</p>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-4">
+                  💡 Use the &quot;Advanced Options&quot; in each tool to customize AI behavior and responses
+                </p>
               </CardContent>
             </Card>
           )}

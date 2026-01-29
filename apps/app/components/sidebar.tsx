@@ -100,7 +100,7 @@ export function Sidebar() {
   const displayName = session?.user?.name ?? session?.user?.email ?? ""
 
   return (
-    <aside className="w-64 border-r border-white/5 bg-background/60 backdrop-blur-xl flex flex-col h-full px-6 py-8 relative overflow-hidden group/sidebar">
+    <aside className="w-64 border-r border-white/5 bg-background/60 backdrop-blur-xl flex flex-col min-h-full px-6 py-8 relative overflow-y-auto group/sidebar">
       {/* Sidebar specific glow - Visible only in Dark Mode */}
       <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-primary/5 blur-[80px] pointer-events-none -z-10 hidden dark:block" />
 
