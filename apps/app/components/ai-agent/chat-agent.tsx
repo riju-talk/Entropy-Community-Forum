@@ -24,12 +24,16 @@ interface Message {
   content: string
 }
 
-export function ChatAgent() {
+interface ChatAgentProps {
+  contextDoc?: { id: string, title: string } | null
+}
+
+export function ChatAgent({ contextDoc }: ChatAgentProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([])
-  const [uploadedImages, setUploadedImages] = useState<Array<{name: string, dataUrl: string}>>([])
+  const [uploadedImages, setUploadedImages] = useState<Array<{ name: string, dataUrl: string }>>([])
   const [systemPrompt, setSystemPrompt] = useState("")
   const [editingPrompt, setEditingPrompt] = useState("")
   const [showPromptDialog, setShowPromptDialog] = useState(false)
@@ -89,16 +93,25 @@ export function ChatAgent() {
 
       console.log("📤 Sending Q&A request with system prompt:", systemPrompt?.substring(0, 50))
 
+      const payload: any = {
+        question: userMessage,
+        userId: "user123", // TODO: Get from session
+        collection_name: "default", // We use namespace=user_id in backend usually
+        conversation_history: conversationHistory,
+        system_prompt: systemPrompt || undefined,
+      }
+
+      // If a specific doc is selected, pass a filter
+      if (contextDoc) {
+        payload.filter = { source: contextDoc.title }
+        // And maybe mention it in system prompt?
+        payload.system_prompt = (payload.system_prompt || "") + `\n\nFocus on the document: ${contextDoc.title}`
+      }
+
       const response = await fetch("/api/ai-agent/qa", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: userMessage,
-          userId: "user123",
-          collection_name: "default",
-          conversation_history: conversationHistory,
-          system_prompt: systemPrompt || undefined,
-        }),
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) throw new Error("Failed to get response")
@@ -139,26 +152,6 @@ export function ChatAgent() {
         ])
       } else {
         setMessages((prev) => [...prev, { role: "assistant", content: sanitizeContent(responseText) }])
-      }
-
-      // Deduct credits after successful response (token-based calculation)
-      // Estimate tokens: ~4 chars per token (rough approximation)
-      const estimatedTokens = Math.ceil((data.answer || "").length / 4)
-      const creditsToDeduct = Math.max(1, Math.ceil(estimatedTokens / 100)) // 1 credit per 100 tokens, min 1
-
-      try {
-        await fetch("/api/credits/deduct", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            amount: creditsToDeduct,
-            operation: "qa_chat",
-            metadata: { tokens: estimatedTokens, mode: data.mode }
-          })
-        })
-      } catch (creditError) {
-        console.warn("Failed to deduct credits:", creditError)
-        // Don't block user experience if credit deduction fails
       }
 
     } catch (error) {
@@ -258,7 +251,7 @@ export function ChatAgent() {
               <CardTitle className="text-lg">Chat with Spark ⚡</CardTitle>
               <p className="text-xs text-muted-foreground">RAG-powered chat with image analysis</p>
             </div>
-            
+
             <Dialog open={showPromptDialog} onOpenChange={setShowPromptDialog}>
               <DialogTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
@@ -314,11 +307,10 @@ export function ChatAgent() {
                   </Avatar>
                 )}
                 <div
-                  className={`rounded-lg px-4 py-2 max-w-[80%] ${
-                    message.role === "user"
+                  className={`rounded-lg px-4 py-2 max-w-[80%] ${message.role === "user"
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted"
-                  }`}
+                    }`}
                 >
                   {message.role === "assistant" ? (
                     <div className="prose prose-sm dark:prose-invert max-w-none">
@@ -387,7 +379,7 @@ export function ChatAgent() {
                   <button
                     onClick={() => setUploadedImages((prev) => prev.filter((_, i) => i !== idx))}
                     className="ml-1 hover:text-destructive"
-                  >,.png,.jpg,.jpeg,.gif,.webp
+                  >
                     <X className="h-3 w-3" />
                   </button>
                 </div>
@@ -410,7 +402,7 @@ export function ChatAgent() {
               onClick={() => document.getElementById("file-upload")?.click()}
               title="Upload documents"
             >
-              <Upload className="h-4 w-4" />/images for RAG + vision analysi
+              <Upload className="h-4 w-4" />
             </Button>
             <Textarea
               placeholder="Ask me anything..."

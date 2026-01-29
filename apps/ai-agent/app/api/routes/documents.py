@@ -111,19 +111,30 @@ async def upload_documents(
                 logger.warning("Skipping empty file: %s", f.filename)
                 continue
 
-            # --- 🔥 DIRECT EMBEDDING HERE ---
+            # --- 🔥 CHUNK & UPSERT TO PINECONE HERE ---
             try:
-                langchain_service.embed_text(text)
+                # 1. Create Document object
+                doc = Document(page_content=text, metadata={"source": f.filename, "user_id": user_id or "anonymous"})
+                
+                # 2. Split chunks
+                chunks = langchain_service.split_documents([doc])
+                
+                # 3. Upsert to Pinecone - Use user_id as namespace (or specialized collection name)
+                # If user_id is provided, we use it as the namespace to isolate user data
+                namespace = user_id if user_id else "anonymous"
+                
+                await langchain_service.upsert_documents(chunks, collection_name=namespace)
+                
                 embedded_count += 1
             except Exception as e:
-                logger.error("Embedding failed for %s: %s", f.filename, e)
-                raise HTTPException(500, f"Embedding failed for file {f.filename}")
+                logger.error("Embedding/Upsert failed for %s: %s", f.filename, e)
+                raise HTTPException(500, f"Embedding failed for file {f.filename}: {str(e)}")
 
         logger.info("[UPLOAD] Successfully embedded %d documents", embedded_count)
 
         return {
             "count": embedded_count,
-            "message": f"Successfully embedded {embedded_count} document(s)"
+            "message": f"Successfully embedded {embedded_count} document(s) to cloud storage"
         }
 
     except HTTPException:

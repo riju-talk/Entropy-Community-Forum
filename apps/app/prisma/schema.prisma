@@ -61,6 +61,7 @@ model User {
   userStats            UserStat?
   discounts            UserDiscount[]
   achievementProgress  AchievementProgress[]
+  documents            Document[]
   tier                 String                @default("INITIATE")
 
   @@index([createdAt])
@@ -73,6 +74,23 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  type      String   @default("PDF") // PDF, TXT, DOCX
+  size      Int      @default(0)
+  pageCount Int      @default(0)
+  url       String?  // Optional URL if we store the file blob somewhere
+  pineconeId String? // Optional specific ID if we want to link
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("documents")
 }
 
 model Doubt {

@@ -1,4 +1,4 @@
-from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from typing import Optional
 import os
 
@@ -7,24 +7,29 @@ from app.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
-_llm_instance: Optional[ChatGroq] = None
+_llm_instance: Optional[ChatGoogleGenerativeAI] = None
 
 
-def get_llm() -> ChatGroq:
+def get_llm() -> ChatGoogleGenerativeAI:
     """
-    Get LLM instance (Groq client)
+    Get LLM instance (Gemini client)
     """
     global _llm_instance
 
     if _llm_instance is None:
-        logger.info(f"Initializing Groq LLM: {settings.LLM_MODEL}")
+        logger.info(f"Initializing Gemini LLM: {settings.LLM_MODEL}")
         
-        api_key = settings.GROQ_API_KEY or os.getenv("GROQ_API_KEY")
-        if not api_key or not settings.LLM_MODEL:
-            raise ValueError("GROQ_API_KEY or LLM_MODEL is missing in the configuration")
+        api_key = settings.GOOGLE_API_KEY
+        if not api_key:
+            raise ValueError("GOOGLE_API_KEY is missing in the configuration")
 
-        _llm_instance = ChatGroq(api_key=api_key, model=settings.LLM_MODEL)
-        logger.info("Groq LLM initialized successfully")
+        _llm_instance = ChatGoogleGenerativeAI(
+            model=settings.LLM_MODEL,
+            google_api_key=api_key,
+            temperature=settings.LLM_TEMPERATURE,
+            convert_system_message_to_human=True
+        )
+        logger.info("Gemini LLM initialized successfully")
 
     return _llm_instance
 
@@ -35,22 +40,21 @@ async def generate_response(
     max_tokens: int = None,
     temperature: float = None
 ) -> str:
-    llm = get_llm()  # ChatGroq instance configured earlier
+    llm = get_llm()
 
     # Build messages list
     messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": prompt}
+        ("system", system_prompt),
+        ("human", prompt)
     ]
 
     try:
-        output = await llm.ainvoke(messages)   # <-- THE ONLY VALID METHOD CALL
+        output = await llm.ainvoke(messages)
         return output.content.strip()
 
     except Exception as e:
-        logger.error(f"Groq API error: {e}")
+        logger.error(f"Gemini API error: {e}")
         raise Exception(f"Failed to generate response: {str(e)}")
-
 
 
 async def generate_with_context(

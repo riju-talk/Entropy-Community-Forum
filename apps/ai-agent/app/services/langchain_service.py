@@ -2,6 +2,7 @@
 Core LangChain service with RAG capabilities - Using latest LangChain API
 """
 import logging
+import json
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 import re
@@ -20,8 +21,8 @@ if _DEBUG_LANGCHAIN:
 
 # Import with latest LangChain API - NO DEPRECATED CHAINS
 try:
-    logger.info("Importing ChatGroq...")
-    from langchain_groq import ChatGroq
+    logger.info("Importing ChatGoogleGenerativeAI...")
+    from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
     logger.info("Importing core messages...")
     from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
     logger.info("Importing documents...")
@@ -30,10 +31,9 @@ try:
     from langchain_core.prompts import ChatPromptTemplate
     logger.info("Importing text splitters...")
     from langchain_text_splitters import RecursiveCharacterTextSplitter
-    logger.info("Importing embeddings...")
-    from langchain_community.embeddings import GPT4AllEmbeddings
-    logger.info("Importing Chroma...")
-    from langchain_chroma import Chroma
+    logger.info("Importing Pinecone...")
+    from langchain_pinecone import PineconeVectorStore
+    from pinecone import Pinecone, ServerlessSpec
     logger.info("Importing config...")
     from app.core.config import settings
     logger.info("Importing MINDMAP_PROMPT...")
@@ -49,79 +49,57 @@ Format responses in clean Markdown with headings, lists, code blocks, and emphas
 
 
 class LangChainService:
-    """Core LangChain service with modern API - NO DEPRECATED CHAINS"""
+    """Core LangChain service with modern API - Gemini & Pinecone"""
     
     def __init__(self):
         try:
             logger.info("🔧 Initializing LangChain service...")
             
-            # Validate API key
-            api_key = settings.groq_api_key if hasattr(settings, "groq_api_key") else os.getenv("GROQ_API_KEY")
-            if not api_key or api_key == "your_groq_api_key_here":
-                raise ValueError("Invalid GROQ_API_KEY!")
+            # Validate API keys
+            if not settings.GOOGLE_API_KEY:
+                raise ValueError("Missing GOOGLE_API_KEY!")
+            if not settings.PINECONE_API_KEY:
+                raise ValueError("Missing PINECONE_API_KEY!")
             
-            # Masked logging of API key for debug only
-            if _DEBUG_LANGCHAIN:
-                masked = f"{api_key[:6]}...{api_key[-4:]}" if api_key else "MISSING"
-                logger.info("🔑 GROQ API Key: %s", masked)
-            else:
-                logger.debug("GROQ API key present (production - masked)")
-
-            # Initialize LLM
-            logger.info("Initializing ChatGroq...")
-            self.llm = ChatGroq(
-                api_key=api_key,
-                model=settings.groq_model,
-                temperature=0.7,
+            # Initialize LLM (Gemini)
+            logger.info(f"Initializing Gemini ({settings.LLM_MODEL})...")
+            self.llm = ChatGoogleGenerativeAI(
+                model=settings.LLM_MODEL,
+                google_api_key=settings.GOOGLE_API_KEY,
+                temperature=settings.LLM_TEMPERATURE,
+                convert_system_message_to_human=True # Gemini sometimes prefers this
             )
-            logger.info("✅ ChatGroq initialized")
+            logger.info("✅ Gemini initialized")
 
-            # Only run a lightweight LLM test in debug to avoid slow/blocking startup in production
-            if _DEBUG_LANGCHAIN:
-                try:
-                    logger.info("Testing LLM (debug)...")
-                    test_msg = self.llm.invoke([HumanMessage(content="Hello")])
-                    logger.info("✅ LLM tested (debug): %s", (test_msg.content[:60] + "...") if getattr(test_msg, "content", None) else "<no-content>")
-                except Exception as e:
-                    logger.warning("LLM test failed in debug: %s", e)
+            # Initialize Embeddings (Gemini)
+            logger.info("Initializing Gemini Embeddings...")
+            self.embeddings = GoogleGenerativeAIEmbeddings(
+                model=settings.EMBEDDING_MODEL,
+                google_api_key=settings.GOOGLE_API_KEY
+            )
+            logger.info("✅ Gemini Embeddings initialized")
 
-            # Initialize embeddings
-            # GPT4All local embeddings removed; use a deterministic local fallback embedding function
-            logger.info("🔄 Initializing local fallback embeddings (GPT4All removed)")
-            try:
-                from app.core.embeddings import get_embedding_service
-                svc = get_embedding_service()
-
-                def _embed_fn(texts):
-                    # Accept either a single string or an iterable of strings
-                    try:
-                        # If a single string is provided, return a single vector
-                        if isinstance(texts, str):
-                            return svc._simple_embed(texts)
-                        # Otherwise assume iterable of strings
-                        return [svc._simple_embed(t) for t in texts]
-                    except Exception:
-                        # Last resort deterministic fallback
-                        return [svc._simple_embed(str(texts))]
-
-                self.embeddings = _embed_fn
-                logger.info("✅ Local fallback embeddings initialized")
-            except Exception as e:
-                logger.warning(f"Failed to initialize local fallback embeddings: {e}")
-                # final fallback: use a tiny inline hash-based function
-                import hashlib
-                def _tiny_embed(texts):
-                    def one(t):
-                        h = hashlib.md5(t.encode()).digest()
-                        vec = []
-                        for _ in range(24):
-                            vec.extend([float(b) / 255.0 for b in h])
-                        return vec[:384]
-                    if isinstance(texts, str):
-                        return one(texts)
-                    return [one(str(t)) for t in texts]
-                self.embeddings = _tiny_embed
-                logger.info("✅ Tiny inline fallback embeddings initialized")
+            # Initialize Pinecone Client
+            logger.info("Initializing Pinecone...")
+            self.pc = Pinecone(api_key=settings.PINECONE_API_KEY)
+            self.index_name = settings.PINECONE_INDEX_NAME
+            
+            # Create index if not exists (serverless spec)
+            existing_indexes = [i.name for i in self.pc.list_indexes()]
+            if self.index_name not in existing_indexes:
+                logger.info(f"Creating Pinecone index '{self.index_name}'...")
+                self.pc.create_index(
+                    name=self.index_name,
+                    dimension=768, # Gemini embedding-001 dimension
+                    metric='cosine',
+                    spec=ServerlessSpec(
+                        cloud='aws',
+                        region=settings.PINECONE_ENV
+                    )
+                )
+                logger.info("✅ Pinecone Index Created")
+            else:
+                logger.info(f"✅ Pinecone Index '{self.index_name}' found")
 
             # Initialize text splitter
             self.text_splitter = RecursiveCharacterTextSplitter(
@@ -130,11 +108,7 @@ class LangChainService:
             )
             logger.info("✅ Text splitter initialized")
 
-            # Vector store path
-            self.vector_store_path = Path(settings.vector_store_path)
-            self.vector_store_path.mkdir(parents=True, exist_ok=True)
-            logger.info("✅ Vector store path created at %s", str(self.vector_store_path))
-
+            # Debug Test
             if _DEBUG_LANGCHAIN:
                 logger.info("=" * 80)
                 logger.info("✅ LANGCHAIN SERVICE INITIALIZED SUCCESSFULLY (debug)")
@@ -169,7 +143,7 @@ class LangChainService:
     async def rag_chat(
         self,
         message: str,
-        vector_store: Chroma,
+        vector_store: PineconeVectorStore,
         system_prompt: Optional[str] = None
     ) -> Dict[str, Any]:
         """RAG chat using vector store retriever directly"""
@@ -228,95 +202,37 @@ class LangChainService:
         return {"answer": response.content.strip(), "sources": [], "mode": "direct"}
     
     def load_vector_store(self, collection_name: str):
-        """Load vector store"""
+        """Load vector store (Pinecone)"""
         try:
-            persist_dir = str(self.vector_store_path / collection_name)
-            logger.info(f"load_vector_store: looking for persist_dir={persist_dir}")
-            # Log whether directory exists and contents for debugging
-            p = Path(persist_dir)
-            if not p.exists():
-                logger.info(f"No vector store found at {persist_dir} (path does not exist)")
-                return None
-            try:
-                files = list(p.glob("**/*"))
-                logger.info(f"Persist dir exists. Sample contents count: {len(files)}")
-                # show up to 10 entries
-                for f in files[:10]:
-                    logger.debug(f"Persist dir entry: {f} (is_dir={f.is_dir()})")
-            except Exception as e:
-                logger.warning(f"Could not list persist_dir contents: {e}")
-
-            store = Chroma(
-                collection_name=collection_name,
-                embedding_function=self.embeddings,
-                persist_directory=persist_dir,
+            # Connect to existing index
+            store = PineconeVectorStore(
+                index_name=self.index_name,
+                embedding=self.embeddings,
+                namespace=collection_name # Use 'collection_name' as namespace for separation
             )
-
-            # Check if store has documents
-            try:
-                # defensive access -- different chroma versions expose different internals
-                count = None
-                if hasattr(store, "_collection") and hasattr(store._collection, "count"):
-                    try:
-                        count = store._collection.count()
-                    except Exception:
-                        count = None
-                elif hasattr(store, "persist_directory"):
-                    # fallback: attempt to inspect files in dir
-                    try:
-                        count = len([x for x in Path(persist_dir).rglob("*") if x.is_file()])
-                    except Exception:
-                        count = None
-                logger.info(f"Vector store load: inferred count={count}")
-                if count == 0:
-                    logger.info(f"Vector store {collection_name} is empty")
-                    return None
-                logger.info(f"Vector store {collection_name} has {count} documents")
-            except Exception as e:
-                logger.warning(f"Could not determine vector store count: {e}")
-
             return store
         except Exception as e:
             logger.error(f"Load error: {e}")
             return None
     
-    def create_vector_store(self, documents, collection_name):
-        """Create vector store"""
-        persist_dir = str(self.vector_store_path / collection_name)
-        logger.info(f"create_vector_store: persist_dir={persist_dir} collection_name={collection_name} docs={len(documents) if documents else 0}")
+    async def upsert_documents(self, documents, collection_name):
+        """Upsert documents to Pinecone namespace"""
         try:
-            # Defensive cleanup of existing store to ensure fresh session
-            p = Path(persist_dir)
-            if p.exists():
-                try:
-                    import shutil
-                    # log current contents before removal
-                    try:
-                        entries = list(p.glob("**/*"))
-                        logger.info(f"Removing existing persist_dir, entry count={len(entries)}")
-                    except Exception:
-                        logger.info("Removing existing persist_dir (could not enumerate contents)")
-                    shutil.rmtree(persist_dir)
-                    logger.info(f"Removed old collection directory: {persist_dir}")
-                except Exception as e:
-                    logger.warning(f"Could not remove old persist_dir {persist_dir}: {e}")
-
-            store = Chroma(
-                collection_name=collection_name,
-                embedding_function=self.embeddings,
-                persist_directory=persist_dir,
+            logger.info(f"upsert_documents: namespace={collection_name} docs={len(documents)}")
+            
+            # PineconeVectorStore class methods are sync/async handled by langchain wrapper
+            # Use 'from_documents' to add to existing index
+            docsearch = PineconeVectorStore.from_documents(
+                documents=documents,
+                embedding=self.embeddings,
+                index_name=self.index_name,
+                namespace=collection_name
             )
-            # add_documents may raise; log before/after
-            try:
-                store.add_documents(documents)
-                logger.info(f"Created vector store {collection_name} with {len(documents)} documents")
-            except Exception as e:
-                logger.error(f"Failed to add documents to vector store: {e}")
-                raise
-
-            return store
+            
+            logger.info(f"✅ Upserted {len(documents)} documents to Pinecone namespace {collection_name}")
+            return docsearch
         except Exception as e:
-            logger.error(f"create_vector_store error: {e}")
+            logger.error(f"upsert_documents error: {e}")
             raise
     
     def split_documents(self, documents):
@@ -1015,6 +931,118 @@ class LangChainService:
                 "themeVars": {}
             }
     
+    async def generate_quiz(
+        self,
+        topic: str,
+        num_questions: int = 5,
+        difficulty: str = "medium",
+        custom_prompt: Optional[str] = None,
+        collection_name: str = "default"
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate a quiz from a topic (RAG enabled).
+        Returns list of question objects.
+        """
+        try:
+            # Retrieval logic
+            context_text = ""
+            try:
+                vector_store = self.load_vector_store(collection_name)
+                if vector_store:
+                    retriever = vector_store.as_retriever(search_kwargs={"k": 6})
+                    docs = retriever.invoke(topic)
+                    if docs:
+                        context_text = "\n\n".join([doc.page_content for doc in docs])
+            except Exception as e:
+                logger.warning(f"Quiz retrieval skipped: {e}")
+
+            system_prompt = (
+                "You are an expert educator. Create a high-quality quiz based on the topic and context provided.\n"
+                f"Difficulty: {difficulty}\n"
+                "Output ONLY a JSON array of question objects.\n"
+                "Each object must have: 'question', 'options' (array of 4 strings), 'correctAnswer' (0-3 index), 'explanation'.\n"
+                "Format: [{\"question\": \"...\", \"options\": [\"...\", \"...\", \"...\", \"...\"], \"correctAnswer\": 0, \"explanation\": \"...\"}, ...]"
+            )
+            if custom_prompt:
+                system_prompt = custom_prompt.strip() + "\n\n" + system_prompt
+
+            user_prompt = f"Topic: {topic}\nNumber of questions: {num_questions}\n"
+            if context_text:
+                user_prompt += f"Context: {context_text[:1200]}\n"
+            user_prompt += "Generate the JSON quiz now."
+
+            messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
+            response = self.llm.invoke(messages)
+            
+            # Extract JSON
+            json_str = response.content.strip()
+            if "```json" in json_str:
+                json_str = json_str.split("```json")[1].split("```")[0].strip()
+            elif "```" in json_str:
+                json_str = json_str.split("```")[1].split("```")[0].strip()
+            
+            questions = json.loads(json_str)
+            return questions
+
+        except Exception as e:
+            logger.error(f"Quiz generation failed: {e}")
+            return []
+
+    async def generate_flashcards(
+        self,
+        topic: str,
+        count: int = 10,
+        custom_prompt: Optional[str] = None,
+        collection_name: str = "default"
+    ) -> List[Dict[str, Any]]:
+        """
+        Generate flashcards from a topic (RAG enabled).
+        Returns list of flashcard objects: {"front": "...", "back": "..."}
+        """
+        try:
+            # Retrieval logic
+            context_text = ""
+            try:
+                vector_store = self.load_vector_store(collection_name)
+                if vector_store:
+                    retriever = vector_store.as_retriever(search_kwargs={"k": 6})
+                    docs = retriever.invoke(topic)
+                    if docs:
+                        context_text = "\n\n".join([doc.page_content for doc in docs])
+            except Exception as e:
+                logger.warning(f"Flashcard retrieval skipped: {e}")
+
+            system_prompt = (
+                "You are an expert study assistant. Create effective flashcards for active recall.\n"
+                "Output ONLY a JSON array of flashcard objects.\n"
+                "Each object must have: 'front' (the question/term) and 'back' (the answer/explanation).\n"
+                "Format: [{\"front\": \"...\", \"back\": \"...\"}, ...]"
+            )
+            if custom_prompt:
+                system_prompt = custom_prompt.strip() + "\n\n" + system_prompt
+
+            user_prompt = f"Topic: {topic}\nNumber of cards: {count}\n"
+            if context_text:
+                user_prompt += f"Context: {context_text[:1200]}\n"
+            user_prompt += "Generate the JSON flashcards now."
+
+            messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_prompt)]
+            response = self.llm.invoke(messages)
+            
+            # Extract JSON
+            json_str = response.content.strip()
+            if "```json" in json_str:
+                json_str = json_str.split("```json")[1].split("```")[0].strip()
+            elif "```" in json_str:
+                json_str = json_str.split("```")[1].split("```")[0].strip()
+            
+            cards = json.loads(json_str)
+            return cards
+
+        except Exception as e:
+            logger.error(f"Flashcard generation failed: {e}")
+            return []
+
     def _get_theme_vars(self, color_scheme: str, student_level: str) -> Dict[str, str]:
         """Get theme variables based on color scheme"""
         color = (color_scheme or "auto").lower()

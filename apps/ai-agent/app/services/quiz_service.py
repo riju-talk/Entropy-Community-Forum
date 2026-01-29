@@ -176,7 +176,8 @@ Rules:
 """
 
         try:
-            out = await self.llm.ainvoke([{"role": "user", "content": prompt}])
+            # Gemini typically accepts tuples or Message objects
+            out = await self.llm.ainvoke([("human", prompt)])
             # Some LLM wrappers return an object with `content`, others return a plain string.
             text = getattr(out, "content", None) or out or ""
             return str(text).strip()

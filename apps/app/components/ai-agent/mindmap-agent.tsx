@@ -12,8 +12,12 @@ import { Select, SelectTrigger, SelectValue, SelectItem, SelectContent } from "@
 import { Loader2, RefreshCw, ZoomIn, ZoomOut, Download, Copy, FileText } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
-export function MindMapAgent() {
-  const [topic, setTopic] = useState("")
+interface MindMapAgentProps {
+  contextDoc?: { id: string, title: string } | null
+}
+
+export function MindMapAgent({ contextDoc }: MindMapAgentProps) {
+  const [topic, setTopic] = useState(contextDoc?.title || "")
   const [diagramType, setDiagramType] = useState("mindmap")
   const [depth, setDepth] = useState(3)
   const [systemPrompt, setSystemPrompt] = useState("")
@@ -26,6 +30,12 @@ export function MindMapAgent() {
   useEffect(() => {
     mermaid.initialize({ startOnLoad: false, theme: "default", securityLevel: "loose" })
   }, [])
+
+  useEffect(() => {
+    if (contextDoc?.title) {
+      setTopic(contextDoc.title)
+    }
+  }, [contextDoc])
 
   useEffect(() => {
     if (!mermaidCode) return
@@ -61,7 +71,7 @@ export function MindMapAgent() {
     const stack: string[] = []
 
     for (const raw of lines) {
-      const leading = raw.match(/^\s*/) ?. [0].length ?? 0
+      const leading = raw.match(/^\s*/)?.[0].length ?? 0
       const level = Math.max(0, Math.floor(leading / 2))
       let label = raw
       const m = raw.match(/\(\((.*?)\)\)/)
@@ -120,7 +130,14 @@ export function MindMapAgent() {
       const res = await fetch("/api/ai-agent/mindmap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, diagram_type: diagramType, detail_level: depth, systemPrompt })
+        body: JSON.stringify({
+          topic,
+          diagram_type: diagramType,
+          detail_level: depth,
+          systemPrompt,
+          collection_name: contextDoc?.id ? contextDoc.id : "default",
+          userId: "user123" // TODO: get from session
+        })
       })
       const data = await res.json()
       if (!data.mermaid_code) throw new Error("No mermaid_code returned")
@@ -194,38 +211,38 @@ export function MindMapAgent() {
 
               {/* Floating buttons */}
               <div className="absolute top-2 right-2 flex gap-2 z-20">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleCopyMermaid}
-                    className="h-8"
-                    title="Copy Mermaid source"
-                    aria-label="Copy Mermaid source"
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                  </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleCopyMermaid}
+                  className="h-8"
+                  title="Copy Mermaid source"
+                  aria-label="Copy Mermaid source"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
 
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleExportCSV}
-                    className="h-8"
-                    title="Export as CSV"
-                    aria-label="Export as CSV"
-                  >
-                    <FileText className="h-3.5 w-3.5" />
-                  </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleExportCSV}
+                  className="h-8"
+                  title="Export as CSV"
+                  aria-label="Export as CSV"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                </Button>
 
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleDownloadSVG}
-                    className="h-8"
-                    title="Download SVG"
-                    aria-label="Download SVG"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                  </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDownloadSVG}
+                  className="h-8"
+                  title="Download SVG"
+                  aria-label="Download SVG"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                </Button>
               </div>
 
               {/* Scrollable Diagram */}

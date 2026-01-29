@@ -57,17 +57,22 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    groq_key = os.getenv("GROQ_API_KEY")
+    google_key = os.getenv("GOOGLE_API_KEY")
+    pinecone_key = os.getenv("PINECONE_API_KEY")
     return {
-        "status": "healthy" if groq_key else "degraded",
+        "status": "healthy" if google_key and pinecone_key else "degraded",
         "version": "1.0.0",
         "timestamp": datetime.utcnow().isoformat(),
         "services": {
-            "groq": bool(groq_key),
-            "embeddings": "gpt4all",
-            "vector_store": "chromadb",
+            "llm": "gemini-1.5-flash",
+            "embeddings": "gemini-embedding-001",
+            "vector_store": "pinecone",
+            "keys_present": {
+                "google": bool(google_key),
+                "pinecone": bool(pinecone_key)
+            }
         },
-        "message": "AI Agent is operational" if groq_key else "GROQ_API_KEY not configured",
+        "message": "AI Agent is operational" if google_key else "GOOGLE_API_KEY not configured",
     }
 
 if __name__ == "__main__":

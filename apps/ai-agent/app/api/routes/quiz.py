@@ -5,12 +5,14 @@ Quiz Generation Endpoint — Clean Version
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-from app.services.quiz_service import quiz_service
+from app.services.langchain_service import langchain_service
 
 router = APIRouter()
 
 class QuizRequest(BaseModel):
     topic: str
+    userId: Optional[str] = "anonymous"
+    collection_name: Optional[str] = "default"
     numQuestions: Optional[int] = 5
     difficulty: Optional[str] = "medium"
     customPrompt: Optional[str] = None
@@ -26,11 +28,14 @@ async def generate_quiz(req: QuizRequest):
     difficulty = req.difficulty.lower().strip()
 
     try:
-        questions = await quiz_service.generate(
+        namespace = req.userId if req.collection_name == "default" else req.collection_name
+        
+        questions = await langchain_service.generate_quiz(
             topic=topic,
             num_questions=count,
             difficulty=difficulty,
-            custom_prompt=req.customPrompt
+            custom_prompt=req.customPrompt,
+            collection_name=namespace
         )
 
         if not questions:

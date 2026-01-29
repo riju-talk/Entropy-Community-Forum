@@ -24,11 +24,15 @@ interface Flashcard {
   back: string
 }
 
-export function AssessmentsAgent() {
+interface AssessmentsAgentProps {
+  contextDoc?: { id: string, title: string } | null
+}
+
+export function AssessmentsAgent({ contextDoc }: AssessmentsAgentProps) {
   const [activeTab, setActiveTab] = useState("quiz")
-  
+
   // Quiz state
-  const [quizTopic, setQuizTopic] = useState("")
+  const [quizTopic, setQuizTopic] = useState(contextDoc?.title || "")
   const [numQuestions, setNumQuestions] = useState(5)
   const [difficulty, setDifficulty] = useState("medium")
   const [quizLoading, setQuizLoading] = useState(false)
@@ -50,6 +54,14 @@ export function AssessmentsAgent() {
 
   const { toast } = useToast()
 
+  // Update when context changes
+  useEffect(() => {
+    if (contextDoc?.title) {
+      setQuizTopic(contextDoc.title)
+      setFlashcardsTopic(contextDoc.title)
+    }
+  }, [contextDoc])
+
   // Quiz generation
   const handleGenerateQuiz = async () => {
     if (!quizTopic.trim()) {
@@ -70,11 +82,13 @@ export function AssessmentsAgent() {
       const response = await fetch("/api/ai-agent/quiz", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          topic: quizTopic.trim(), 
-          num_questions: numQuestions, 
+        body: JSON.stringify({
+          topic: quizTopic.trim(),
+          numQuestions,
           difficulty,
-          customPrompt: customQuizPrompt.trim() || undefined
+          customPrompt: customQuizPrompt.trim() || undefined,
+          collection_name: contextDoc?.id || "default",
+          userId: "user123"
         }),
       })
 
@@ -82,7 +96,7 @@ export function AssessmentsAgent() {
 
       const data = await response.json()
       setQuestions(data.questions || [])
-      
+
       toast({
         title: "Success!",
         description: `Generated ${data.questions?.length || 0} quiz questions`,
@@ -118,14 +132,14 @@ export function AssessmentsAgent() {
   // Flashcards generation
   const handleGenerateFlashcards = async () => {
     if (!flashcardsTopic.trim()) {
-      toast({ 
-        title: "Topic required", 
-        description: "Please enter a topic for flashcards", 
-        variant: "destructive" 
+      toast({
+        title: "Topic required",
+        description: "Please enter a topic for flashcards",
+        variant: "destructive"
       })
       return
     }
-    
+
     setFlashcardsLoading(true)
     setCards([])
     setCurrentCardIndex(0)
@@ -138,15 +152,17 @@ export function AssessmentsAgent() {
         body: JSON.stringify({
           topic: flashcardsTopic.trim(),
           count: flashcardsCount,
-          customPrompt: customFlashcardsPrompt.trim() || undefined
+          customPrompt: customFlashcardsPrompt.trim() || undefined,
+          collection_name: contextDoc?.id || "default",
+          userId: "user123"
         })
       })
-      
+
       if (!res.ok) throw new Error("Failed to generate flashcards")
-      
+
       const data = await res.json()
       setCards(data.flashcards || [])
-      
+
       toast({
         title: "Success!",
         description: `Generated ${data.flashcards?.length || 0} flashcards`,
@@ -169,10 +185,10 @@ export function AssessmentsAgent() {
 
     } catch (e) {
       console.error("Flashcard error:", e)
-      toast({ 
-        title: "Error", 
-        description: "Failed to generate flashcards", 
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: "Failed to generate flashcards",
+        variant: "destructive"
       })
     } finally {
       setFlashcardsLoading(false)
@@ -280,7 +296,7 @@ export function AssessmentsAgent() {
                   >
                     {showAdvanced ? "▼" : "▶"} Advanced Options (Custom AI Prompt)
                   </Button>
-                  
+
                   {showAdvanced && (
                     <div className="space-y-2 p-4 border rounded-lg bg-muted/50">
                       <Label htmlFor="custom-prompt" className="text-sm font-medium">
@@ -349,15 +365,14 @@ export function AssessmentsAgent() {
                       {currentQuestionData.options.map((option, idx) => (
                         <div
                           key={idx}
-                          className={`flex items-center space-x-2 p-3 rounded-lg border ${
-                            showResults
-                              ? idx === currentQuestionData.correctAnswer
-                                ? "bg-green-500/10 border-green-500"
-                                : selectedAnswers[currentQuestion] === idx
+                          className={`flex items-center space-x-2 p-3 rounded-lg border ${showResults
+                            ? idx === currentQuestionData.correctAnswer
+                              ? "bg-green-500/10 border-green-500"
+                              : selectedAnswers[currentQuestion] === idx
                                 ? "bg-red-500/10 border-red-500"
                                 : ""
-                              : ""
-                          }`}
+                            : ""
+                            }`}
                         >
                           <RadioGroupItem value={String(idx)} id={`option-${idx}`} disabled={showResults} />
                           <Label htmlFor={`option-${idx}`} className="flex-1 cursor-pointer">
@@ -413,20 +428,20 @@ export function AssessmentsAgent() {
               <CardContent className="space-y-4">
                 <div>
                   <Label>Topic</Label>
-                  <Textarea 
-                    value={flashcardsTopic} 
-                    onChange={(e) => setFlashcardsTopic(e.target.value)} 
-                    rows={2} 
+                  <Textarea
+                    value={flashcardsTopic}
+                    onChange={(e) => setFlashcardsTopic(e.target.value)}
+                    rows={2}
                     placeholder="Enter topic (e.g., 'Python Decorators', 'World War II key events')..."
                   />
                 </div>
 
                 <div>
                   <Label>Custom Prompt (optional)</Label>
-                  <Textarea 
-                    value={customFlashcardsPrompt} 
-                    onChange={(e) => setCustomFlashcardsPrompt(e.target.value)} 
-                    rows={3} 
+                  <Textarea
+                    value={customFlashcardsPrompt}
+                    onChange={(e) => setCustomFlashcardsPrompt(e.target.value)}
+                    rows={3}
                     placeholder="Optional: guide the AI (e.g., 'Focus on definitions and formulas')..."
                   />
                 </div>
@@ -434,23 +449,23 @@ export function AssessmentsAgent() {
                 <div className="flex items-center gap-4">
                   <div className="flex-1">
                     <Label>Number of Cards</Label>
-                    <Input 
-                      type="number" 
-                      min={1} 
-                      max={50} 
-                      value={flashcardsCount} 
+                    <Input
+                      type="number"
+                      min={1}
+                      max={50}
+                      value={flashcardsCount}
                       onChange={(e) => setFlashcardsCount(Number(e.target.value))}
                     />
                   </div>
                   <Button onClick={handleGenerateFlashcards} disabled={flashcardsLoading} className="mt-auto">
                     {flashcardsLoading ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin"/>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Generating...
                       </>
                     ) : (
                       <>
-                        <RefreshCw className="mr-2 h-4 w-4"/>
+                        <RefreshCw className="mr-2 h-4 w-4" />
                         Generate
                       </>
                     )}
@@ -476,7 +491,7 @@ export function AssessmentsAgent() {
                 </Button>
               </div>
 
-              <Card 
+              <Card
                 className="min-h-[300px] cursor-pointer hover:shadow-lg transition-all"
                 onClick={() => setIsFlipped(!isFlipped)}
               >

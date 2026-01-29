@@ -31,11 +31,20 @@ class Settings(BaseSettings):
     AI_BACKEND_TOKEN: Optional[str] = None
     AI_BACKEND_URL: str = "http://localhost:3000"
 
-    # Groq API (FREE)
+    # Groq API (Legacy/Fallback)
     GROQ_API_KEY: Optional[str] = None
 
+    # Google Gemini API (Primary)
+    GOOGLE_API_KEY: Optional[str] = None
+
+    # Pinecone API
+    PINECONE_API_KEY: Optional[str] = None
+    PINECONE_ENV: str = "us-east-1" # default, can be overridden
+    PINECONE_INDEX_NAME: str = "spark-ai"
+
     # LLM Configuration
-    LLM_MODEL: str = os.getenv("GROQ_MODEL", "qwen/qwen3-32b")
+    # LLM Configuration
+    LLM_MODEL: str = os.getenv("LLM_MODEL", "gemini-1.5-flash")
     LLM_TEMPERATURE: float = 0.7
     LLM_MAX_TOKENS: int = 2000
 
@@ -44,7 +53,7 @@ class Settings(BaseSettings):
     PORT: int = 8000
 
     # Embedding Model
-    EMBEDDING_MODEL: str = "gpt4all"
+    EMBEDDING_MODEL: str = "models/embedding-001"
 
     # Vector Store
     CHROMA_PERSIST_DIR: str = "./data/chroma_db"
