@@ -115,12 +115,13 @@ export function DocumentUpload({ userId }: { userId?: string }) {
                 onChange={handleFileChange}
             />
             <Button
-                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white border-0 shadow-md"
+                variant="outline"
+                className="w-full rounded-full border-border/50 bg-secondary/30 hover:bg-secondary/50 text-[11px] font-bold h-9 uppercase tracking-wider"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
             >
-                {isUploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-                {isUploading ? "Processing..." : "New Notebook"}
+                {isUploading ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Plus className="h-3 w-3 mr-2" />}
+                {isUploading ? "Uploading..." : "Add sources"}
             </Button>
         </div>
     )

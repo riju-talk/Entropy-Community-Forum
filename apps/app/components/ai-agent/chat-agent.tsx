@@ -243,202 +243,141 @@ export function ChatAgent({ contextDoc }: ChatAgentProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <Card className="h-[600px] flex flex-col border-none shadow-none bg-transparent">
-        <CardHeader className="border-b border-border/50 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-              <Sparkles className="h-5 w-5 text-white" />
-            </div>
-            <div className="flex-1">
-              <CardTitle className="text-lg font-bold">Chat with Spark ⚡</CardTitle>
-              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">RAG-powered chat with image analysis</p>
-            </div>
-
-            <Dialog open={showPromptDialog} onOpenChange={setShowPromptDialog}>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2 rounded-xl border-border/50 hover:bg-white/5 transition-colors">
-                  <Settings className="h-4 w-4" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">Customize</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl bg-background/95 backdrop-blur-2xl border-border/50 rounded-2xl shadow-2xl">
-                <DialogHeader>
-                  <DialogTitle className="text-xl font-bold">Customize Spark's Personality</DialogTitle>
-                  <DialogDescription className="text-muted-foreground font-medium uppercase tracking-widest text-[10px]">
-                    Edit how Spark responds and behaves
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-6 pt-4">
-                  <div className="space-y-3">
-                    <Label htmlFor="system-prompt" className="text-xs font-bold uppercase tracking-wider pl-1">System Prompt</Label>
-                    <Textarea
-                      id="system-prompt"
-                      value={editingPrompt}
-                      onChange={(e) => setEditingPrompt(e.target.value)}
-                      rows={10}
-                      className="font-mono text-xs bg-muted/20 border-border/50 rounded-xl focus:ring-cyan-500/20 resize-none"
-                    />
-                  </div>
-                  <div className="flex gap-3 justify-end">
-                    <Button variant="ghost" onClick={() => setShowPromptDialog(false)} className="rounded-xl px-6">
-                      Cancel
-                    </Button>
-                    <Button onClick={handleSaveSystemPrompt} className="gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl px-6 shadow-lg shadow-cyan-500/20 transition-all duration-300">
-                      <Save className="h-4 w-4" />
-                      Save Changes
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+    <div className="flex flex-col h-full bg-background">
+      {/* Header Section from Ref */}
+      <div className="mb-10 p-8 rounded-[32px] bg-secondary/20 border border-border/10">
+        <div className="flex items-start gap-5 mb-5">
+          <div className="h-14 w-14 rounded-2xl bg-cyan-500/10 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(6,182,212,0.1)]">
+            <Sparkles className="h-7 w-7 text-cyan-400" />
           </div>
-        </CardHeader>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground mb-1">
+              {contextDoc?.title || "Spark AI Workspace"}
+            </h1>
+            <div className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-pulse"></span>
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                {contextDoc ? "Contextual Analysis Active" : "Ready for Inquiries"}
+              </p>
+            </div>
+          </div>
+        </div>
 
-        <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-          <div className="space-y-4">
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                {message.role === "assistant" && (
-                  <Avatar className="h-8 w-8 rounded-lg shadow-sm">
-                    <AvatarFallback className="bg-gradient-to-tr from-cyan-500 to-blue-600 text-white rounded-lg">
-                      <Sparkles className="h-4 w-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                )}
-                <div
-                  className={`rounded-2xl px-4 py-3 max-w-[85%] text-sm leading-relaxed transition-all shadow-sm ${message.role === "user"
-                    ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-medium"
-                    : "bg-muted/40 text-foreground border border-border/50 backdrop-blur-sm"
-                    }`}
-                >
-                  {message.role === "assistant" ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/10 prose-pre:rounded-xl">
-                      <ReactMarkdown>{message.content}</ReactMarkdown>
-                    </div>
-                  ) : (
-                    <p className="whitespace-pre-wrap">{message.content}</p>
-                  )}
-                </div>
-                {message.role === "user" && (
-                  <Avatar className="h-8 w-8 rounded-lg shadow-sm">
-                    <AvatarFallback className="bg-muted border border-border/50 text-muted-foreground font-bold text-xs uppercase rounded-lg">
-                      You
-                    </AvatarFallback>
-                  </Avatar>
-                )}
-              </div>
-            ))}
-            {loading && (
-              <div className="flex gap-3 justify-start">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarFallback className="bg-gradient-to-tr from-cyan-500 to-blue-600 text-white rounded-lg">
-                    <Sparkles className="h-4 w-4" />
+        <p className="text-sm text-muted-foreground leading-relaxed mb-8 max-w-2xl">
+          {contextDoc ? (
+            `These documents provide a comprehensive overview of "${contextDoc.title}". I've indexed key concepts and quantitative trends to assist your study. Use the tools in the Studio to generate specialized assets or ask questions below.`
+          ) : (
+            "Welcome to your AI Study Hub. Upload documents to the left to enable contextual research, or start a general conversation below."
+          )}
+        </p>
+
+        <div className="flex items-center gap-3">
+          <Button variant="secondary" size="sm" className="rounded-full bg-secondary/80 text-[11px] font-bold h-9 px-5 border-border/50 hover:bg-secondary transition-all">
+            <Save className="h-3.5 w-3.5 mr-2 text-cyan-400" />
+            Save to note
+          </Button>
+          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground hover:bg-muted/50">
+            <Settings className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 space-y-10 pb-10">
+        {messages.map((message, index) => (
+          <div
+            key={index}
+            className={cn(
+              "flex group animate-in fade-in slide-in-from-bottom-2 duration-500",
+              message.role === "user" ? "justify-end" : "justify-start"
+            )}
+          >
+            <div
+              className={cn(
+                "max-w-[90%] rounded-[32px] p-7 transition-all",
+                message.role === "user"
+                  ? "bg-cyan-500/5 border border-cyan-500/10 text-foreground"
+                  : "bg-background text-foreground"
+              )}
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <Avatar className="h-8 w-8 border border-border/20 shadow-sm">
+                  <AvatarFallback className={cn(
+                    "text-[10px] font-black tracking-tighter",
+                    message.role === "assistant" ? "bg-cyan-500/10 text-cyan-400" : "bg-muted text-muted-foreground"
+                  )}>
+                    {message.role === "assistant" ? "AI" : "ME"}
                   </AvatarFallback>
                 </Avatar>
-                <div className="rounded-2xl px-4 py-3 bg-muted/20 border border-border/50 flex items-center">
-                  <div className="flex gap-1">
-                    <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                    <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                    <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce"></span>
-                  </div>
-                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-70">
+                  {message.role === "assistant" ? "Spark AI" : "You"}
+                </span>
               </div>
-            )}
-            {followups.length > 0 && (
-              <div className="mt-4 flex gap-2 flex-wrap pl-11">
-                {followups.map((q, idx) => (
-                  <Button
-                    key={idx}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleFollowupClick(q)}
-                    className="rounded-full text-[10px] font-bold uppercase tracking-wider bg-background hover:bg-cyan-500/5 hover:text-cyan-400 hover:border-cyan-500/30 border-border/50 transition-all duration-300 h-8"
-                  >
-                    {q}
-                  </Button>
-                ))}
+              <div className="prose prose-sm dark:prose-invert prose-p:leading-relaxed prose-headings:font-bold prose-code:text-cyan-400 text-[14px]">
+                <ReactMarkdown>{message.content}</ReactMarkdown>
               </div>
-            )}
+            </div>
           </div>
-        </ScrollArea>
+        ))}
 
-        <div className="p-4 border-t border-border/50 bg-muted/10 backdrop-blur-sm">
-          <div className="mb-3 flex flex-wrap gap-2">
-            {uploadedFiles.map((file, idx) => (
-              <div
-                key={`file-${idx}`}
-                className="flex items-center gap-1.5 bg-background/50 border border-border/50 rounded-lg px-2 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider"
-              >
-                <FileText className="h-3 w-3 text-cyan-400" />
-                <span>{file}</span>
-                <button
-                  onClick={() => setUploadedFiles((prev) => prev.filter((_, i) => i !== idx))}
-                  className="ml-1 hover:text-red-400 transition-colors"
-                >
-                  <X className="h-3 w-3" />
-                </button>
+        {loading && (
+          <div className="flex justify-start">
+            <div className="flex items-center gap-4 px-7 py-5 rounded-[32px] bg-muted/10 border border-border/10 shadow-sm">
+              <div className="flex gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-bounce [animation-delay:-0.3s]"></span>
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-bounce [animation-delay:-0.15s]"></span>
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-bounce"></span>
               </div>
-            ))}
-            {uploadedImages.map((img, idx) => (
-              <div
-                key={`img-${idx}`}
-                className="flex items-center gap-1.5 bg-cyan-500/5 border border-cyan-500/20 rounded-lg px-2 py-1 text-[10px] font-bold text-cyan-400 uppercase tracking-wider"
+              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-70 italic">Spark is thinking</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Input Section - Professional Pill style */}
+      <div className="sticky bottom-0 bg-background pt-6 pb-2">
+        {followups.length > 0 && (
+          <div className="flex gap-2.5 mb-5 overflow-x-auto pb-3 px-2 no-scrollbar">
+            {followups.map((q, idx) => (
+              <Button
+                key={idx}
+                variant="outline"
+                size="sm"
+                onClick={() => sendMessage(q)}
+                className="rounded-full bg-secondary/30 text-[11px] font-bold h-9 px-5 whitespace-nowrap border-border/50 hover:border-cyan-500/30 hover:bg-secondary/50 transition-all"
               >
-                <ImageIcon className="h-3 w-3" />
-                <span>{img.name}</span>
-                <button
-                  onClick={() => setUploadedImages((prev) => prev.filter((_, i) => i !== idx))}
-                  className="ml-1 hover:text-red-400 transition-colors"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
+                {q}
+              </Button>
             ))}
           </div>
+        )}
 
-          <div className="flex gap-3">
-            <input
-              type="file"
-              multiple
-              onChange={handleFileUpload}
-              className="hidden"
-              id="file-upload"
-              accept=".pdf,.doc,.docx,.txt"
-            />
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => document.getElementById("file-upload")?.click()}
-              title="Upload documents"
-              className="rounded-xl border-border/50 hover:bg-white/5 h-11 w-11 transition-all"
-            >
-              <Upload className="h-4 w-4 text-muted-foreground" />
-            </Button>
-            <Textarea
-              placeholder="Ask me anything..."
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
-              rows={1}
-              className="resize-none h-11 min-h-[44px] bg-background/50 border-border/50 rounded-xl focus:ring-cyan-500/20 py-3 px-4 text-sm"
-            />
-            <Button
-              onClick={handleSend}
-              disabled={loading || !input.trim()}
-              className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold h-11 w-11 rounded-xl shadow-lg shadow-cyan-500/20 transition-all duration-300"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
-          <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest mt-3 text-center">
-            💡 Press Enter to send • Upload docs for RAG-powered answers
-          </p>
+        <div className="relative group">
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask a question..."
+            className="w-full min-h-[60px] max-h-[250px] rounded-[28px] bg-secondary/40 border-border/40 focus-visible:ring-1 focus-visible:ring-cyan-500/20 pl-7 pr-16 py-5 text-sm transition-all resize-none shadow-sm placeholder:text-muted-foreground/50"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault()
+                sendMessage()
+              }
+            }}
+          />
+          <Button
+            size="icon"
+            onClick={() => sendMessage()}
+            disabled={loading || !input.trim()}
+            className="absolute right-3.5 bottom-3 h-10 w-10 rounded-full bg-cyan-500 hover:bg-cyan-600 text-white shadow-xl shadow-cyan-500/20 transition-all hover:scale-105 active:scale-95"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
         </div>
-      </Card>
+        <p className="text-[10px] font-bold text-center text-muted-foreground mt-4 opacity-40 uppercase tracking-widest">
+          NotebookLM can be inaccurate; please double check its responses.
+        </p>
+      </div>
     </div>
   )
 }

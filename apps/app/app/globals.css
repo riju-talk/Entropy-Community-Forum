@@ -46,40 +46,39 @@
   }
 
   .dark {
-    /* "Entropy" Dark Mode - Deep Space / Slick kickass vibe */
-    --background: 224 71% 4%;
-    /* #020617 (Slate 950) - darker/deeper */
-    --foreground: 210 40% 98%;
+    /* "Entropy" Deep Space - NotebookLM Professional Aesthetic */
+    --background: 240 6% 10%;
+    /* #18191b - Deep Charcoal */
+    --foreground: 210 20% 98%;
 
-    --card: 222 47% 6%;
-    /* Almost black w/ blue tint */
-    --card-foreground: 210 40% 98%;
+    --card: 240 6% 12%;
+    /* #1d1e21 - Slightly lighter than bg */
+    --card-foreground: 210 20% 98%;
 
-    --popover: 224 71% 4%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 240 6% 10%;
+    --popover-foreground: 210 20% 98%;
 
-    --primary: 190 100% 50%;
-    /* Electric Cyan */
-    --primary-foreground: 222 47% 11%;
+    --primary: 191 91% 45%;
+    /* Cyan-500 equivalent */
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 280 100% 65%;
-    /* Electric Purple */
+    --secondary: 240 5% 15%;
+    /* Muted control bg */
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 223 47% 11%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 240 5% 15%;
+    --muted-foreground: 240 5% 65%;
 
-    --accent: 199 89% 48%;
-    /* Blue-Cyan Middle */
+    --accent: 191 91% 45%;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217 33% 17%;
-    /* Darker border for slick look */
-    --input: 217 33% 17%;
-    --ring: 190 100% 50%;
+    --border: 240 5% 18%;
+    /* Subtle divider #2d2e31 */
+    --input: 240 5% 18%;
+    --ring: 191 91% 45%;
   }
 
   html {

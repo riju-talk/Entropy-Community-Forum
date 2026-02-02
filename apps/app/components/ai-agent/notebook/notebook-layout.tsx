@@ -50,98 +50,146 @@ export function NotebookLayout({
     const progress = Math.min((docCount / 10) * 100, 100)
 
     return (
-        <div className="flex h-[calc(100vh-4rem)] bg-background overflow-hidden relative">
-            {/* Sidebar */}
-            <div
-                className={cn(
-                    "w-64 bg-background/60 backdrop-blur-xl border-r border-border transition-all duration-300 flex flex-col z-20",
-                    !isSidebarOpen && "w-0 opacity-0 overflow-hidden"
-                )}
-            >
-                {/* Sidebar Header */}
+        <div className="flex h-[calc(100vh-4rem)] bg-background overflow-hidden">
+            {/* Left Pane: Sources */}
+            <div className="w-80 border-r border-border/50 flex flex-col bg-muted/5">
                 <div className="p-4 border-b border-border/50">
-                    <div className="flex items-center gap-2 mb-4">
-                        <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-                            <Zap className="h-4 w-4 text-white" />
-                        </div>
-                        <span className="font-bold text-foreground">Spark AI</span>
-                    </div>
-
+                    <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">Sources</h2>
                     <DocumentUpload userId={session?.user?.id} />
                 </div>
 
-                {/* Navigation - Tools */}
-                <div className="p-2 space-y-1">
-                    <p className="px-3 py-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">Tools</p>
-                    <NavButton
-                        icon={MessageSquare}
-                        label="Chat"
-                        isActive={activeTab === "qa"}
-                        onClick={() => onTabChange("qa")}
-                    />
-                    <NavButton
-                        icon={BrainCircuit}
-                        label="Mind Map"
-                        isActive={activeTab === "mindmap"}
-                        onClick={() => onTabChange("mindmap")}
-                    />
-                    <NavButton
-                        icon={Files}
-                        label="Flashcards"
-                        isActive={activeTab === "flashcards"}
-                        onClick={() => onTabChange("flashcards")}
-                    />
-                    <NavButton
-                        icon={Files}
-                        label="Quiz"
-                        isActive={activeTab === "assessments"}
-                        onClick={() => onTabChange("assessments")}
-                    />
-                    <NavButton
-                        icon={BrainCircuit}
-                        label="Charts"
-                        isActive={activeTab === "charts"}
-                        onClick={() => onTabChange("charts")}
-                    />
-                </div>
-
-                {/* Document List */}
-                <div className="flex-1 overflow-hidden flex flex-col mt-2">
-                    <p className="px-5 py-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">My Library</p>
-                    <ScrollArea className="flex-1 px-2">
-                        <DocumentList
-                            userId={session?.user?.id}
-                            selectedDocId={selectedDocId}
-                            onSelect={onDocSelect}
-                        />
-                    </ScrollArea>
-                </div>
-
-                {/* User Footer */}
-                <div className="p-4 border-t border-border/50 bg-muted/20">
-                    <div className="flex items-center gap-3">
-                        <div className="h-2 flex-1 bg-muted rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-gradient-to-r from-cyan-400 to-blue-600 transition-all duration-1000"
-                                style={{ width: `${progress}%` }}
-                            ></div>
+                <div className="p-4 space-y-4">
+                    <div className="bg-cyan-500/5 border border-cyan-500/10 rounded-xl p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Zap className="h-3 w-3 text-cyan-400" />
+                            <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">Enhanced Search</span>
                         </div>
-                        <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Free Plan</span>
+                        <p className="text-[10px] text-muted-foreground leading-relaxed">
+                            Try Deep Research for an in-depth report and new sources!
+                        </p>
+                    </div>
+
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                            <Plus className="h-3 w-3 text-muted-foreground" />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search sources..."
+                            className="w-full bg-secondary/50 border-border/50 rounded-lg py-2 pl-9 pr-4 text-xs focus:ring-1 focus:ring-cyan-500/30 outline-none transition-all"
+                        />
+                    </div>
+                </div>
+
+                <ScrollArea className="flex-1 px-2">
+                    <DocumentList
+                        userId={session?.user?.id}
+                        selectedDocId={selectedDocId}
+                        onSelect={onDocSelect}
+                    />
+                </ScrollArea>
+
+                <div className="p-4 border-t border-border/50 bg-muted/20">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Storage</span>
+                        <span className="text-[10px] font-bold text-cyan-400">{docCount}/10</span>
+                    </div>
+                    <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+                        <div
+                            className="h-full bg-cyan-500 transition-all duration-1000"
+                            style={{ width: `${progress}%` }}
+                        ></div>
                     </div>
                 </div>
             </div>
 
-            {/* Main Content Area */}
-            <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-                {/* Background Glows for Deep Space Vibe */}
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/5 blur-[120px] pointer-events-none -z-10 hidden dark:block" />
-                <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-500/5 blur-[120px] pointer-events-none -z-10 hidden dark:block" />
-
-                <div className="flex-1 overflow-hidden p-6">
-                    <div className="h-full w-full max-w-5xl mx-auto bg-background/40 backdrop-blur-2xl rounded-2xl border border-border/50 shadow-2xl overflow-hidden flex flex-col">
+            {/* Middle Pane: Main Workspace (Chat/Notes) */}
+            <div className="flex-1 flex flex-col bg-background relative border-r border-border/50">
+                <ScrollArea className="flex-1">
+                    <div className="max-w-3xl mx-auto p-8 w-full">
                         {children}
                     </div>
+                </ScrollArea>
+            </div>
+
+            {/* Right Pane: Studio */}
+            <div className="w-96 flex flex-col bg-muted/5">
+                <div className="p-4 border-b border-border/50 flex items-center justify-between">
+                    <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Studio</h2>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                        <Settings className="h-4 w-4" />
+                    </Button>
                 </div>
+
+                <ScrollArea className="flex-1">
+                    <div className="p-4 space-y-6">
+                        <div className="grid grid-cols-2 gap-3">
+                            <StudioItem icon={Plus} label="Audio Overview" color="cyan" />
+                            <StudioItem icon={BrainCircuit} label="Video Overview" color="purple" />
+                            <StudioItem icon={BrainCircuit} label="Mind Map" color="orange" onClick={() => onTabChange("mindmap")} />
+                            <StudioItem icon={Files} label="Quizzes" color="blue" onClick={() => onTabChange("assessments")} />
+                        </div>
+
+                        <div className="space-y-3">
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-1">Notebook Assets</p>
+                            <div className="space-y-1">
+                                <AssetItem label="Strategic Quiz Dive" type="Explainer" time="2h ago" />
+                                <AssetItem label="Exam Manual Summary" type="Guide" time="3h ago" />
+                            </div>
+                        </div>
+                    </div>
+                </ScrollArea>
+
+                {/* Audio Player placeholder matching ref */}
+                <div className="p-4 border-t border-border/50 bg-cyan-500/5">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="h-10 w-10 rounded-lg bg-cyan-500 flex items-center justify-center">
+                            <Zap className="h-5 w-5 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold truncate">Study Audio Overview</p>
+                            <p className="text-[10px] text-muted-foreground truncate">Generating summary...</p>
+                        </div>
+                    </div>
+                    <div className="h-1 w-full bg-muted rounded-full">
+                        <div className="h-full bg-cyan-500 w-2/3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+function StudioItem({ icon: Icon, label, color, onClick }: any) {
+    const colorClasses: any = {
+        cyan: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+        purple: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+        orange: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+        blue: "bg-blue-500/10 text-blue-400 border-blue-500/20"
+    }
+    return (
+        <button
+            onClick={onClick}
+            className={cn(
+                "flex flex-col items-center justify-center p-4 rounded-xl border transition-all hover:scale-[1.02] active:scale-[0.98]",
+                colorClasses[color] || colorClasses.cyan
+            )}
+        >
+            <Icon className="h-5 w-5 mb-2" />
+            <span className="text-[10px] font-bold uppercase tracking-tight text-center">{label}</span>
+        </button>
+    )
+}
+
+function AssetItem({ label, type, time }: any) {
+    return (
+        <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-secondary/30 transition-colors border border-transparent hover:border-border/50 group cursor-pointer">
+            <div className="h-8 w-8 rounded bg-muted flex items-center justify-center text-muted-foreground group-hover:text-cyan-400 transition-colors">
+                <FileText className="h-4 w-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold truncate">{label}</p>
+                <p className="text-[10px] text-muted-foreground">{type} • {time}</p>
             </div>
         </div>
     )
