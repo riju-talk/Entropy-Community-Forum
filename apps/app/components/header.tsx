@@ -66,9 +66,9 @@ export function Header() {
                 Entropy
               </span>
               <span
-                className="inline-flex items-center px-2 py-0.5 rounded-md text-[9px] font-bold tracking-widest bg-cyan-500/10 text-cyan-500 border border-cyan-500/20 uppercase"
+                className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold tracking-widest bg-gradient-to-r from-orange-500 to-red-500 text-white border border-orange-400/30 uppercase shadow-lg animate-pulse"
               >
-                BETA
+                BETA VERSION
               </span>
             </span>
           </Link>

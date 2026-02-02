@@ -51,7 +51,7 @@ export function DoubtsFeed({ initialDoubts, currentPage, totalPages, hasMore }: 
       const params = new URLSearchParams(searchParams.toString())
       params.set("page", (page + 1).toString())
 
-      const response = await fetch(`/api/doubts?${params.toString()}`)
+      const response = await fetch(`/api/doubt?${params.toString()}`)
       const data = await response.json()
 
       setDoubts([...doubts, ...data.doubts])

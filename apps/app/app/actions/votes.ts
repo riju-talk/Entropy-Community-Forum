@@ -85,7 +85,7 @@ export async function handleVote(formData: FormData) {
         where: { id: doubtId },
         data: { votes: voteCount._sum.value || 0 },
       })
-      revalidatePath(`/doubts/${doubtId}`)
+      revalidatePath(`/doubt/${doubtId}`)
     } else if (commentId) {
       const comment = await tx.comment.update({
         where: { id: commentId },
@@ -93,7 +93,7 @@ export async function handleVote(formData: FormData) {
         select: { doubtId: true },
       })
       if (comment) {
-        revalidatePath(`/doubts/${comment.doubtId}`)
+        revalidatePath(`/doubt/${comment.doubtId}`)
       }
     }
   })

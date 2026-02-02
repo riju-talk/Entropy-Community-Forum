@@ -34,7 +34,7 @@ export async function createComment(formData: FormData) {
     },
   })
 
-  revalidatePath(`/doubts/${validatedData.doubtId}`)
+  revalidatePath(`/doubt/${validatedData.doubtId}`)
 }
 
 export async function voteOnComment(commentId: string, voteType: VoteType) {
@@ -99,7 +99,7 @@ export async function voteOnComment(commentId: string, voteType: VoteType) {
   })
 
   if (comment) {
-    revalidatePath(`/doubts/${comment.doubtId}`)
+    revalidatePath(`/doubt/${comment.doubtId}`)
   }
 }
 
@@ -149,5 +149,5 @@ export async function markCommentAsAccepted(commentId: string) {
     data: { isResolved: true },
   })
 
-  revalidatePath(`/doubts/${comment.doubtId}`)
+  revalidatePath(`/doubt/${comment.doubtId}`)
 }

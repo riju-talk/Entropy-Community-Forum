@@ -140,7 +140,7 @@ export function DoubtCard({ doubt }: DoubtCardProps) {
   }
 
   const handleCardClick = () => {
-    router.push(`/doubts/${doubt.id}`)
+    router.push(`/doubt/${doubt.id}`)
   }
 
   const hasAnswers = (doubt._count?.answers || 0) > 0

@@ -56,7 +56,7 @@ export async function createDoubt(formData: FormData) {
 
   revalidatePath("/")
   revalidatePath(`/communities/${data.communityId}`)
-  redirect(`/doubts/${doubt.id}`)
+  redirect(`/doubt/${doubt.id}`)
 }
 
 export async function getDoubts(params?: {

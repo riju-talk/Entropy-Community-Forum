@@ -124,8 +124,18 @@ export function NotebookLayout({
                 <ScrollArea className="flex-1">
                     <div className="p-4 space-y-6">
                         <div className="grid grid-cols-2 gap-3">
-                            <StudioItem icon={Plus} label="Audio Overview" color="cyan" />
-                            <StudioItem icon={BrainCircuit} label="Video Overview" color="purple" />
+                            <StudioItem 
+                                icon={Plus} 
+                                label="Audio Overview" 
+                                color="cyan" 
+                                onClick={() => alert("🚧 Coming Soon! Audio overview feature is currently in development.")} 
+                            />
+                            <StudioItem 
+                                icon={BrainCircuit} 
+                                label="Video Overview" 
+                                color="purple" 
+                                onClick={() => alert("🚧 Coming Soon! Video overview feature is currently in development.")} 
+                            />
                             <StudioItem icon={BrainCircuit} label="Mind Map" color="orange" onClick={() => onTabChange("mindmap")} />
                             <StudioItem icon={Files} label="Quizzes" color="blue" onClick={() => onTabChange("assessments")} />
                         </div>

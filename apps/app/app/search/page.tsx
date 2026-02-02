@@ -175,7 +175,7 @@ function SearchPageContent() {
                 {filteredDoubts.map((doubt) => (
                   <Card key={doubt.id} className="hover:border-primary transition-colors">
                     <CardHeader>
-                      <Link href={`/doubts/${doubt.id}`}>
+                      <Link href={`/doubt/${doubt.id}`}>
                         <CardTitle className="hover:text-primary transition-colors cursor-pointer">
                           {doubt.title}
                         </CardTitle>

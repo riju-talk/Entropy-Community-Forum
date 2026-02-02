@@ -29,7 +29,7 @@ export async function createAnswer(doubtId: string, content: string) {
     },
   })
 
-  revalidatePath(`/doubts/${doubtId}`)
+  revalidatePath(`/doubt/${doubtId}`)
 
   return answer
 }
@@ -77,7 +77,7 @@ export async function acceptAnswer(answerId: string, doubtId: string) {
       doubtId
     )
 
-    revalidatePath(`/doubts/${doubtId}`)
+    revalidatePath(`/doubt/${doubtId}`)
 
     return { success: true }
   } catch (error) {
@@ -152,7 +152,7 @@ export async function voteOnAnswer(answerId: string, voteType: "UP" | "DOWN") {
     },
   })
 
-  revalidatePath(`/doubts/${answer.doubtId}`)
+  revalidatePath(`/doubt/${answer.doubtId}`)
   if (answer.doubt.communityId) {
     revalidatePath(`/communities/${answer.doubt.communityId}`)
   }

@@ -13,14 +13,14 @@ export default function AIAgentPage() {
   const [selectedDoc, setSelectedDoc] = useState<any | null>(null)
 
   return (
-    <div className="h-full">
+    <div className="fixed inset-0 pt-16 bg-background">
       <NotebookLayout
         activeTab={activeTab}
         onTabChange={setActiveTab}
         selectedDocId={selectedDoc?.id}
         onDocSelect={setSelectedDoc}
       >
-        <div className="h-full">
+        <div className="h-full w-full">
           {activeTab === "qa" && <ChatAgent contextDoc={selectedDoc} />}
           {activeTab === "mindmap" && <MindMapAgent contextDoc={selectedDoc} />}
           {(activeTab === "assessments" || activeTab === "flashcards") && (
